@@ -1,0 +1,366 @@
+﻿//mineutils库的OpenCV相关便利功能，基于OpenCV 3.2.0以上版本
+#pragma once
+#ifndef CV_HPP_MINEUTILS
+#define CV_HPP_MINEUTILS
+
+#include<limits.h>
+#include<string>
+#include<vector>
+#include"opencv2/core.hpp"
+#include"opencv2/highgui.hpp"
+#include"opencv2/imgproc.hpp"
+#include"opencv2/videoio.hpp"
+
+
+#include"str.hpp"
+#include"log.hpp"
+#include"math.hpp"
+
+
+namespace mineutils
+{
+	namespace mext
+	{
+		/*
+		#cv2.VideoWriter_fourcc('X', '2', '6', '4'), 该参数是较新的MPEG-4编码,产生的文件较小,文件扩展名应为.mp4
+		#cv2.VideoWriter_fourcc('P', 'I', 'M', 'I'), 该参数是较旧的MPEG-1编码,文件名后缀为.avi
+		#cv2.VideoWriter_fourcc('M', 'P', '4', '2'), 该参数是MPEG-2编码,产生的文件不会特别大,文件名后缀为.avi
+		#cv2.VideoWriter_fourcc('D', 'I', 'V', '3'), 该参数是MPEG-3编码,产生的文件不会特别大,文件名后缀为.avi
+		#cv2.VideoWriter_fourcc('D', 'I', 'V', 'X'), 该参数是MPEG-4编码,产生的文件不会特别大,文件名后缀为.avi
+		#cv2.VideoWriter_fourcc('X', 'V', 'I', 'D'), 该参数是较旧的MPEG-4编码,产生的文件不会特别大,文件名后缀为.avi
+		#cv2.VideoWriter_fourcc('M', 'P', '4', 'V'), 该参数也是较旧的MPEG-4编码,产生的文件不会特别大,文件扩展名应为.m4v
+		#cv2.VideoWriter_fourcc('T', 'H', 'E', 'O'), 该参数是Ogg Vorbis,产生的文件相对较大,文件名后缀为.ogv
+		#cv2.VideoWriter_fourcc('F', 'L', 'V', '1'), 该参数是Flash视频,产生的文件相对较大,文件名后缀为.flv
+		#cv2.VideoWriter_fourcc('M', 'J', 'P', 'G'), 该参数是motion-jpeg编码,产生的文件较大,文件名后缀为.avi
+		#cv2.VideoWriter_fourcc('I', '4', '2', '0'),该参数是未压缩的YUV编码,4:2:0色度子采样,这种编码广泛兼容,但会产生特别大的文件,文件扩展名应为.avi 
+		*/
+
+		//快速设置窗口属性，返回为窗口的名字
+		inline std::string setWindowCV(const std::string& win_name, cv::Size size = { -1, -1 },
+			std::pair<int, int> position = { -1, -1 }, int flag = cv::WINDOW_FREERATIO)
+		{
+			cv::namedWindow(win_name, flag);
+			if (size.width != -1)
+				cv::resizeWindow(win_name, size.width, size.height);
+			if (position.first != -1)
+				cv::moveWindow(win_name, position.first, position.second);
+			return win_name;
+		}
+
+
+		//快速显示图像，一步到位设置窗口和显示属性
+		inline int quickShowCV(const std::string& win_name, cv::Mat& img,
+			float wait = 1, bool close = false, cv::Size size = { -1, -1 },
+			std::pair<int, int> position = { -1, -1 }, int flag = cv::WINDOW_FREERATIO)
+		{
+			cv::namedWindow(win_name, flag);
+			if (size.width != -1)
+				cv::resizeWindow(win_name, size.width, size.height);
+			if (position.first != -1)
+				cv::moveWindow(win_name, position.first, position.second);
+			cv::imshow(win_name, img);
+			int k = cv::waitKey(wait) & 0xff;
+			if (close)
+				cv::destroyWindow(win_name);
+			return k;
+		}
+
+		//快速显示视频
+		inline void quickPlayCV(const std::string& win_name, const std::string& video_path,
+			float wait = 30, cv::Size size = { -1, -1 },
+			std::pair<int, int> position = { -1, -1 }, int flag = cv::WINDOW_FREERATIO)
+		{
+			auto cap = cv::VideoCapture(video_path);
+			if (not cap.isOpened())
+			{
+				std::cout << mlog::messageE("{}: Open video failed, skiped!\n", __FUNCTION__);
+				return;
+			}
+			mext::setWindowCV(win_name, size, position, flag);
+			cv::Mat frame;
+			while (true)
+			{
+				bool ret = cap.read(frame);
+				if (not ret)
+				{
+					cv::destroyWindow(win_name);
+					std::cout << mlog::messageN(mstr::Color::green, "{}: Video end.\n", __FUNCTION__);
+					break;
+				}
+				cv::imshow(win_name, frame);
+				int k = cv::waitKey(wait) & 0xff;
+				if (k == 27)
+				{
+					cv::destroyWindow(win_name);
+					std::cout << mlog::messageN(mstr::Color::green, "{}: Received stop signal, stoped the video.\n", __FUNCTION__);
+					break;
+				}
+			}
+			cap.release();
+		}
+
+
+		/*---------------------------------------------------------------------------------*/
+		/*	为图像添加文字
+			@param img：cv::Mat图像
+			@param label：文字内容
+			@param position：文字左下角坐标
+			@param text_color：文字颜色
+			@param word_type：文字类型，用opencv的HersheyFonts枚举类型表示
+			@param word_scale：文字尺寸
+			@param text_thickness：文字粗细
+			@param have_bg：是否为文字添加背景
+			@param bg_color：文字背景的颜色，have_bg为true时生效   */
+		inline void putLabelCV(cv::Mat& img, const std::string& label, cv::Point position, cv::Scalar text_color = { 255,255,255 },
+			int word_type = cv::FONT_HERSHEY_SIMPLEX, float word_scale = 1, int text_thickness = 2,
+			bool have_bg = true, cv::Scalar bg_color = { 255, 0, 0 })
+		{
+			if (label.size() != 0)
+			{
+				cv::Point& c1 = position;
+				if (have_bg)
+				{
+					int baseline;
+					cv::Size text_size = cv::getTextSize(label, word_type, word_scale, text_thickness, &baseline);
+					cv::Point c2 = { c1.x + text_size.width, c1.y - (int)(text_size.height * 1.2) };
+					cv::rectangle(img, c1, c2, bg_color, -1);
+				}
+				cv::putText(img, label, c1, word_type, word_scale, text_color, text_thickness, cv::LINE_AA);
+			}
+		}
+
+		/*	在图像上绘制检测框及标签
+			@param img：cv::Mat图像
+			@param ltrb：检测框坐标{left, top, right, botton}
+			@param label：文字内容
+			@param bbox_color：检测框颜色
+			@param text_color：文字颜色
+			@param word_type：文字类型，用opencv的HersheyFonts枚举类型表示
+			@param word_scale：文字尺寸
+			@param bbox_thickness：检测框粗细
+			@param text_thickness：文字粗细   */
+		inline void putBoxCV(cv::Mat& img, const mmath::LTRB& ltrb, const std::string& label = "",
+			cv::Scalar bbox_color = { 0,255,0 }, cv::Scalar text_color = { 255,255,255 },
+			int word_type = cv::FONT_HERSHEY_SIMPLEX, float word_scale = 1,
+			int bbox_thickness = 3, int text_thickness = 2)
+		{
+			cv::Point c1 = { ltrb.left , ltrb.top };
+			cv::Point c2 = { ltrb.right , ltrb.bottom };
+			cv::rectangle(img, c1, c2, bbox_color, bbox_thickness);
+
+			c1.x -= bbox_thickness - 1;
+			c1.y -= bbox_thickness - 1;
+
+			if (label.size() > 0)
+			{
+				cv::Point label_pos = c1;
+				int* baseline = nullptr;
+				cv::Size text_size = cv::getTextSize(label, word_type, word_scale, text_thickness, baseline);
+				if (label_pos.x + text_size.width > img.cols)
+					label_pos.x = img.cols - text_size.width;
+				if (label_pos.y - text_size.height < 0)
+					label_pos.y = c1.y + text_size.height;
+				mext::putLabelCV(img, label, label_pos, text_color, word_type, word_scale, text_thickness, true, bbox_color);
+			}
+		}
+
+		/*	在图像上绘制检测框及标签
+			@param img：cv::Mat图像
+			@param xywh：检测框坐标{center_x, center_y, width, height}
+			@param label：文字内容
+			@param bbox_color：检测框颜色
+			@param text_color：文字颜色
+			@param word_type：文字类型，用opencv的HersheyFonts枚举类型表示
+			@param word_scale：文字尺寸
+			@param bbox_thickness：检测框粗细
+			@param text_thickness：文字粗细   */
+		inline void putBoxCV(cv::Mat& img, mmath::XYWH xywh, const std::string& label = "",
+			cv::Scalar bbox_color = { 0,255,0 }, cv::Scalar text_color = { 255,255,255 },
+			int word_type = cv::FONT_HERSHEY_SIMPLEX, float word_scale = 1,
+			int bbox_thickness = 3, int text_thickness = 2)
+		{
+			mext::putBoxCV(img, xywh.toLTRB(), label, bbox_color, text_color, word_type, word_scale, bbox_thickness, text_thickness);
+		}
+
+		//自定义3个通道的值
+		template<class T = int>
+		inline void channelInit(cv::Mat& mat, cv::Point3_<T> channel_value = { 0, 0, 0 })
+		{
+			std::vector<cv::Mat> ma_mb_mc;
+			cv::split(mat, ma_mb_mc);
+			ma_mb_mc[0] = channel_value.x;
+			ma_mb_mc[1] = channel_value.y;
+			ma_mb_mc[2] = channel_value.z;
+			cv::merge(ma_mb_mc, mat);
+		}
+		
+		template<class MatT>
+		inline void _printCVMat(const cv::Mat& img, int xstart, int xend, int ystart, int yend, bool isInt)
+		{
+			std::cout << "cv::Mat{";
+			for (int y = ystart; y < yend; y++)
+			{
+				if (y == ystart)
+					std::cout << "[";
+				else std::cout << std::string(8, ' ') << "[";
+				auto* ptr = img.ptr<MatT>(y);
+				for (int x = xstart; x < xend; x++)
+				{
+					if (isInt)
+					{
+						std::cout << mstr::zfillInt(ptr[x], 3, ' ');
+						if (x != xend - 1)
+							std::cout << " ";
+					}
+					else
+					{
+						std::cout << mstr::zfillFlt(ptr[x], 3, 4, ' ', '0');
+						if (x != xend - 1)
+							std::cout << " ";
+					}
+				}
+				if (y != yend - 1)
+					std::cout << "]\n";
+				else std::cout << "]";
+			}
+			std::cout << "}\n";
+		}
+
+		template<class cvVec>
+		inline void _printCVMat(const cv::Mat& img, int xstart, int xend, int ystart, int yend, int cstart, int cend, bool isInt)
+		{
+			std::cout << "cv::Mat{";
+			for (int y = ystart; y < yend; y++)
+			{
+				if (y == ystart)
+					std::cout << "[";
+				else std::cout << std::string(8, ' ') << "[";
+				auto* ptr = img.ptr<cvVec>(y);
+				for (int x = xstart; x < xend; x++)
+				{
+					std::cout << "(";
+					for (int c = cstart; c < cend; c++)
+					{
+						if (isInt)
+						{
+							std::cout << mstr::zfillInt(ptr[x][c], 5, ' ');
+							if (c != cend - 1)
+								std::cout << " ";
+						}
+						else
+						{
+							std::cout << mstr::zfillFlt(ptr[x][c], 3, 4, ' ', '0');
+							if (c != cend - 1)
+								std::cout << " ";
+						}
+					}
+					if (x != xend - 1)
+						std::cout << ") ";
+					else std::cout << ")";
+				}
+				if (y != yend - 1)
+					std::cout << "]\n";
+				else std::cout << "]";
+			}
+			std::cout << "}\n";
+		}
+
+		/*	打印cv::Mat的值
+			@param img：要打印的cv::Mat
+			@param x_range：x坐标值或range，支持Python风格range
+			@param y_range：y坐标值或range，支持Python风格range
+			@param c_range：channel值或range，支持Python风格range   */
+		template<class Tx = std::pair<int, int>, class Ty = std::pair<int, int>, class Tc = std::pair<int, int>>
+		inline void printMat(const cv::Mat& img, Tx x_range = {0, INT_MAX}, Ty y_range = { 0, INT_MAX }, Tc c_range = { 0, INT_MAX })
+		{
+			/*		C1	C2	C3	C4
+			CV_8U	0	8	16	24       uchar
+			CV_8S	1	9	17	25       char
+			CV_16U	2	10	18	26       ushort
+			CV_16S	3	11	19	27       short
+			CV_32S	4	12	20	28       int
+			CV_32F	5	13	21	29       float
+			CV_64F	6	14	22	30       double */
+
+			using pt = std::pair<int, int>;
+
+			pt x_norm_range = mmath::normRange(x_range, img.cols);
+			pt y_norm_range = mmath::normRange(y_range, img.rows);
+			pt c_norm_range = mmath::normRange(c_range, img.channels());
+			int xstart = x_norm_range.first, xend = x_norm_range.second;
+			int ystart = y_norm_range.first, yend = y_norm_range.second;
+			int cstart = c_norm_range.first, cend = c_norm_range.second;
+
+			if (img.channels() == 1)
+			{
+				if (img.depth() == CV_8U)
+					_printCVMat<uchar>(img, xstart, xend, ystart, yend, true);
+				else if (img.depth() == CV_8S)
+					_printCVMat<short>(img, xstart, xend, ystart, yend, true);
+				else if (img.depth() == CV_16U)
+					_printCVMat<ushort>(img, xstart, xend, ystart, yend, true);
+				else if (img.depth() == CV_16S)
+					_printCVMat<short>(img, xstart, xend, ystart, yend, true);
+				else if (img.depth() == CV_32S)
+					_printCVMat<int>(img, xstart, xend, ystart, yend, true);
+				else if (img.depth() == CV_32F)
+					_printCVMat<float>(img, xstart, xend, ystart, yend, false);
+				else if (img.depth() == CV_64F)
+					_printCVMat<double>(img, xstart, xend, ystart, yend, false);
+			}
+			else if (img.channels() == 2)
+			{
+				if (img.depth() == CV_8U)
+					_printCVMat<cv::Vec<uchar, 2>>(img, xstart, xend, ystart, yend, cstart, cend, true);
+				else if (img.depth() == CV_8S)
+					_printCVMat<cv::Vec<char, 2>>(img, xstart, xend, ystart, yend, cstart, cend, true);
+				else if (img.depth() == CV_16U)
+					_printCVMat<cv::Vec<ushort, 2>>(img, xstart, xend, ystart, yend, cstart, cend, true);
+				else if (img.depth() == CV_16S)
+					_printCVMat<cv::Vec<short, 2>>(img, xstart, xend, ystart, yend, cstart, cend, true);
+				else if (img.depth() == CV_32S)
+					_printCVMat<cv::Vec<int, 2>>(img, xstart, xend, ystart, yend, cstart, cend, true);
+				else if (img.depth() == CV_32F)
+					_printCVMat<cv::Vec<float, 2>>(img, xstart, xend, ystart, yend, cstart, cend, false);
+				else if (img.depth() == CV_64F)
+					_printCVMat<cv::Vec<double, 2>>(img, xstart, xend, ystart, yend, cstart, cend, false);
+			}
+			else if (img.channels() == 3)
+			{
+				if (img.depth() == CV_8U)
+					_printCVMat<cv::Vec<uchar, 3>>(img, xstart, xend, ystart, yend, cstart, cend, true);
+				else if (img.depth() == CV_8S)
+					_printCVMat<cv::Vec<char, 3>>(img, xstart, xend, ystart, yend, cstart, cend, true);
+				else if (img.depth() == CV_16U)
+					_printCVMat<cv::Vec<ushort, 3>>(img, xstart, xend, ystart, yend, cstart, cend, true);
+				else if (img.depth() == CV_16S)
+					_printCVMat<cv::Vec<short, 3>>(img, xstart, xend, ystart, yend, cstart, cend, true);
+				else if (img.depth() == CV_32S)
+					_printCVMat<cv::Vec<int, 3>>(img, xstart, xend, ystart, yend, cstart, cend, true);
+				else if (img.depth() == CV_32F)
+					_printCVMat<cv::Vec<float, 3>>(img, xstart, xend, ystart, yend, cstart, cend, false);
+				else if (img.depth() == CV_64F)
+					_printCVMat<cv::Vec<double, 3>>(img, xstart, xend, ystart, yend, cstart, cend, false);
+			}
+			else if (img.channels() == 4)
+			{
+				if (img.depth() == CV_8U)
+					_printCVMat<cv::Vec<uchar, 4>>(img, xstart, xend, ystart, yend, cstart, cend, true);
+				else if (img.depth() == CV_8S)
+					_printCVMat<cv::Vec<char, 4>>(img, xstart, xend, ystart, yend, cstart, cend, true);
+				else if (img.depth() == CV_16U)
+					_printCVMat<cv::Vec<ushort, 4>>(img, xstart, xend, ystart, yend, cstart, cend, true);
+				else if (img.depth() == CV_16S)
+					_printCVMat<cv::Vec<short, 4>>(img, xstart, xend, ystart, yend, cstart, cend, true);
+				else if (img.depth() == CV_32S)
+					_printCVMat<cv::Vec<int, 4>>(img, xstart, xend, ystart, yend, cstart, cend, true);
+				else if (img.depth() == CV_32F)
+					_printCVMat<cv::Vec<float, 4>>(img, xstart, xend, ystart, yend, cstart, cend, false);
+				else if (img.depth() == CV_64F)
+					_printCVMat<cv::Vec<double, 4>>(img, xstart, xend, ystart, yend, cstart, cend, false);
+			}
+		}
+	}
+}
+
+#endif // !CV_HPP_MINEUTILS
