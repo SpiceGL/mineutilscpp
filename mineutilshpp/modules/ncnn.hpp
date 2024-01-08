@@ -13,6 +13,7 @@
 #include"str.hpp"
 #include"log.hpp"
 #include"math.hpp"
+#include"io.hpp"
 
 
 namespace mineutils
@@ -122,14 +123,14 @@ namespace mineutils
 		}
 	}
 
-	//namespace mio
-	//{
-	//	//为print函数添加对ncnn::Mat的支持
-	//	inline void _print(const ncnn::Mat& m)
-	//	{
-	//		mext::printMat(m);
-	//	}
-	//}
+	namespace mio
+	{
+		//为print函数添加对ncnn::Mat的支持
+		inline void _print(const ncnn::Mat& m)
+		{
+			mext::printMat(m);
+		}
+	}
 }
 
 #endif // !NCNN_HPP_MINEUTILS

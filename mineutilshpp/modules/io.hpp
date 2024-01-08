@@ -1,4 +1,5 @@
-﻿#pragma once
+﻿//mineutils库的终端输入输出相关
+#pragma once
 #ifndef IO_HPP_MINEUTILS
 #define IO_HPP_MINEUTILS
 
@@ -24,6 +25,29 @@
 #else
 #define dprintf(fmt, ...) ((void*)0)
 #endif 
+
+
+#ifndef OPENCV_CORE_HPP
+namespace cv
+{
+	class Mat;
+	class MatExpr;
+	template<typename _Tp> class Point_;
+	template<typename _Tp> class Point3_;
+	template<typename _Tp> class Size_;
+	struct MatSize;
+	template<typename _Tp> class Rect_;
+	template<typename _Tp, int cn> class Vec;
+}
+#endif
+
+#ifndef NCNN_NET_H
+namespace ncnn
+{
+	class Mat;
+}
+#endif // !NCNN_NET_H
+
 
 
 namespace mineutils
@@ -79,29 +103,29 @@ namespace mineutils
 		template<class T, int N>
 		void _print(const T(&arr)[N]);
 
-#ifdef CV_HPP_MINEUTILS
-		inline void _print(const cv::Mat& img);
+//#ifdef CV_HPP_MINEUTILS
+		void _print(const cv::Mat& img);
 
-		inline void _print(const cv::MatExpr& img);
-
-		template<class T>
-		inline void _print(const cv::Point_<T>& pt);
+		void _print(const cv::MatExpr& img);
 
 		template<class T>
-		inline void _print(const cv::Point3_<T>& pt);
+		void _print(const cv::Point_<T>& pt);
 
 		template<class T>
-		inline void _print(const cv::Size_<T>& sz);
-
-		inline void _print(const cv::MatSize& sz);
+		void _print(const cv::Point3_<T>& pt);
 
 		template<class T>
-		inline void _print(const cv::Rect_<T>& rect);
-#endif // CV_HPP_MINEUTILS
+		void _print(const cv::Size_<T>& sz);
 
-#ifdef NCNN_HPP_MINEUTILS
-		inline void _print(const ncnn::Mat& m);
-#endif // NCNN_HPP_MINEUTILS
+		void _print(const cv::MatSize& sz);
+
+		template<class T>
+		void _print(const cv::Rect_<T>& rect);
+//#endif // CV_HPP_MINEUTILS
+
+//#ifdef NCNN_HPP_MINEUTILS
+		void _print(const ncnn::Mat& m);
+//#endif // NCNN_HPP_MINEUTILS
 
 
 		/*-------------------------------------定义--------------------------------------*/
@@ -311,68 +335,6 @@ namespace mineutils
 				std::cout << "]";
 			}
 		}
-
-#ifdef CV_HPP_MINEUTILS
-		//为print函数添加对cv::Mat类型的支持
-		inline void _print(const cv::Mat& img)
-		{
-			std::cout << "\n";
-			mext::printMat(img, { 0, INT_MAX }, { 0, INT_MAX }, { 0, INT_MAX });
-		}
-
-		//为print函数添加对cv::MatExpr类型的支持
-		inline void _print(const cv::MatExpr& img)
-		{
-			std::cout << "\n";
-			mext::printMat(img, { 0, INT_MAX }, { 0, INT_MAX }, { 0, INT_MAX });
-		}
-
-		//为print函数添加对cv::Point_类型的支持
-		template<class T>
-		inline void _print(const cv::Point_<T>& pt)
-		{
-			std::cout << "(" << pt.x << ", " << pt.y << ")";
-		}
-
-		//为print函数添加对cv::Point3_类型的支持
-		template<class T>
-		inline void _print(const cv::Point3_<T>& pt)
-		{
-			std::cout << "(" << pt.x << ", " << pt.y << ", " << pt.z << ")";
-		}
-
-		//为print函数添加对cv::Size_类型的支持
-		template<class T>
-		inline void _print(const cv::Size_<T>& sz)
-		{
-			std::cout << "(" << sz.width << ", " << sz.height << ")";
-		}
-
-		//为print函数添加对cv::MatSize类型的支持
-		inline void _print(const cv::MatSize& sz)
-		{
-			std::cout << "(" << sz << ")";
-		}
-
-		//为print函数添加对cv::Rect_<T>类型的支持
-		template<class T>
-		inline void _print(const cv::Rect_<T>& rect)
-		{
-			std::cout << "(" << rect.x << " "
-				<< rect.y << " "
-				<< rect.width << " "
-				<< rect.height << ")";
-		}
-#endif // CV_HPP_MINEUTILS
-
-#ifdef NCNN_HPP_MINEUTILS
-		//为print函数添加对ncnn::Mat的支持
-		inline void _print(const ncnn::Mat& m)
-		{
-			mext::printMat(m);
-		}
-#endif // NCNN_HPP_MINEUTILS
-
 	}
 }
 

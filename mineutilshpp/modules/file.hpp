@@ -148,7 +148,7 @@ namespace mineutils
 			template<class T>
 			void setValue(const std::string& section, const std::string& key, const T& value)
 			{
-				std::string s_value = toStr(value);
+				std::string s_value = mstr::toStr(value);
 				rwstatus_ = 'w';
 				int section_start, section_end;
 				if (section.size() > 0)
@@ -161,7 +161,7 @@ namespace mineutils
 					section_start = 0;
 					section_end = content_.size();
 				}
-				if (section_start >= 0 && section_end >= 0)
+				if (section_start >= 0 && section_end >= section_start + 1)
 				{
 					int key_idx = findKey(section_start, section_end, key);
 					if (key_idx >= 0)
