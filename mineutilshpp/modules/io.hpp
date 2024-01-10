@@ -139,7 +139,7 @@ namespace mineutils
 
 
 		/*	实现类似Python的print打印功能
-			-线程安全
+			-在不混用print函数和std::cout打印时，线程安全
 			-支持int、float、char、std::string等基本类型数据的输出
 			-支持int[]、float[]等基本多维数组类型数据的输出
 			-支持std::vector、std::tuple等常用STL容器内容的输出
@@ -302,7 +302,7 @@ namespace mineutils
 			std::cout << str;
 		}
 
-		//为print函数添加对std::bool类型的支持
+		//为print函数添加对bool类型的支持
 		inline void _print(const bool& arg)
 		{
 			if (arg)

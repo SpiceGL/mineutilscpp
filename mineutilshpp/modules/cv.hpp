@@ -3,6 +3,9 @@
 #ifndef CV_HPP_MINEUTILS
 #define CV_HPP_MINEUTILS
 
+#include<algorithm>
+#include<iomanip>
+#include<iostream>
 #include<limits.h>
 #include<string>
 #include<vector>
@@ -102,6 +105,7 @@ namespace mineutils
 
 
 		/*---------------------------------------------------------------------------------*/
+
 		/*	为图像添加文字
 			@param img：cv::Mat图像
 			@param label：文字内容
@@ -195,27 +199,49 @@ namespace mineutils
 			cv::merge(ma_mb_mc, mat);
 		}
 		
-		template<class MatT>
+		template<class DataT>
 		inline void _printCVMat(const cv::Mat& img, int xstart, int xend, int ystart, int yend, bool isInt)
 		{
+			double neg_value, pos_value;
+			cv::minMaxLoc(img(cv::Range(xstart, xend), cv::Range(ystart, yend)), &neg_value, &pos_value);
+			int digits_neg = 0, digits_pos = 0;
+			do
+			{
+				neg_value /= 10;
+				digits_neg++;
+			} while (neg_value <= -1);
+			do
+			{
+				pos_value /= 10;
+				digits_pos++;
+			} while (pos_value >= 1);
+
+			int digits;
+			if (digits_neg >= digits_pos && digits_neg < 0)
+				digits = digits_neg + 1;
+			else digits = digits_pos;
+
 			std::cout << "cv::Mat{";
 			for (int y = ystart; y < yend; y++)
 			{
 				if (y == ystart)
 					std::cout << "[";
 				else std::cout << std::string(8, ' ') << "[";
-				auto* ptr = img.ptr<MatT>(y);
+				auto* ptr = img.ptr<DataT>(y);
 				for (int x = xstart; x < xend; x++)
 				{
 					if (isInt)
 					{
-						std::cout << mstr::zfillInt(ptr[x], 3, ' ');
+						std::cout << std::setw(digits) << int(ptr[x]);
 						if (x != xend - 1)
 							std::cout << " ";
 					}
 					else
 					{
-						std::cout << mstr::zfillFlt(ptr[x], 3, 4, ' ', '0');
+						if (digits <= 3)
+							std::cout << mstr::zfillFlt(ptr[x], digits, 4, ' ', '0');
+						else
+							std::cout << std::setiosflags(std::ios::scientific) << std::setprecision(5) << ptr[x];
 						if (x != xend - 1)
 							std::cout << " ";
 					}
@@ -227,16 +253,38 @@ namespace mineutils
 			std::cout << "}\n";
 		}
 
-		template<class cvVec>
+		template<class DataT, size_t CN>
 		inline void _printCVMat(const cv::Mat& img, int xstart, int xend, int ystart, int yend, int cstart, int cend, bool isInt)
 		{
+			int digits;
+			if (isInt)
+			{
+				double neg_value, pos_value;
+				cv::minMaxLoc(img(cv::Range(ystart, yend), cv::Range(xstart, xend)), &neg_value, &pos_value);
+				int digits_neg = 0, digits_pos = 0;
+				do
+				{
+					neg_value /= 10;
+					digits_neg++;
+				} while (neg_value <= -1);
+				do
+				{
+					pos_value /= 10;
+					digits_pos++;
+				} while (pos_value >= 1);
+
+				if (digits_neg >= digits_pos && digits_neg < 0)
+					digits = digits_neg + 1;
+				else digits = digits_pos;
+			}
+
 			std::cout << "cv::Mat{";
 			for (int y = ystart; y < yend; y++)
 			{
 				if (y == ystart)
 					std::cout << "[";
 				else std::cout << std::string(8, ' ') << "[";
-				auto* ptr = img.ptr<cvVec>(y);
+				auto* ptr = img.ptr<cv::Vec<DataT, CN>>(y);
 				for (int x = xstart; x < xend; x++)
 				{
 					std::cout << "(";
@@ -244,13 +292,17 @@ namespace mineutils
 					{
 						if (isInt)
 						{
-							std::cout << mstr::zfillInt(ptr[x][c], 5, ' ');
+							if (digits <= 11)
+								std::cout << std::setw(digits) << int(ptr[x][c]);
+							else std::cout << std::setiosflags(std::ios::scientific) 
+								<< std::setprecision(4) << std::setw(11) << int(ptr[x][c]);
 							if (c != cend - 1)
 								std::cout << " ";
 						}
 						else
 						{
-							std::cout << mstr::zfillFlt(ptr[x][c], 3, 4, ' ', '0');
+							std::cout << std::setiosflags(std::ios::scientific)
+								<< std::setprecision(4) << std::setw(11) << ptr[x][c];
 							if (c != cend - 1)
 								std::cout << " ";
 						}
@@ -266,7 +318,7 @@ namespace mineutils
 			std::cout << "}\n";
 		}
 
-		/*	打印cv::Mat的值
+		/*	打印cv::Mat的值，目前只支持2D的Mat
 			@param img：要打印的cv::Mat
 			@param x_range：x坐标值或range，支持Python风格range
 			@param y_range：y坐标值或range，支持Python风格range
@@ -310,6 +362,57 @@ namespace mineutils
 					_printCVMat<double>(img, xstart, xend, ystart, yend, false);
 			}
 			else if (img.channels() == 2)
+			{
+				if (img.depth() == CV_8U)
+					_printCVMat<uchar, 2>(img, xstart, xend, ystart, yend, cstart, cend, true);
+				else if (img.depth() == CV_8S)
+					_printCVMat<char, 2>(img, xstart, xend, ystart, yend, cstart, cend, true);
+				else if (img.depth() == CV_16U)
+					_printCVMat<ushort, 2>(img, xstart, xend, ystart, yend, cstart, cend, true);
+				else if (img.depth() == CV_16S)
+					_printCVMat<short, 2>(img, xstart, xend, ystart, yend, cstart, cend, true);
+				else if (img.depth() == CV_32S)
+					_printCVMat<int, 2>(img, xstart, xend, ystart, yend, cstart, cend, true);
+				else if (img.depth() == CV_32F)
+					_printCVMat<float, 2>(img, xstart, xend, ystart, yend, cstart, cend, false);
+				else if (img.depth() == CV_64F)
+					_printCVMat<double, 2>(img, xstart, xend, ystart, yend, cstart, cend, false);
+			}
+			else if (img.channels() == 3)
+			{
+				if (img.depth() == CV_8U)
+					_printCVMat<uchar, 3>(img, xstart, xend, ystart, yend, cstart, cend, true);
+				else if (img.depth() == CV_8S)
+					_printCVMat<char, 3>(img, xstart, xend, ystart, yend, cstart, cend, true);
+				else if (img.depth() == CV_16U)
+					_printCVMat<ushort, 3>(img, xstart, xend, ystart, yend, cstart, cend, true);
+				else if (img.depth() == CV_16S)
+					_printCVMat<short, 3>(img, xstart, xend, ystart, yend, cstart, cend, true);
+				else if (img.depth() == CV_32S)
+					_printCVMat<int, 3>(img, xstart, xend, ystart, yend, cstart, cend, true);
+				else if (img.depth() == CV_32F)
+					_printCVMat<float, 3>(img, xstart, xend, ystart, yend, cstart, cend, false);
+				else if (img.depth() == CV_64F)
+					_printCVMat<double, 3>(img, xstart, xend, ystart, yend, cstart, cend, false);
+			}
+			else if (img.channels() == 4)
+			{
+				if (img.depth() == CV_8U)
+					_printCVMat<uchar, 4>(img, xstart, xend, ystart, yend, cstart, cend, true);
+				else if (img.depth() == CV_8S)
+					_printCVMat<char, 4>(img, xstart, xend, ystart, yend, cstart, cend, true);
+				else if (img.depth() == CV_16U)
+					_printCVMat<ushort, 4>(img, xstart, xend, ystart, yend, cstart, cend, true);
+				else if (img.depth() == CV_16S)
+					_printCVMat<short, 4>(img, xstart, xend, ystart, yend, cstart, cend, true);
+				else if (img.depth() == CV_32S)
+					_printCVMat<int, 4>(img, xstart, xend, ystart, yend, cstart, cend, true);
+				else if (img.depth() == CV_32F)
+					_printCVMat<float, 4>(img, xstart, xend, ystart, yend, cstart, cend, false);
+				else if (img.depth() == CV_64F)
+					_printCVMat<double, 4>(img, xstart, xend, ystart, yend, cstart, cend, false);
+			}
+			/*else if (img.channels() == 2)
 			{
 				if (img.depth() == CV_8U)
 					_printCVMat<cv::Vec<uchar, 2>>(img, xstart, xend, ystart, yend, cstart, cend, true);
@@ -359,7 +462,7 @@ namespace mineutils
 					_printCVMat<cv::Vec<float, 4>>(img, xstart, xend, ystart, yend, cstart, cend, false);
 				else if (img.depth() == CV_64F)
 					_printCVMat<cv::Vec<double, 4>>(img, xstart, xend, ystart, yend, cstart, cend, false);
-			}
+			}*/
 		}
 	}
 

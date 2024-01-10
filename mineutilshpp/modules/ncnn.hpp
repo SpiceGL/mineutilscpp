@@ -92,8 +92,8 @@ namespace mineutils
 					{
 						ptr = m.channel(c);
 						if (c != cend - 1)
-							std::cout << ptr[x + bias] << " ";
-						else std::cout << ptr[x + bias];
+							std::cout << std::setiosflags(std::ios::scientific) << std::setprecision(4) << std::setw(11)<< ptr[x + bias] << " ";
+						else std::cout << std::setiosflags(std::ios::scientific) << std::setprecision(4) << std::setw(11) << ptr[x + bias];
 					}
 					if (x != xend - 1)
 						std::cout << ") ";
