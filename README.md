@@ -1,10 +1,23 @@
 # mineutilscpp
-一些C++的便利功能封装，用于方便自己编程。文本使用UTF8-SIG编码。   
+一些C++11的便利功能封装，用于方便自己编程。文本使用UTF8-SIG编码。   
 所有功能都放在命名空间mineutils下，同时根据所属模块分布在次级的命名空间，如mineutils::mstr、mineutils::mtime下；基于第三方库的功能统一在次级的命名空间mineutils::mext下。
 
 ## 版本信息
 当前库版本：1.0.2  
-文档注释修改日期：20240110
+文档注释修改日期：20240111  
+
+## 测试平台
+**Windows:**  
+VS2019  
+**Linux:**  
+gcc 9.4.0  
+arm-linux-gnueabihf-gcc 8.3.0  
+arm-linux-gnueabihf-gcc 9.4.0  
+aarch64-linux-gnu-gcc 6.3.1  
+aarch64-linux-gnu-gcc 9.4.0  
+**QNX660:**  
+arm-unknown-nto-qnx6.6.0eabi-gcc   
+**注：** qnx660上编译时需要额外添加g++指令：-D_GLIBCXX_USE_NANOSLEEP  
 
 ## 使用方法
 * 可以单独导入./mineutilshpp/modules下的模块，如：  
@@ -42,6 +55,7 @@
 **ncnn.hpp**|  NCNN相关便捷功能，如快捷运行网络、打印ncnn::Mat数据等。包含于mineutils::mext和mineutils::mio。    
 
 ## 模块功能示例  
+
 ### base.hpp: 
 ```
 ...
@@ -302,6 +316,10 @@ int main()
 ```  
 
 ## 版本更新日志
+**v1.0.2-20240111:** 
+1. 将库中的Tab制表符全部替换为4个空格；
+2. Readme文档更新测试平台。  
+
 **v1.0.2-20240110:** 
 1. 优化cv.hpp和ncnn.hpp中printMat函数的打印效果。
 
