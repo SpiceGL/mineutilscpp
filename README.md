@@ -1,10 +1,10 @@
 # mineutilscpp
-一些C++11的便利功能封装，用于方便自己编程。文本使用UTF8-SIG编码。   
+一些C++的便利功能封装，用于方便自己编程，代码基于C++11标准，文本使用UTF8-SIG编码。   
 所有功能都放在命名空间mineutils下，同时根据所属模块分布在次级的命名空间，如mineutils::mstr、mineutils::mtime下；基于第三方库的功能统一在次级的命名空间mineutils::mext下。
 
 ## 版本信息
-当前库版本：1.0.2  
-文档注释修改日期：20240111  
+当前库版本：1.0.3  
+文档注释修改日期：20240112  
 
 ## 测试平台
 **Windows:**  
@@ -34,7 +34,9 @@ arm-unknown-nto-qnx6.6.0eabi-gcc
 - 然后通过`using namespace mineutils`使用命名空间mineutils。由于所有功能都分布在次级的命名空间下，因此不用担心污染全局命名空间。  
 * 最后根据模块使用其中的功能，如`mstr::toStr(123)`。 
 
-**注：** io.hpp中仅声明了OpenCV和NCNN的数据类型的print相关函数，函数的实现在cv.hpp及ncnn.hpp中，因此如果使用print函数输出OpenCV或NCNN的相关数据类型，需要导入cv.hpp或ncnn.hpp。以OpenCV数据类型为例，如果未导入cv.hpp或__cvutils__.h，那么使用mio::print函数输出cv::Mat、cv::Point等类型时，会产生“undefined reference”、“无法解析的外部符号”类型的编译错误。
+**注1：** io.hpp中仅声明了OpenCV和NCNN的数据类型的print相关函数，函数的实现在cv.hpp及ncnn.hpp中，因此如果使用print函数输出OpenCV或NCNN的相关数据类型，需要导入cv.hpp或ncnn.hpp。以OpenCV数据类型为例，如果未导入cv.hpp或__cvutils__.h，那么使用mio::print函数输出cv::Mat等类型时，会产生“undefined reference”、“无法解析的外部符号”类型的编译错误。
+**注2：**  
+以下划线开头的函数和类不建议外部使用，这些仅用于内部功能实现，可能随时删改。  
 
 ## 模块介绍
 | 模块 | 功能|
@@ -244,21 +246,28 @@ int main()
 ```
 ...
 
+class MyClass {};
+
 int main()
 {
-    //类似Python里的print函数，输出标准库及已扩展的数据类型
+    //类似Python里的print函数，打印任意类型对象，不支持的类型将会打印<classname: address>
     int a = 10;
     float b = 10.5;
     std::string c = "ccc";
+    int d[3] = { 0, 1, 2 };
     std::vector<int> vec = { 1,2,3 };
     auto cvmat = cv::Mat::zeros(3, 5, CV_8UC3);
-    mio::print(a, b, c, vec, cvmat);
+    cv::Rect2d rect0(0, 0, 100, 200);
+    MyClass mc;
+    void* p = &mc;
+    mio::print(a, b, c, d, vec, cvmat, rect0, mc, p);
     
     /*    打印内容如下：
-    10 10.5 ccc [1 2 3]
-    cv::Mat{[(    0     0     0) (    0     0     0) (    0     0     0) (    0     0     0) (    0     0     0)]
-            [(    0     0     0) (    0     0     0) (    0     0     0) (    0     0     0) (    0     0     0)]
-            [(    0     0     0) (    0     0     0) (    0     0     0) (    0     0     0) (    0     0     0)]}
+    10 10.5 ccc {0 1 2} {1 2 3}
+    cv::Mat{[(0 0 0) (0 0 0) (0 0 0) (0 0 0) (0 0 0)]
+            [(0 0 0) (0 0 0) (0 0 0) (0 0 0) (0 0 0)]
+            [(0 0 0) (0 0 0) (0 0 0) (0 0 0) (0 0 0)]}
+     [100 x 200 from (0, 0)] <class MyClass: 0x0000008E111BF528> 0000008E111BF528
     */
     
     ...
@@ -316,6 +325,11 @@ int main()
 ```  
 
 ## 版本更新日志
+**v1.0.3-20240112:**  
+1. 灵感再次迸发！现在io.hpp中print函数可以打印任意类型的对象了，未支持的类型会打印类名+地址；
+2. 随着print函数功能的升级，删去了对OpenCV中cv::Mat和cv::MatExpr之外类型的拓展，这些类型无需拓展即可打印；
+1. 修复在qnx上部分模块缺少系统头文件导入的问题。
+
 **v1.0.2-20240111:** 
 1. 将库中的Tab制表符全部替换为4个空格；
 2. Readme文档更新测试平台。  

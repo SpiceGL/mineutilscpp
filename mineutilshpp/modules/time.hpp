@@ -6,6 +6,7 @@
 
 #include<chrono>
 #include<map>
+#include<stdio.h>
 #include<string>
 #include<thread>
 #include<vector>

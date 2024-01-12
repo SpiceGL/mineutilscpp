@@ -12,8 +12,13 @@
 #include<set>
 #include<stdio.h>
 #include<string>
-#include<typeinfo>
 #include<vector>
+
+#ifdef __GNUC__ 
+#include<cxxabi.h>
+#else
+#include<typeinfo>
+#endif
 
 #include"base.hpp"
 #include"type.hpp"
@@ -32,12 +37,6 @@ namespace cv
 {
     class Mat;
     class MatExpr;
-    template<typename _Tp> class Point_;
-    template<typename _Tp> class Point3_;
-    template<typename _Tp> class Size_;
-    struct MatSize;
-    template<typename _Tp> class Rect_;
-    template<typename _Tp, int cn> class Vec;
 }
 #endif
 
@@ -54,6 +53,16 @@ namespace mineutils
 {
     namespace mio
     {
+        template <class T>
+        struct CoutChecker
+        {
+            template<class AnyTp, class _CheckPos = decltype(std::cout << AnyTp()) >
+            static constexpr bool coutCheck(AnyTp*) { return true; }
+
+            static constexpr bool coutCheck(...) { return false; }
+            static constexpr bool result = coutCheck(static_cast<T*>(0));
+        };
+
         /*-------------------------------------声明--------------------------------------*/
         template<class T, class... Args>
         void print(const T& arg, const Args&... args);
@@ -97,8 +106,11 @@ namespace mineutils
 
         void _print(const bool& arg);
 
-        template<class T>
-        void _print(const T& arg);
+        template<class T, typename std::enable_if<CoutChecker<T>::result, void**>::type = nullptr>
+        inline void _print(const T& arg);
+
+        template<class T, class = typename std::enable_if<!CoutChecker<T>::result>::type>
+        inline void _print(const T& arg);
 
         template<class T, int N>
         void _print(const T(&arr)[N]);
@@ -107,20 +119,6 @@ namespace mineutils
         void _print(const cv::Mat& img);
 
         void _print(const cv::MatExpr& img);
-
-        template<class T>
-        void _print(const cv::Point_<T>& pt);
-
-        template<class T>
-        void _print(const cv::Point3_<T>& pt);
-
-        template<class T>
-        void _print(const cv::Size_<T>& sz);
-
-        void _print(const cv::MatSize& sz);
-
-        template<class T>
-        void _print(const cv::Rect_<T>& rect);
 //#endif // CV_HPP_MINEUTILS
 
 //#ifdef NCNN_HPP_MINEUTILS
@@ -139,11 +137,10 @@ namespace mineutils
 
 
         /*  实现类似Python的print打印功能
-            -在不混用print函数和std::cout打印时，线程安全
-            -支持int、float、char、std::string等基本类型数据的输出
-            -支持int[]、float[]等基本多维数组类型数据的输出
-            -支持std::vector、std::tuple等常用STL容器内容的输出
-            -Warning: 输出cv::Mat时可能被cv::print接管   */
+            -任意支持std::cout<<的类型都可以正常打印
+            -拓展了std::vector、std::tuple等常用STL容器及OpenCV、NCNN部分数据类型的打印
+            -既不支持std::cout<<，又未被拓展的类型将会打印<类型名: 地址>
+            -在不混用print函数和std::cout时，线程安全  */
         template<class T, class... Args>
         inline void print(const T& arg, const Args&... args)
         {
@@ -170,7 +167,7 @@ namespace mineutils
         template<class T, size_t N>
         void _print(const std::array<T, N>& arr)
         {
-            std::cout << "[";
+            std::cout << "{";
             if (N > 0)
             {
                 auto bg = arr.begin();
@@ -182,18 +179,18 @@ namespace mineutils
                 }
                 mio::_print(*bg);
             }
-            std::cout << "]";
+            std::cout << "}";
         }
 
         //为print函数添加对std::pair类型的支持
         template<class T1, class T2>
         inline void _print(const std::pair<T1, T2>& pa)
         {
-            std::cout << "[";
+            std::cout << "{";
             mio::_print(pa.first);
             std::cout << " ";
             mio::_print(pa.second);
-            std::cout << "]";
+            std::cout << "}";
         }
 
         //为print函数添加对std::tuple类型的支持
@@ -202,7 +199,7 @@ namespace mineutils
         {
             constexpr int size_tp = std::tuple_size<std::tuple<Ts...>>::value;
             if (Idx == 0)
-                std::cout << "[";
+                std::cout << "{";
 
             constexpr int type_id = (Idx < size_tp);
             auto& case_tag = std::get<type_id>(mbase::BOOL_CASE_TAGS);
@@ -229,7 +226,7 @@ namespace mineutils
         template<size_t Idx, class... Ts>
         inline void _printTuple(const std::tuple<Ts...>& tp, const int& size_tp, mbase::CaseTag0& tag)
         {
-            std::cout << "]";
+            std::cout << "}";
         }
 
         //为print函数添加对std::map类型的支持
@@ -280,7 +277,7 @@ namespace mineutils
         template<template<class C, class... Cs> class CTer, class T, class... Ts>
         inline void _print_stdcter(const CTer<T, Ts...>& cter)   //虽然用了双层模板，但单层也可以达成目的
         {
-            std::cout << "[";
+            std::cout << "{";
             int size = cter.size();
             if (size > 0)
             {
@@ -293,7 +290,7 @@ namespace mineutils
                 }
                 mio::_print(*bg);
             }
-            std::cout << "]";
+            std::cout << "}";
         }
 
         //为print函数添加对std::string类型的支持
@@ -310,11 +307,22 @@ namespace mineutils
             else std::cout << "false";
         }
 
-        //为print函数添加对基本类型的支持
-        template<class T>
+        //为print函数拓展其他支持std::cout<<的类型
+        template<class T, typename std::enable_if<CoutChecker<T>::result, void**>::type>
         inline void _print(const T& arg)
         {
             std::cout << arg;
+        }
+
+        //为print函数拓展其他不支持std::cout<<的类型
+        template<class T, class>
+        inline void _print(const T& arg)
+        {
+#ifdef __GNUC__
+            std::cout << "<" << abi::__cxa_demangle(typeid(T).name(), nullptr, nullptr, nullptr) << ": " << std::hex << &arg << std::dec << ">";
+#else
+            std::cout << "<" << typeid(T).name() << ": 0x" << std::hex << &arg << std::dec << ">";
+#endif // __GNUC__
         }
 
         //为print函数添加对数组类型的支持
@@ -325,14 +333,14 @@ namespace mineutils
                 std::cout << arr;
             else
             {
-                std::cout << "[";
+                std::cout << "{";
                 for (int i = 0; i < N - 1; i++)
                 {
                     mio::_print(arr[i]);
                     std::cout << " ";
                 }
                 mio::_print(arr[N - 1]);
-                std::cout << "]";
+                std::cout << "}";
             }
         }
     }

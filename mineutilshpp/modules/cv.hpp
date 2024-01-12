@@ -481,43 +481,6 @@ namespace mineutils
             std::cout << "\n";
             mext::printMat(img, { 0, INT_MAX }, { 0, INT_MAX }, { 0, INT_MAX });
         }
-
-        //为print函数添加对cv::Point_类型的支持
-        template<class T>
-        inline void _print(const cv::Point_<T>& pt)
-        {
-            std::cout << "(" << pt.x << ", " << pt.y << ")";
-        }
-
-        //为print函数添加对cv::Point3_类型的支持
-        template<class T>
-        inline void _print(const cv::Point3_<T>& pt)
-        {
-            std::cout << "(" << pt.x << ", " << pt.y << ", " << pt.z << ")";
-        }
-
-        //为print函数添加对cv::Size_类型的支持
-        template<class T>
-        inline void _print(const cv::Size_<T>& sz)
-        {
-            std::cout << "(" << sz.width << ", " << sz.height << ")";
-        }
-
-        //为print函数添加对cv::MatSize类型的支持
-        inline void _print(const cv::MatSize& sz)
-        {
-            std::cout << "(" << sz << ")";
-        }
-
-        //为print函数添加对cv::Rect_<T>类型的支持
-        template<class T>
-        inline void _print(const cv::Rect_<T>& rect)
-        {
-            std::cout << "(" << rect.x << " "
-                << rect.y << " "
-                << rect.width << " "
-                << rect.height << ")";
-        }
     }
 }
 
