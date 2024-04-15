@@ -11,6 +11,7 @@
 #include<thread>
 #include<vector>
 
+#include"base.hpp"
 
 namespace mineutils
 {

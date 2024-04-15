@@ -56,7 +56,7 @@ namespace mineutils
                 if (file_.is_open())
                 {
                     printf("IniFile: File was opened. Open the file again.");
-                    std::cout << mlog::messageN(mstr::Color::purple, "{}: File was opened. Open the file again.\n", __FUNCTION__);
+                    std::cout << msgN("File was opened. Open the file again.\n");
                     file_.close();
                 }
 
@@ -65,7 +65,7 @@ namespace mineutils
                 if (!file_.is_open())
                 {
                     //printf("!Warning! %s: Failed to open %s! Please check if the file exists.\n", __FUNCTION__, path.c_str());
-                    std::cout << mlog::messageN(mstr::Color::cyan, "{}: Failed to open {}! Please check if the file exists.\n", __FUNCTION__, file_path_);
+                    std::cout << msgN("Failed to open {}! Please check if the file exists.\n", file_path_);
                     return -1;
                 }
                 else
@@ -125,12 +125,12 @@ namespace mineutils
                     }
                     else
                     {
-                        std::cout << mlog::messageW("{}: key={} not exists!\n", __FUNCTION__, key);
+                        std::cout << msgW("key={} not exists!\n", key);
                     }
                 }
                 else
                 {
-                    std::cout << mlog::messageW("{}: section={} not exists!\n", __FUNCTION__, section);
+                    std::cout << msgW("section={} not exists!\n", section);
                 }
                 file_.seekg(0);
                 return value;

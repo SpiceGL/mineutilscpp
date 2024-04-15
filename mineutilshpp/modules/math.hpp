@@ -30,7 +30,7 @@ namespace mineutils
                 normal_idx = idx + len;
             else
             {
-                std::cout << mlog::messageW("{}: idx={} out of index range!\n", __FUNCTION__, idx);
+                std::cout << msgW("idx={} out of index range!\n", idx);
                 return -1;
             }
             return normal_idx;
@@ -69,7 +69,7 @@ namespace mineutils
                 dst_start = idx + len, dst_end = idx + len + 1;
             else
             {
-                std::cout << mlog::messageW("{}: idx={} out of index range!\n", __FUNCTION__, idx);
+                std::cout << msgW("idx={} out of index range!\n", idx);
                 return { -1, -1 };
             }
             return { dst_start, dst_end };

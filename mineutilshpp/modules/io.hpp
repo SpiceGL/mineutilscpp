@@ -23,13 +23,7 @@
 #include"base.hpp"
 #include"type.hpp"
 #include"math.hpp"
-
-
-#ifdef MINE_DEBUG
-#define dprintf(fmt, ...) printf(fmt, ##__VA_ARGS__)
-#else
-#define dprintf(fmt, ...) ((void*)0)
-#endif 
+#include"log.hpp"
 
 
 #ifndef OPENCV_CORE_HPP
@@ -134,8 +128,6 @@ namespace mineutils
             return mtx;
         }
 
-        static std::mutex& print_mtx = _getPrintMtx();
-
 
         /*  实现类似Python的print打印功能
             -可以接受任意数量、任意类型的参数
@@ -147,7 +139,7 @@ namespace mineutils
         template<class T, class... Args>
         inline void print(const T& arg, const Args&... args)
         {
-            std::lock_guard<std::mutex> lk(print_mtx);
+            std::lock_guard<std::mutex> lk(_getPrintMtx());
             mio::_recurPrint(arg, args...);
         }
 

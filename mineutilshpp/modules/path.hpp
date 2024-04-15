@@ -12,8 +12,6 @@
 #include<vector>
 
 #if defined(_MSC_VER)
-//#if defined(WIN32) or defined(_WIN32) or defined(__WIN32) and !defined(__CYGWIN__)
-#pragma warning(disable:4996)
 #include<direct.h>
 #include<io.h>
 #else
@@ -191,7 +189,7 @@ namespace mineutils
 
             if (!mpath::isDir(pth))
             {
-                std::cout << mlog::messageW("{}: The input path is not a folder or does not exist. Please check it!\n", __FUNCTION__);
+                std::cout << msgW("The input path is not a folder or does not exist. Please check it!\n");
                 return {};
             }
             if ((hFile = _findfirst(p.append("/*").c_str(), &fileinfo)) != -1)
@@ -246,7 +244,7 @@ namespace mineutils
 
             if (!mpath::isDir(pth))
             {
-                std::cout << mlog::messageW("{}: The input path is not a folder or does not exist. Please check it!\n", __FUNCTION__);
+                std::cout << msgW("The input path is not a folder or does not exist. Please check it!\n");
                 return {};
             }
             pDir = opendir(pth.c_str());
@@ -305,7 +303,11 @@ namespace mineutils
                 }
                 else ::remove(sub_path.c_str());
             }
+#if defined(_MSC_VER)
+            ::_rmdir(pth.c_str());
+#else
             ::rmdir(pth.c_str());
+#endif
         }
 
         //删除文件或目录
@@ -332,7 +334,7 @@ namespace mineutils
 
             if (!mpath::isDir(pth))
             {
-                std::cout << mlog::messageW("{}: The input path is not a folder or does not exist. Please check it!\n", __FUNCTION__);
+                std::cout << msgW("The input path is not a folder or does not exist. Please check it!\n");
                 return {};
             }
             std::vector<std::string> listdir_res = mpath::listDir(pth, true);

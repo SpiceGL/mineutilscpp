@@ -3,26 +3,21 @@
 #ifndef STR_HPP_MINEUTILS
 #define STR_HPP_MINEUTILS
 
+#include<atomic>
+#include<mutex>
 #include<iomanip>
 #include<iostream>
 #include<sstream>
 #include<string>
 #include<vector>
 
+#include"base.hpp"
+
 
 namespace mineutils
 {
     namespace mstr
     {
-        inline bool& _createColorStrOn()
-        {
-            static bool _ColorStr_On = false;
-            return _ColorStr_On;
-        }
-
-        static bool& _ColorStr_On = _createColorStrOn();   //ColorStr功能全局开关，默认关闭
-
-
         enum class Color
         {
             black = 0,
@@ -35,12 +30,17 @@ namespace mineutils
             white = 7
         };
 
+        inline std::atomic<bool>& _getColoStrOn()
+        {
+            static std::atomic<bool> ColorStr_On(false);
+            return ColorStr_On;
+        }
 
         //设置是否开启彩色字体的效果
         //部分终端不一定支持彩色字体显示，因此默认关闭该功能
         inline void setColorStrOn(bool ColorStr_on)
         {
-            _ColorStr_On = ColorStr_on;
+            _getColoStrOn() = ColorStr_on;
         }
 
         /*
@@ -58,7 +58,7 @@ namespace mineutils
 
         inline std::string color(const std::string& str, const mstr::Color str_color)
         {
-            if (_ColorStr_On)
+            if (_getColoStrOn())
             {
                 if (str_color == mstr::Color::black)
                     return "\033[0;30m" + str + "\033[0m";
@@ -80,16 +80,30 @@ namespace mineutils
             return str;
         }
 
+        inline std::mutex& _getMtx_toStr()
+        {
+            static std::mutex mtx;
+            return mtx;
+        }
+
+        inline std::ostringstream& _getOS_toStr()
+        {
+            static std::ostringstream str_buf;   //给toStr函数使用的字符串流
+            return str_buf;
+        }
+
         //将输入直接转换为字符串
         template<class T>
         inline std::string toStr(const T& arg)
         {
-            std::ostringstream str_buf;   //给toStr函数使用的字符串流
+            std::lock_guard<std::mutex> lk(_getMtx_toStr());
+            std::ostringstream& str_buf = _getOS_toStr();
             str_buf.clear();
             str_buf.str("");
             str_buf << arg;
             return str_buf.str();
         }
+
 
         /*  类似Python字符串的zfill函数，将整型的数字转换为字符串并在前面添加字符
             @param n：输入的整型数字
@@ -146,11 +160,6 @@ namespace mineutils
         //fstr函数的相关
         inline std::string _fstr(std::string& s, size_t pos_offset)
         {
-            size_t pos = s.find("{}", pos_offset);
-            if (pos != -1)
-            {
-                std::cout << mstr::color(std::string("!Warning! ") + __FUNCTION__ + ": ", mstr::Color::yellow) << "function need more params!\n";
-            }
             return s;
         }
 
@@ -161,22 +170,19 @@ namespace mineutils
             size_t pos = s.find("{}", pos_offset);
             if (pos != -1)
             {
-                std::string arg_s = toStr(arg);
+                std::string arg_s = mstr::toStr(arg);
                 s.replace(pos, 2, arg_s);
                 pos_offset = pos + arg_s.size();
+                return mstr::_fstr(s, pos_offset, args...);
             }
-            else
-            {
-                std::cout << mstr::color(std::string("!Warning! ") + __FUNCTION__ + ": ", mstr::Color::yellow) << "function got too much params!\n";
-                return s;
-            }
-            return mstr::_fstr(s, pos_offset, args...);
+            else return s;            
         }
 
         //实现类似于python的f-string功能，将字符串中的"{}"替换为后续的参数
         template<class... Ts>
         inline std::string fstr(std::string s, const Ts& ...args)
         {
+            s.reserve(s.size() + 64);
             return mstr::_fstr(s, 0, args...);
         }
 

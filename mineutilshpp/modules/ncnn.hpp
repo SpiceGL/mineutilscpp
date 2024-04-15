@@ -26,12 +26,12 @@ namespace mineutils
             //ncnn::Net net;
             if (out_net.load_param(param_path.c_str()))
             {
-                std::cout << mlog::messageW("{}: Load param file {} failed!\n", __FUNCTION__, param_path);
+                printfW("Load param file %s failed!\n", param_path.c_str());
                 return -1;
             }
             if (out_net.load_model(bin_path.c_str()))
             {
-                std::cout << mlog::messageW("{}: Load bin file {} failed!\n", __FUNCTION__, bin_path);
+                std::cout << printfW("Load bin file %s failed!\n", bin_path.c_str());
                 return -1;
             }
             return 0;

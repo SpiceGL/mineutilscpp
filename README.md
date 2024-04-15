@@ -3,8 +3,8 @@
 所有功能都放在命名空间mineutils下，同时根据所属模块分布在次级的命名空间，如mineutils::mstr、mineutils::mtime下；基于第三方库的功能统一在次级的命名空间mineutils::mext下。
 
 ## 版本信息
-当前库版本：1.1.0  
-文档注释修改日期：20240410 
+当前库版本：1.2.0  
+文档注释修改日期：20240422 
 
 ## 测试平台
 **Windows:**  
@@ -326,6 +326,14 @@ int main()
 ```  
 
 ## 版本发布日志
+**v1.2.0**  
+* 20240422
+1. mlog.hpp添加msgW、msgE、printfW、printfE等宏用于生成警告和错误信息;
+2. mlog::messageW、mlog::messageE、mlog::messageN被标记为废弃，将在2.x.y版本中删除；
+3. 移动和添加dprntf、dprintfW、dprintfE等宏到log.hpp下，用于调试时使用，由编译器NDEBUG宏控制是否生效；
+4. 优化mstr::toStr性能；
+5. mstr::fstr函数不再打印警告信息。
+
 **v1.1.0**  
 * 20240410
 1. time.hpp中更改sleep系列函数的输入参数类型为long long型；

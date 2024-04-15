@@ -77,7 +77,7 @@ namespace mineutils
             auto cap = cv::VideoCapture(video_path);
             if (not cap.isOpened())
             {
-                std::cout << mlog::messageE("{}: Open video failed, skiped!\n", __FUNCTION__);
+                printfW("Open video failed, skiped!\n");
                 return;
             }
             mext::setWindowCV(win_name, size, position, flag);
@@ -88,7 +88,7 @@ namespace mineutils
                 if (not ret)
                 {
                     cv::destroyWindow(win_name);
-                    std::cout << mlog::messageN(mstr::Color::green, "{}: Video end.\n", __FUNCTION__);
+                    printfN("Video end.\n");
                     break;
                 }
                 cv::imshow(win_name, frame);
@@ -96,7 +96,7 @@ namespace mineutils
                 if (k == 27)
                 {
                     cv::destroyWindow(win_name);
-                    std::cout << mlog::messageN(mstr::Color::green, "{}: Received stop signal, stoped the video.\n", __FUNCTION__);
+                    printfN("Received stop signal, stoped the video.\n");
                     break;
                 }
             }

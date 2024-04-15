@@ -8,25 +8,34 @@
 #include<tuple>
 
 #define MINEUTILS_MAJOR_VERSION "1"   //主版本号，对应不向下兼容的API或文件改动
-#define MINEUTILS_MINOR_VERSION "1"   //次版本号，对应不影响现有API使用的新功能增加
+#define MINEUTILS_MINOR_VERSION "2"   //次版本号，对应不影响现有API使用的新功能增加
 #define MINEUTILS_PATCH_VERSION "0"   //修订版本号，对应不改变接口的BUG修复或效能优化
-#define MINEUTILS_DATE_VERSION "20240410-Release"   //日期版本号，对应文档和注释级别的改动和测试阶段
+#define MINEUTILS_DATE_VERSION "20240422-Release"   //日期版本号，对应文档和注释级别的改动和测试阶段
 
-
+#ifdef __GNUC__ 
+#define MINE_FUNCSIG __PRETTY_FUNCTION__
+#define MINE_DEPRECATED(msg) __attribute__ ((deprecated(msg)))
+#elif defined(_MSC_VER)
+#define MINE_FUNCSIG __FUNCSIG__
+#define MINE_DEPRECATED(msg) __declspec(deprecated(msg))
+#else
+#define MINE_FUNCSIG __func__
+#define MINE_DEPRECATED(msg)
+#endif 
 
 
 namespace mineutils
 {
     namespace mbase
     {
-        volatile static char MINEUTILS_VERSION[64] = "mineutils version: " MINEUTILS_MAJOR_VERSION "." MINEUTILS_MINOR_VERSION "." MINEUTILS_PATCH_VERSION "-" MINEUTILS_DATE_VERSION;
+        static volatile char MINEUTILS_VERSION[64] = "mineutils version: " MINEUTILS_MAJOR_VERSION "." MINEUTILS_MINOR_VERSION "." MINEUTILS_PATCH_VERSION "-" MINEUTILS_DATE_VERSION;
 
         //获取mineutils库的版本
         inline std::string getVersion()
         {
             char version[64];
-            memcpy(version, MINEUTILS_VERSION, 64);
-            return MINEUTILS_VERSION;
+            snprintf(version, 64, "mineutilshpp version is %s.%s.%s-%s", MINEUTILS_MAJOR_VERSION, MINEUTILS_MINOR_VERSION, MINEUTILS_PATCH_VERSION, MINEUTILS_DATE_VERSION);
+            return version;
         }
 
 
