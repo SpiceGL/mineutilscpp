@@ -3,8 +3,8 @@
 所有功能都放在命名空间mineutils下，同时根据所属模块分布在次级的命名空间，如mineutils::mstr、mineutils::mtime下；基于第三方库的功能统一在次级的命名空间mineutils::mext下。
 
 ## 版本信息
-当前库版本：1.0.3  
-文档注释修改日期：20240112  
+当前库版本：1.1.0  
+文档注释修改日期：20240410 
 
 ## 测试平台
 **Windows:**  
@@ -33,10 +33,11 @@ arm-unknown-nto-qnx6.6.0eabi-gcc
 ```   
 - 然后通过`using namespace mineutils`使用命名空间mineutils。由于所有功能都分布在次级的命名空间下，因此不用担心污染全局命名空间。  
 * 最后根据模块使用其中的功能，如`mstr::toStr(123)`。 
+* 在Linux上可以通过`strings xxx | grep version`命令查找应用使用的mineutils库版本。  
 
-**注1：** io.hpp中仅声明了OpenCV和NCNN的数据类型的print相关函数，函数的实现在cv.hpp及ncnn.hpp中，因此如果使用print函数输出OpenCV或NCNN的相关数据类型，需要导入cv.hpp或ncnn.hpp。以OpenCV数据类型为例，如果未导入cv.hpp或__cvutils__.h，那么使用mio::print函数输出cv::Mat等类型时，会产生“undefined reference”、“无法解析的外部符号”类型的编译错误。
-**注2：**  
-以下划线开头的函数和类不建议外部使用，这些仅用于内部功能实现，可能随时删改。  
+**注1：** io.hpp中仅声明了OpenCV和NCNN的数据类型的print相关函数，函数的实现在cv.hpp及ncnn.hpp中，因此如果使用print函数输出OpenCV或NCNN的相关数据类型，需要导入cv.hpp或ncnn.hpp。以OpenCV数据类型为例，如果未导入cv.hpp或__cvutils__.h，那么使用mio::print函数输出cv::Mat等类型时，会产生“undefined reference”、“无法解析的外部符号”类型的编译错误。   
+**注2：** 
+以下划线开头的函数和类不建议外部使用，这些仅用于内部功能实现，可能随时删改，且删改后只会变动PATCH版本。  
 
 ## 模块介绍
 | 模块 | 功能|
@@ -324,24 +325,35 @@ int main()
 }
 ```  
 
-## 版本更新日志
-**v1.0.3-20240112:**  
+## 版本发布日志
+**v1.1.0**  
+* 20240410
+1. time.hpp中更改sleep系列函数的输入参数类型为long long型；
+2. time.hpp添加LocalTimeController类。
+3. mio::print不再对bool类型值打印true和false。
+4. 现在在Linux系统上可以通过`strings xxx | grep version`命令查找版本信息
+
+**v1.0.3**  
+* 20240112
 1. 灵感再次迸发！现在io.hpp中print函数可以打印任意类型的对象了，未支持的类型会打印类名+地址；
 2. 随着print函数功能的升级，删去了对OpenCV中cv::Mat和cv::MatExpr之外类型的拓展，这些类型无需拓展即可打印；
-1. 修复在qnx上部分模块缺少系统头文件导入的问题。
+3. 修复在qnx上部分模块缺少系统头文件导入的问题。
 
-**v1.0.2-20240111:** 
-1. 将库中的Tab制表符全部替换为4个空格；
-2. Readme文档更新测试平台。  
+**v1.0.2**  
++ 20240111
+2. 将库中的Tab制表符全部替换为4个空格；
+3. Readme文档更新测试平台。  
 
-**v1.0.2-20240110:** 
+* 20240110
 1. 优化cv.hpp和ncnn.hpp中printMat函数的打印效果。
 
-**v1.0.1-20240108:** 
+**v1.0.1**  
+* 20240108
 1. 灵感迸发！现在io.hpp中print函数的功能完整性不再受模块的调用顺序的影响，也不受`__*utils__.h`的混用影响；
 2. 修复了mfile::IniFile类的编译问题、空cfg文件的写入异常。  
 
-**v1.0.0-20240105:**
+**v1.0.0**   
+* 20240105
 1. 重新组织了mineutils库的结构，形成正式版本；
 2. 删除了原本的ColorStr::red、ColorStr::blue等彩色字体字体接口，统一更新为mstr::color接口；
 3. 简化message系列函数接口；

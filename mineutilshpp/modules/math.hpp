@@ -3,6 +3,7 @@
 #ifndef MATH_HPP_MINEUTILS
 #define MATH_HPP_MINEUTILS
 
+#include<array>
 #include<cmath>
 #include<iostream>
 #include<string>
@@ -99,6 +100,21 @@ namespace mineutils
                 this->data_[2] = box.data_[2];
                 this->data_[3] = box.data_[3];
             }
+            //BaseBox(const T (&box)[4])
+            //{
+            //    this->data_[0] = box[0];
+            //    this->data_[1] = box[1];
+            //    this->data_[2] = box[2];
+            //    this->data_[3] = box[3];
+            //}
+            //BaseBox(const std::array<T, 4>& box)
+            //{
+            //    this->data_[0] = box[0];
+            //    this->data_[1] = box[1];
+            //    this->data_[2] = box[2];
+            //    this->data_[3] = box[3];
+            //}
+
             virtual ~BaseBox() {}
 
             T& operator[](int idx)

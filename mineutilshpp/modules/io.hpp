@@ -60,8 +60,11 @@ namespace mineutils
             static constexpr bool coutCheck(AnyTp*) { return true; }
 
             static constexpr bool coutCheck(...) { return false; }
-            static constexpr bool result = coutCheck(static_cast<T*>(0));
+            static constexpr bool result = coutCheck(static_cast<T*>(0));  
         };
+        template <typename T>
+        constexpr bool CoutChecker<T>::result;
+
 
         /*-------------------------------------声明--------------------------------------*/
         template<class T, class... Args>
@@ -104,8 +107,6 @@ namespace mineutils
 
         void _print(const std::string& str);
 
-        void _print(const bool& arg);
-
         template<class T, typename std::enable_if<CoutChecker<T>::result, void**>::type = nullptr>
         inline void _print(const T& arg);
 
@@ -137,9 +138,11 @@ namespace mineutils
 
 
         /*  实现类似Python的print打印功能
-            -任意支持std::cout<<的类型都可以正常打印
-            -拓展了std::vector、std::tuple等常用STL容器及OpenCV、NCNN部分数据类型的打印
-            -既不支持std::cout<<，又未被拓展的类型将会打印<类型名: 地址>
+            -可以接受任意数量、任意类型的参数
+            -可以正常打印任意支持std::cout<<的内置数据类型
+            -可以正常打印任意在同一个namespace内重载了std::cout<<的自定义类型
+            -拓展了std::vector、std::tuple等常用STL容器及OpenCV、NCNN的部分数据类型的打印
+            -不支持的类型将会打印<类型名: 地址>
             -在不混用print函数和std::cout时，线程安全  */
         template<class T, class... Args>
         inline void print(const T& arg, const Args&... args)
@@ -297,14 +300,6 @@ namespace mineutils
         inline void _print(const std::string& str)
         {
             std::cout << str;
-        }
-
-        //为print函数添加对bool类型的支持
-        inline void _print(const bool& arg)
-        {
-            if (arg)
-                std::cout << "true";
-            else std::cout << "false";
         }
 
         //为print函数拓展其他支持std::cout<<的类型

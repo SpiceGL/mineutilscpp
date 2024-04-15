@@ -51,25 +51,25 @@ namespace mineutils
         }
 
         //进程休眠(秒)
-        inline void sleep(const int& t)
+        inline void sleep(long long t)
         {
             std::this_thread::sleep_for(std::chrono::seconds(t));
         }
 
         //进程休眠(毫秒)
-        inline void msleep(const int& t)
+        inline void msleep(long long t)
         {
             std::this_thread::sleep_for(std::chrono::milliseconds(t));
         }
 
         //进程休眠(微秒)
-        inline void usleep(const int& t)
+        inline void usleep(long long t)
         {
             std::this_thread::sleep_for(std::chrono::microseconds(t));
         }
 
         //进程休眠(纳秒)
-        inline void nsleep(const int& t)
+        inline void nsleep(long long t)
         {
             std::this_thread::sleep_for(std::chrono::nanoseconds(t));
         }
@@ -150,7 +150,7 @@ namespace mineutils
                         printf("!Warning!: MeanTimeCounter::%s: Function \'addStart(%s)\' and function \'addEnd(%s)\' should be called the same number of times before function \'%s\'!\n", __func__, codeblock_tag.c_str(), codeblock_tag.c_str(), __func__);
                         return -1;
                     }
-                    if (this->finish())
+                    if (finish())
                     {
                         long long mean_time_cost;
                         if (time_unit == mtime::Unit::s)
@@ -178,7 +178,7 @@ namespace mineutils
                             mean_time_cost = mtime::ms(time_cost_) / now_statistical_times_;
                             printf("%s mean cost time %lldms in %d counts\n", codeblock_tag.c_str(), mean_time_cost, now_statistical_times_);
                         }
-                        this->restart();
+                        restart();
                         return mean_time_cost;
                     }
                     else return -1;
@@ -344,7 +344,7 @@ namespace mineutils
                 @param codeblock_tag: 要计时的代码块标识符
                 @param time_unit: 计时单位，强枚举类型mtime::Unit的成员，默认为ms
                 @param time_counter_on: 是否开启计时功能，默认为true   */
-            explicit LocalTimeCounter(const std::string& codeblock_tag, mtime::Unit time_unit = mtime::Unit::ms, bool time_counter_on = true) :codeblock_tag_(codeblock_tag), time_unit_(time_unit), time_counter_on_(time_counter_on)
+            LocalTimeCounter(const std::string& codeblock_tag, mtime::Unit time_unit = mtime::Unit::ms, bool time_counter_on = true) :codeblock_tag_(codeblock_tag), time_unit_(time_unit), time_counter_on_(time_counter_on)
             {
                 start_t_ = mtime::now();
             }
@@ -353,7 +353,7 @@ namespace mineutils
                 @param codeblock_tag: 要计时的代码块标识符
                 @param time_unit: 计时单位，强枚举类型mtime::Unit的成员，默认为ms
                 @param time_counter_on: 是否开启计时功能，默认为true   */
-            explicit LocalTimeCounter(const std::string& print_head, const std::string& codeblock_tag, mtime::Unit time_unit = mtime::Unit::ms, bool time_counter_on = true) :codeblock_tag_(print_head + ": " + codeblock_tag), time_unit_(time_unit), time_counter_on_(time_counter_on)
+            LocalTimeCounter(const std::string& print_head, const std::string& codeblock_tag, mtime::Unit time_unit = mtime::Unit::ms, bool time_counter_on = true) :codeblock_tag_(print_head + ": " + codeblock_tag), time_unit_(time_unit), time_counter_on_(time_counter_on)
             {
                 start_t_ = mtime::now();
             }
@@ -383,6 +383,53 @@ namespace mineutils
             mtime::TimePoint end_t_;
             const std::string codeblock_tag_;
             const mtime::Unit time_unit_;
+        };
+
+        //控制代码段的时间消耗不低于设定时间
+        class LocalTimeController
+        {
+        public:
+            LocalTimeController(long long target_time, mtime::Unit time_unit = mtime::Unit::ms)
+            {
+                start_t_ = mtime::now();
+                target_time_ = target_time;
+                time_unit_ = time_unit;
+            }
+            LocalTimeController(const LocalTimeController& _temp) = delete;
+            LocalTimeController& operator=(const LocalTimeController& _temp) = delete;
+            ~LocalTimeController()
+            {
+                end_t_ = mtime::now();
+                if (time_unit_ == mtime::Unit::s)
+                {
+                    long long need_sleep = target_time_ - mtime::s(end_t_ - start_t_);
+                    if (need_sleep >= 1)
+                        mtime::sleep(need_sleep);
+                }
+                else if (time_unit_ == mtime::Unit::ms)
+                {
+                    long long need_sleep = target_time_ - mtime::ms(end_t_ - start_t_);
+                    if (need_sleep >= 1)
+                        mtime::msleep(need_sleep);
+                }
+                else if (time_unit_ == mtime::Unit::us)
+                {
+                    long long need_sleep = target_time_ - mtime::us(end_t_ - start_t_);
+                    if (need_sleep >= 1)
+                        mtime::usleep(need_sleep);
+                }
+                else if (time_unit_ == mtime::Unit::ns)
+                {
+                    long long need_sleep = target_time_ - mtime::ns(end_t_ - start_t_);
+                    if (need_sleep >= 1)
+                        mtime::nsleep(need_sleep);
+                }
+            }
+        private:
+            mtime::TimePoint start_t_;
+            mtime::TimePoint end_t_;
+            long long target_time_;
+            mtime::Unit time_unit_;
         };
     }
 }
