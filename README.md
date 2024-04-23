@@ -3,8 +3,8 @@
 所有功能都放在命名空间mineutils下，同时根据所属模块分布在次级的命名空间，如mineutils::mstr、mineutils::mtime下；基于第三方库的功能统一在次级的命名空间mineutils::mext下。
 
 ## 版本信息
-当前库版本：1.2.0  
-文档注释修改日期：20240422 
+当前库版本：1.2.1  
+文档注释修改日期：20240423 
 
 ## 测试平台
 **Windows:**  
@@ -326,6 +326,10 @@ int main()
 ```  
 
 ## 版本发布日志
+**v1.2.1**  
+* 20240423
+1. 修复log.hpp中printfN、printfW、printfE等宏的打印错误。
+
 **v1.2.0**  
 * 20240422
 1. mlog.hpp添加msgW、msgE、printfW、printfE等宏用于生成警告和错误信息;

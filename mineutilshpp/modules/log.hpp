@@ -33,13 +33,13 @@ namespace mineutils
 #define msgE(f_str, ...) mineutils::mstr::fstr((mineutils::mlog::_getFstrE() + (f_str)), MINE_FUNCSIG, __FILE__, __LINE__, ##__VA_ARGS__)
 
 //按printf的格式调用，打印带函数名的正常提示信息
-#define printfN(fmt_chars, ...) printf((mineutils::mlog::_getFmtN() + (fmt_chars)).c_str(), MINE_FUNCSIG, fmt_chars, ##__VA_ARGS__)
+#define printfN(fmt_chars, ...) printf((mineutils::mlog::_getFmtN() + (fmt_chars)).c_str(), MINE_FUNCSIG, ##__VA_ARGS__)
 
 //按printf的格式调用，打印带函数名和位置的警告信息
-#define printfW(fmt_chars, ...) printf((mineutils::mlog::_getFmtW() + (fmt_chars)).c_str(), MINE_FUNCSIG, __FILE__, __LINE__, fmt_chars, ##__VA_ARGS__)
+#define printfW(fmt_chars, ...) printf((mineutils::mlog::_getFmtW() + (fmt_chars)).c_str(), MINE_FUNCSIG, __FILE__, __LINE__, ##__VA_ARGS__)
 
 //按printf的格式调用，打印带函数名和位置的错误信息
-#define printfE(fmt_chars, ...) printf((mineutils::mlog::_getFmtE() + (fmt_chars)).c_str(), MINE_FUNCSIG, __FILE__, __LINE__, fmt_chars, ##__VA_ARGS__)
+#define printfE(fmt_chars, ...) printf((mineutils::mlog::_getFmtE() + (fmt_chars)).c_str(), MINE_FUNCSIG, __FILE__, __LINE__, ##__VA_ARGS__)
 
 #ifndef NDEBUG
 #define dprintf(fmt_chars, ...) printf(fmt_chars, ##__VA_ARGS__)
