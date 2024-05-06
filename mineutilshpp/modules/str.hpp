@@ -18,6 +18,8 @@ namespace mineutils
 {
     namespace mstr
     {
+        /*--------------------------------------------用户接口--------------------------------------------*/
+
         enum class Color
         {
             black = 0,
@@ -30,34 +32,90 @@ namespace mineutils
             white = 7
         };
 
+        //为字符串添加颜色标记，效果默认关闭
+        std::string color(const std::string& str, const mstr::Color str_color);
+
+        //设置是否开启彩色字体的效果
+        //部分终端不一定支持彩色字体显示，因此默认关闭该功能
+        void setColorStrOn(bool ColorStr_on);
+
+        //将输入直接转换为字符串
+        template<class T>
+        std::string toStr(const T& arg);
+
+        /*  类似Python字符串的zfill函数，将整型的数字转换为字符串并在前面添加字符
+            @param n：输入的整型数字
+            @param min_len：转换结果的长度
+            @param padding：用于填充的字符
+            @return 转换结果   */
+        std::string zfillInt(long long n, int min_len = 0, char padding = '0');
+
+        /*  类似Python字符串的zfill函数，将浮点型的数字转换为字符串并在前后添加字符
+            @param f：输入的浮点数字
+            @param min_len_int：转换结果整数部分的长度
+            @param flt_precision：转换结果小数部分的精度
+            @param int_padding：用于填充整数部分的字符
+            @param flt_padding：用于填充小数部分的字符
+            @return 转换结果   */
+        std::string zfillFlt(long double f, int min_len_int = 0, int flt_precision = 4,
+            char int_padding = ' ', char flt_padding = '0');
+
+        //实现类似于python的f-string功能，将字符串中的"{}"替换为后续的参数
+        template<class... Ts>
+        std::string fstr(std::string s, const Ts& ...args);
+
+        /*  实现正向对字符串分割的功能，以vector形式返回。分割空字符串会返回包含一个空字符串的vector(类Python规则)
+            @param s：待分割的字符串
+            @param sep：分割符，不可为空字符串
+            @param max_split_times：最大分割次数，-1代表全部分割
+            @return 分割结果，至少返回包含一个元素的vector   */
+        std::vector<std::string> split(std::string s, const std::string& sep, size_t max_split_times = -1);
+
+        /*  实现反向对字符串分割的功能，以vector形式返回。分割空字符串会返回包含一个空字符串的vector(类Python规则)
+            @param s：待分割的字符串
+            @param sep：分割符，不可为空字符串
+            @param max_split_times：最大分割次数，-1代表全部分割
+            @return 分割结果，至少返回包含一个元素的vector   */
+        std::vector<std::string> rsplit(std::string s, const std::string& sep, size_t max_split_times = -1);
+
+        //按字符串中的空白符（包括空格、多空格、\n、\t等）分割字符串，若输入空字符串或全空格符串则返回空vector(类Python规则)
+        std::vector<std::string> split(std::string s);
+
+
+
+
+
+
+
+        /*--------------------------------------------内部实现--------------------------------------------*/
+
         inline std::atomic<bool>& _getColoStrOn()
         {
             static std::atomic<bool> ColorStr_On(false);
             return ColorStr_On;
         }
 
-        //设置是否开启彩色字体的效果
-        //部分终端不一定支持彩色字体显示，因此默认关闭该功能
         inline void setColorStrOn(bool ColorStr_on)
         {
             _getColoStrOn() = ColorStr_on;
         }
 
-        /*
-        字色              背景              颜色
-        ---------------------------------------
-        30                40              黑色
-        31                41              红色
-        32                42              绿色
-        33                43              黃色
-        34                44              蓝色
-        35                45              紫红色
-        36                46              青蓝色
-        37                47              白色
-        ——————————————————  */
+
 
         inline std::string color(const std::string& str, const mstr::Color str_color)
         {
+            /*
+            字色              背景              颜色
+            ---------------------------------------
+            30                40              黑色
+            31                41              红色
+            32                42              绿色
+            33                43              黃色
+            34                44              蓝色
+            35                45              紫红色
+            36                46              青蓝色
+            37                47              白色
+            ——————————————————  */
             if (_getColoStrOn())
             {
                 if (str_color == mstr::Color::black)
@@ -92,7 +150,6 @@ namespace mineutils
             return str_buf;
         }
 
-        //将输入直接转换为字符串
         template<class T>
         inline std::string toStr(const T& arg)
         {
@@ -104,13 +161,7 @@ namespace mineutils
             return str_buf.str();
         }
 
-
-        /*  类似Python字符串的zfill函数，将整型的数字转换为字符串并在前面添加字符
-            @param n：输入的整型数字
-            @param min_len：转换结果的长度
-            @param padding：用于填充的字符
-            @return 转换结果   */
-        inline std::string zfillInt(long long n, int min_len = 0, char padding = '0')
+        inline std::string zfillInt(long long n, int min_len, char padding)
         {
             std::string s = toStr(n);
             if (s.length() < min_len)
@@ -120,15 +171,8 @@ namespace mineutils
             return s;
         }
 
-        /*  类似Python字符串的zfill函数，将浮点型的数字转换为字符串并在前后添加字符
-            @param f：输入的浮点数字
-            @param min_len_int：转换结果整数部分的长度
-            @param flt_precision：转换结果小数部分的精度
-            @param int_padding：用于填充整数部分的字符
-            @param flt_padding：用于填充小数部分的字符
-            @return 转换结果   */
-        inline std::string zfillFlt(long double f, int min_len_int = 0, int flt_precision = 4,
-            char int_padding = ' ', char flt_padding = '0')
+        inline std::string zfillFlt(long double f, int min_len_int, int flt_precision,
+            char int_padding, char flt_padding)
         {
             //static_assert(std::is_floating_point<FT>::value, "Class FT must be floating_point!");
             std::ostringstream buffer;
@@ -156,7 +200,7 @@ namespace mineutils
             return s;
         }
 
-        /*--------------------------------------------------------------------------*/
+
         //fstr函数的相关
         inline std::string _fstr(std::string& s, size_t pos_offset)
         {
@@ -178,7 +222,6 @@ namespace mineutils
             else return s;            
         }
 
-        //实现类似于python的f-string功能，将字符串中的"{}"替换为后续的参数
         template<class... Ts>
         inline std::string fstr(std::string s, const Ts& ...args)
         {
@@ -186,40 +229,99 @@ namespace mineutils
             return mstr::_fstr(s, 0, args...);
         }
 
-        /*  实现对字符串的分割功能，以vector形式返回
-            @param s：待分割的字符串
-            @param sep：分割符
-            @return 分割结果   */
-        inline std::vector<std::string> split(std::string s, const std::string& sep)
+        inline std::vector<std::string> split(std::string s, const std::string& sep, size_t max_split_times)
         {
+            if (s.empty() || max_split_times == 0)
+            {
+                return { s };
+            }
+            if (sep.empty())
+            {
+                printf("!!!Error!!! \"%s\"[%s](line %d): param sep is empty!\n", MINE_FUNCSIG, __FILE__, __LINE__);
+                return { s };
+            }
             std::vector<std::string> strs;
             size_t sep_pos;
-            std::string s_in;   //s_in存放已处理的字段，s存放待处理的字段
+            std::string s_tmp;   //s_tmp存放已处理的字段，s存放待处理的字段
 
+            int now_split_times = 0;
             while ((sep_pos = s.find(sep)) != -1)
             {
-                s_in = s.substr(0, sep_pos);
+                s_tmp = s.substr(0, sep_pos);
                 s = s.substr(sep_pos + sep.length());
-                strs.push_back(s_in);
-                s_in.clear();
+                strs.emplace_back(s_tmp);
+                s_tmp.clear();
+                now_split_times++;
+                if (now_split_times >= max_split_times)
+                    break;
             }
-            strs.push_back(s);
+            strs.emplace_back(s);
             return strs;
         }
 
-        //按字符串中的空格分割字符串，若输入空字符串或全空格字符串则返回空vector
+        inline std::vector<std::string> rsplit(std::string s, const std::string& sep, size_t max_split_times)
+        {
+            if (s.empty() || max_split_times == 0)
+            {
+                return { s };
+            }
+            if (sep.empty())
+            {
+                printf("!!!Error!!! \"%s\"[%s](line %d): param sep is empty!\n", MINE_FUNCSIG, __FILE__, __LINE__);
+                return { s };
+            }
+            std::vector<std::string> strs;
+            size_t sep_pos;
+            std::string s_tmp;   //s_tmp存放已处理的字段，s存放待处理的字段
+
+            int now_split_times = 0;
+            while ((sep_pos = s.rfind(sep)) != -1)
+            {
+                s_tmp = s.substr(sep_pos + sep.length());
+                s = s.substr(0, sep_pos);
+                strs.emplace(strs.begin(), s_tmp);
+                s_tmp.clear();
+                now_split_times++;
+                if (now_split_times >= max_split_times)
+                    break;
+            }
+            strs.emplace(strs.begin(), s);
+            return strs;
+        }
+
+        inline std::mutex& _getMtx_split()
+        {
+            static std::mutex mtx;
+            return mtx;
+        }
+
+        inline std::stringstream& _getSS_split()
+        {
+            static std::stringstream ss;   //给toStr函数使用的字符串流
+            return ss;
+        }
+
         inline std::vector<std::string> split(std::string s)
         {
-            std::vector<std::string> strs;
-            std::stringstream ss;
-            ss << s;
-            std::string s_in;
-            ss >> s_in;
-            while (s_in.size() > 0)
+            if (s.empty())
             {
-                strs.push_back(s_in);
-                s_in.clear();
-                ss >> s_in;
+                return { };
+            }
+            //std::stringstream ss(s);
+            std::lock_guard<std::mutex> lk(_getMtx_split());
+            std::stringstream& ss = _getSS_split();
+
+            ss.clear();
+            ss << s;
+            std::vector<std::string> strs;
+            std::string s_tmp;
+            ss >> s_tmp;
+
+            while (!s_tmp.empty())
+            {
+                strs.emplace_back(s_tmp);
+                s_tmp.clear();
+                ss >> s_tmp;
             }
             return strs;
         }

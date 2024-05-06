@@ -25,6 +25,87 @@ namespace mineutils
 {
     namespace mext
     {
+        /*--------------------------------------------用户接口--------------------------------------------*/
+
+        //快速设置窗口属性，返回为窗口的名字
+        inline std::string setWindowCV(const std::string& win_name, cv::Size size = { -1, -1 },
+            std::pair<int, int> position = { -1, -1 }, int flag = cv::WINDOW_FREERATIO);
+
+        //快速显示图像，一步到位设置窗口和显示属性
+        int quickShowCV(const std::string& win_name, cv::Mat& img,
+            float wait = 1, bool close = false, cv::Size size = { -1, -1 },
+            std::pair<int, int> position = { -1, -1 }, int flag = cv::WINDOW_FREERATIO);
+
+        //快速显示视频
+        void quickPlayCV(const std::string& win_name, const std::string& video_path,
+            float wait = 30, cv::Size size = { -1, -1 },
+            std::pair<int, int> position = { -1, -1 }, int flag = cv::WINDOW_FREERATIO);
+
+        /*  为图像添加文字
+            @param img：cv::Mat图像
+            @param label：文字内容
+            @param position：文字左下角坐标
+            @param text_color：文字颜色
+            @param word_type：文字类型，用opencv的HersheyFonts枚举类型表示
+            @param word_scale：文字尺寸
+            @param text_thickness：文字粗细
+            @param have_bg：是否为文字添加背景
+            @param bg_color：文字背景的颜色，have_bg为true时生效   */
+        void putLabelCV(cv::Mat& img, const std::string& label, cv::Point position, cv::Scalar text_color = { 255,255,255 },
+            int word_type = cv::FONT_HERSHEY_SIMPLEX, float word_scale = 1, int text_thickness = 2,
+            bool have_bg = true, cv::Scalar bg_color = { 255, 0, 0 });
+
+        /*  在图像上绘制检测框及标签
+            @param img：cv::Mat图像
+            @param ltrb：检测框坐标{left, top, right, botton}
+            @param label：文字内容
+            @param bbox_color：检测框颜色
+            @param text_color：文字颜色
+            @param word_type：文字类型，用opencv的HersheyFonts枚举类型表示
+            @param word_scale：文字尺寸
+            @param bbox_thickness：检测框粗细
+            @param text_thickness：文字粗细   */
+        void putBoxCV(cv::Mat& img, const mmath::LTRB& ltrb, const std::string& label = "",
+            cv::Scalar bbox_color = { 0,255,0 }, cv::Scalar text_color = { 255,255,255 },
+            int word_type = cv::FONT_HERSHEY_SIMPLEX, float word_scale = 1,
+            int bbox_thickness = 3, int text_thickness = 2);
+
+        /*  在图像上绘制检测框及标签
+            @param img：cv::Mat图像
+            @param xywh：检测框坐标{center_x, center_y, width, height}
+            @param label：文字内容
+            @param bbox_color：检测框颜色
+            @param text_color：文字颜色
+            @param word_type：文字类型，用opencv的HersheyFonts枚举类型表示
+            @param word_scale：文字尺寸
+            @param bbox_thickness：检测框粗细
+            @param text_thickness：文字粗细   */
+        void putBoxCV(cv::Mat& img, mmath::XYWH xywh, const std::string& label = "",
+            cv::Scalar bbox_color = { 0,255,0 }, cv::Scalar text_color = { 255,255,255 },
+            int word_type = cv::FONT_HERSHEY_SIMPLEX, float word_scale = 1,
+            int bbox_thickness = 3, int text_thickness = 2);
+
+        //自定义3个通道的值
+        template<class T = int>
+        void channelInit(cv::Mat& mat, cv::Point3_<T> channel_value = { 0, 0, 0 });
+
+        /*  打印cv::Mat的值，目前只支持2D的Mat
+            @param img：要打印的cv::Mat
+            @param x_range：x坐标值或range，支持Python风格range
+            @param y_range：y坐标值或range，支持Python风格range
+            @param c_range：channel值或range，支持Python风格range   */
+        template<class Tx = std::pair<int, int>, class Ty = std::pair<int, int>, class Tc = std::pair<int, int>>
+        void printMat(const cv::Mat& img, Tx x_range = { 0, INT_MAX }, Ty y_range = { 0, INT_MAX }, Tc c_range = { 0, INT_MAX });
+
+
+
+
+
+
+
+
+        /*--------------------------------------------内部实现--------------------------------------------*/
+
         /*
         #cv2.VideoWriter_fourcc('X', '2', '6', '4'), 该参数是较新的MPEG-4编码,产生的文件较小,文件扩展名应为.mp4
         #cv2.VideoWriter_fourcc('P', 'I', 'M', 'I'), 该参数是较旧的MPEG-1编码,文件名后缀为.avi
@@ -36,12 +117,11 @@ namespace mineutils
         #cv2.VideoWriter_fourcc('T', 'H', 'E', 'O'), 该参数是Ogg Vorbis,产生的文件相对较大,文件名后缀为.ogv
         #cv2.VideoWriter_fourcc('F', 'L', 'V', '1'), 该参数是Flash视频,产生的文件相对较大,文件名后缀为.flv
         #cv2.VideoWriter_fourcc('M', 'J', 'P', 'G'), 该参数是motion-jpeg编码,产生的文件较大,文件名后缀为.avi
-        #cv2.VideoWriter_fourcc('I', '4', '2', '0'),该参数是未压缩的YUV编码,4:2:0色度子采样,这种编码广泛兼容,但会产生特别大的文件,文件扩展名应为.avi 
+        #cv2.VideoWriter_fourcc('I', '4', '2', '0'),该参数是未压缩的YUV编码,4:2:0色度子采样,这种编码广泛兼容,但会产生特别大的文件,文件扩展名应为.avi
         */
 
         //快速设置窗口属性，返回为窗口的名字
-        inline std::string setWindowCV(const std::string& win_name, cv::Size size = { -1, -1 },
-            std::pair<int, int> position = { -1, -1 }, int flag = cv::WINDOW_FREERATIO)
+        inline std::string setWindowCV(const std::string& win_name, cv::Size size, std::pair<int, int> position, int flag)
         {
             cv::namedWindow(win_name, flag);
             if (size.width != -1)
@@ -53,9 +133,7 @@ namespace mineutils
 
 
         //快速显示图像，一步到位设置窗口和显示属性
-        inline int quickShowCV(const std::string& win_name, cv::Mat& img,
-            float wait = 1, bool close = false, cv::Size size = { -1, -1 },
-            std::pair<int, int> position = { -1, -1 }, int flag = cv::WINDOW_FREERATIO)
+        inline int quickShowCV(const std::string& win_name, cv::Mat& img, float wait, bool close, cv::Size size, std::pair<int, int> position, int flag)
         {
             cv::namedWindow(win_name, flag);
             if (size.width != -1)
@@ -70,9 +148,7 @@ namespace mineutils
         }
 
         //快速显示视频
-        inline void quickPlayCV(const std::string& win_name, const std::string& video_path,
-            float wait = 30, cv::Size size = { -1, -1 },
-            std::pair<int, int> position = { -1, -1 }, int flag = cv::WINDOW_FREERATIO)
+        inline void quickPlayCV(const std::string& win_name, const std::string& video_path, float wait, cv::Size size, std::pair<int, int> position, int flag)
         {
             auto cap = cv::VideoCapture(video_path);
             if (not cap.isOpened())
@@ -103,9 +179,6 @@ namespace mineutils
             cap.release();
         }
 
-
-        /*---------------------------------------------------------------------------------*/
-
         /*  为图像添加文字
             @param img：cv::Mat图像
             @param label：文字内容
@@ -116,9 +189,7 @@ namespace mineutils
             @param text_thickness：文字粗细
             @param have_bg：是否为文字添加背景
             @param bg_color：文字背景的颜色，have_bg为true时生效   */
-        inline void putLabelCV(cv::Mat& img, const std::string& label, cv::Point position, cv::Scalar text_color = { 255,255,255 },
-            int word_type = cv::FONT_HERSHEY_SIMPLEX, float word_scale = 1, int text_thickness = 2,
-            bool have_bg = true, cv::Scalar bg_color = { 255, 0, 0 })
+        inline void putLabelCV(cv::Mat& img, const std::string& label, cv::Point position, cv::Scalar text_color, int word_type, float word_scale, int text_thickness, bool have_bg, cv::Scalar bg_color)
         {
             if (label.size() != 0)
             {
@@ -144,10 +215,7 @@ namespace mineutils
             @param word_scale：文字尺寸
             @param bbox_thickness：检测框粗细
             @param text_thickness：文字粗细   */
-        inline void putBoxCV(cv::Mat& img, const mmath::LTRB& ltrb, const std::string& label = "",
-            cv::Scalar bbox_color = { 0,255,0 }, cv::Scalar text_color = { 255,255,255 },
-            int word_type = cv::FONT_HERSHEY_SIMPLEX, float word_scale = 1,
-            int bbox_thickness = 3, int text_thickness = 2)
+        inline void putBoxCV(cv::Mat& img, const mmath::LTRB& ltrb, const std::string& label, cv::Scalar bbox_color, cv::Scalar text_color, int word_type, float word_scale, int bbox_thickness, int text_thickness)
         {
             cv::Point c1 = { ltrb.left , ltrb.top };
             cv::Point c2 = { ltrb.right , ltrb.bottom };
@@ -179,17 +247,14 @@ namespace mineutils
             @param word_scale：文字尺寸
             @param bbox_thickness：检测框粗细
             @param text_thickness：文字粗细   */
-        inline void putBoxCV(cv::Mat& img, mmath::XYWH xywh, const std::string& label = "",
-            cv::Scalar bbox_color = { 0,255,0 }, cv::Scalar text_color = { 255,255,255 },
-            int word_type = cv::FONT_HERSHEY_SIMPLEX, float word_scale = 1,
-            int bbox_thickness = 3, int text_thickness = 2)
+        inline void putBoxCV(cv::Mat& img, mmath::XYWH xywh, const std::string& label, cv::Scalar bbox_color, cv::Scalar text_color, int word_type, float word_scale, int bbox_thickness, int text_thickness)
         {
             mext::putBoxCV(img, xywh.toLTRB(), label, bbox_color, text_color, word_type, word_scale, bbox_thickness, text_thickness);
         }
 
         //自定义3个通道的值
         template<class T = int>
-        inline void channelInit(cv::Mat& mat, cv::Point3_<T> channel_value = { 0, 0, 0 })
+        inline void channelInit(cv::Mat& mat, cv::Point3_<T> channel_value)
         {
             std::vector<cv::Mat> ma_mb_mc;
             cv::split(mat, ma_mb_mc);
@@ -323,8 +388,8 @@ namespace mineutils
             @param x_range：x坐标值或range，支持Python风格range
             @param y_range：y坐标值或range，支持Python风格range
             @param c_range：channel值或range，支持Python风格range   */
-        template<class Tx = std::pair<int, int>, class Ty = std::pair<int, int>, class Tc = std::pair<int, int>>
-        inline void printMat(const cv::Mat& img, Tx x_range = {0, INT_MAX}, Ty y_range = { 0, INT_MAX }, Tc c_range = { 0, INT_MAX })
+        template<class Tx, class Ty, class Tc>
+        inline void printMat(const cv::Mat& img, Tx x_range, Ty y_range, Tc c_range)
         {
             /*      C1    C2    C3    C4
             CV_8U    0    8    16    24       uchar

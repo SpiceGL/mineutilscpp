@@ -5,6 +5,9 @@
 
 #include<fstream>
 #include<iostream>
+#include<list>
+#include<map>
+#include<regex>
 #include<string>
 #include<vector>
 
@@ -16,250 +19,355 @@ namespace mineutils
 {
     namespace mfile
     {
-        /*  ios::app：　　　 //以追加的方式打开文件
-            ios::ate：　　　 //文件打开后定位到文件尾，ios:app就包含有此属性
-            ios::binary：　 //以二进制方式打开文件，缺省的方式是文本方式。两种方式的区别见前文
-            ios::in：　　　  //文件以输入方式打开（文件数据输入到内存）
-            ios::out：　　　 //文件以输出方式打开（内存数据输出到文件）
-            ios::nocreate： //不建立文件，所以文件不存在时打开失败
-            ios::noreplace：//不覆盖文件，所以打开文件时如果文件存在失败
-            ios::trunc：　  //如果文件存在，把文件长度设为0   */
+        /*--------------------------------------------用户接口--------------------------------------------*/
 
-        //读写ini文件。
-        //ini文件结构：
-        //[section]   #注释1
-        //key=value   ;注释2
-        //由#或;表示注释
-        //可以没有section，section不可重复不可分段，一个section下的key不可重复
+        //读写ini文件
         class IniFile
         {
         public:
             IniFile() { }
             IniFile(const IniFile& file) = delete;
             IniFile& operator=(const IniFile& file) = delete;
+            ~IniFile();
 
-            ~IniFile()
-            {
-                this->close();
-            }
+            /*  打开ini文件，不存在的文件无法打开
+                @param path: 文件路径
+                @param key_value_sep: 分割key和value的字符，默认为'='
+                @param note_signs: 注释标记符，默认为{ "#", ";" }
+                @return 0代表正常，其他代表失败   */
+            int open(const std::string& path, const char& key_value_sep = '=', const std::vector<std::string>& note_signs = { "#", ";" });
+            //关闭并保存文件
+            void close();
 
-            /*  @brief 自定义作为注释符的符号，默认{"#", ";"}
-            *    @param note_signs: 作为注释符的符号，以vector输入  */
-            void setNoteSigns(std::vector<std::string> note_signs = { "#", ";" })
-            {
-                this->note_signs_ = note_signs;
-            }
+            //通过section和key获取value的值
+            std::string getValue(const std::string& section, const std::string& key);
+            //通过key获取value的值，只能获取无section的key-value条目
+            std::string getValue(const std::string& key);
 
-            //打开ini文件
-            int open(const std::string& path)
-            {
-                if (file_.is_open())
-                {
-                    printf("IniFile: File was opened. Open the file again.");
-                    std::cout << msgN("File was opened. Open the file again.\n");
-                    file_.close();
-                }
-
-                file_path_ = path;
-                file_.open(file_path_, std::ios::binary | std::ios::in);
-                if (!file_.is_open())
-                {
-                    //printf("!Warning! %s: Failed to open %s! Please check if the file exists.\n", __FUNCTION__, path.c_str());
-                    std::cout << msgN("Failed to open {}! Please check if the file exists.\n", file_path_);
-                    return -1;
-                }
-                else
-                {
-                    std::string line;
-                    content_.clear();
-                    while (file_.good())   //按行读取内容，并去掉\r和\n符号
-                    {
-                        line.clear();
-                        std::getline(file_, line);
-                        if (line.size() > 0)
-                        {
-                            line = mstr::split(line, "\n")[0];
-                            line = mstr::split(line, "\r")[0];
-                        }
-                        content_.push_back(line);
-                    }
-                    return 0;
-                }
-            }
-
-            //关闭并保存
-            void close()
-            {
-                if (rwstatus_ == 'w')
-                    saveContent();
-                content_.clear();
-                file_.close();
-                rwstatus_ = 'r';
-                file_.clear();
-            }
-
-            //根据section和key获取值
-            std::string getValue(const std::string& section, const std::string& key)
-            {
-                std::string value;
-                int section_start, section_end;
-                if (section.size() > 0)
-                {
-                    section_start = findSection(section);
-                    section_end = findSectionEnd(section_start);
-                }
-                else
-                {
-                    section_start = 0;
-                    section_end = content_.size();
-                }
-                if (section_start >= 0 && section_end >= 0)
-                {
-                    int key_idx = findKey(section_start, section_end, key);
-                    if (key_idx >= 0)
-                    {
-                        value = mstr::split(content_[key_idx], "=")[1];
-                        value = mstr::split(value)[0];
-                        for (const std::string& sign : note_signs_)
-                            value = mstr::split(value, sign)[0];
-                    }
-                    else
-                    {
-                        std::cout << msgW("key={} not exists!\n", key);
-                    }
-                }
-                else
-                {
-                    std::cout << msgW("section={} not exists!\n", section);
-                }
-                file_.seekg(0);
-                return value;
-            }
-
-            //根据key获得值，没有section时使用
-            std::string getValue(const std::string& key)
-            {
-                return getValue("", key);
-            }
-
-            /*  @brief 根据section和key设置值
-            *    @param value: int、float等数字类型或char、string等字符类型
-            */
+            //设置和添加key-value条目
             template<class T>
-            void setValue(const std::string& section, const std::string& key, const T& value)
-            {
-                std::string s_value = mstr::toStr(value);
-                rwstatus_ = 'w';
-                int section_start, section_end;
-                if (section.size() > 0)
-                {
-                    section_start = findSection(section);
-                    section_end = findSectionEnd(section_start);
-                }
-                else
-                {
-                    section_start = 0;
-                    section_end = content_.size();
-                }
-                if (section_start >= 0 && section_end >= section_start + 1)
-                {
-                    int key_idx = findKey(section_start, section_end, key);
-                    if (key_idx >= 0)
-                    {
-                        content_[key_idx] = key + "=" + s_value;// +"   " + note;
-                    }
-                    else
-                    {
-                        content_.insert(content_.begin() + section_end, key + "=" + s_value);
-                    }
-                }
-                else
-                {
-                    content_.push_back("[" + section + "]");
-                    content_.push_back(key + "=" + s_value);
-                }
-            }
-
-            /*  @brief 根据key设置值
-            *    @param value: int、float等数字类型或char、string等字符类型，使用sstream转换为字符串   */
+            void setValue(const std::string& section, const std::string& key, const T& value);
+            //设置和添加无section的key-value条目
             template<class T>
-            void setValue(const std::string& key, const T& value)
-            {
-                setValue("", key, value);
-            }
+            void setValue(const std::string& key, const T& value);
+
+            /*  已废弃  */
+            inline void MINE_DEPRECATED("Function \"IniFile::setNoteSigns\" has been deprecated, please set note_signs when calling function \"IniFile::open\"!")
+                setNoteSigns(std::vector<std::string> note_signs = { "#", ";" });
 
         private:
+            struct SectionInfo
+            {
+                std::list<std::string>::iterator line;
+
+                std::list<std::string>::iterator last;
+                size_t pos;
+                size_t len;
+            };
+
+            struct KeyInfo
+            {
+                std::list<std::string>::iterator line;
+                size_t key_pos;
+                size_t key_len;
+                size_t value_pos;
+                size_t value_len;
+            };
+
+            bool searchSection(const std::string& line, SectionInfo& section_info);
+            bool searchKey(const std::string& line, KeyInfo& key_info);
+            void saveContent();
+
             std::string file_path_;
             std::fstream file_;
             char rwstatus_ = 'r';
-            std::vector<std::string> content_;
+            char sep_ = '=';
             std::vector<std::string> note_signs_ = { "#", ";" };
+            std::list<std::string> content_list_;
+            std::map<std::string, SectionInfo> section_map_;
+            std::map<std::string, std::map<std::string, KeyInfo>> key_map_;
+        };
 
-            //查找section所在位置，未找到则返回-1
-            int findSection(const std::string& section) const
+
+
+
+
+
+        /*--------------------------------------------内部实现--------------------------------------------*/
+
+        inline IniFile::~IniFile()
+        {
+            this->close();
+        }
+ 
+        //打开ini文件
+        inline int IniFile::open(const std::string& path, const char& key_value_sep, const std::vector<std::string>& note_signs)
+        {
+            /*  ios::app：　　　 //以追加的方式打开文件
+                ios::ate：　　　 //文件打开后定位到文件尾，ios:app就包含有此属性
+                ios::binary：　 //以二进制方式打开文件，缺省的方式是文本方式。两种方式的区别见前文
+                ios::in：　　　  //文件以输入方式打开（文件数据输入到内存）
+                ios::out：　　　 //文件以输出方式打开（内存数据输出到文件）
+                ios::nocreate： //不建立文件，所以文件不存在时打开失败
+                ios::noreplace：//不覆盖文件，所以打开文件时如果文件存在失败
+                ios::trunc：　  //如果文件存在，把文件长度设为0   */
+            if (this->file_.is_open())
             {
-                for (int i = 0; i < content_.size(); ++i)
-                {
-                    if (content_[i] == "[" + section + "]")
-                        return i;
-                }
+                printf("IniFile: File was opened. Open the file again.");
+                std::cout << msgN("File was opened. Open the file again.\n");
+                this->file_.close();
+            }
+
+                
+            this->file_.open(path, std::ios::binary | std::ios::in);
+            if (!this->file_.is_open())
+            {
+                //printf("!Warning! %s: Failed to open %s! Please check if the file exists.\n", __FUNCTION__, path.c_str());
+                std::cout << msgN("Failed to open {}! Please check if the file exists.\n", path);
                 return -1;
             }
-
-            //查找key所在位置，未找到则返回-1
-            int findKey(int section_start, int section_end, const std::string& key) const
+            else
             {
-                if (section_start >= 0 && section_end >= 0)
+                this->file_path_ = path;
+                this->sep_ = key_value_sep;
+                this->note_signs_ = note_signs;
+
+                std::string line;
+                std::vector<std::string> line_split;
+                //content_list_.clear();
+                int line_id = -1;
+                std::string now_section = "";
+                while (this->file_.good())   //按行读取内容，并去掉\r和\n符号
                 {
-                    for (int i = section_start; i < section_end; ++i)
+
+                    line_id++;
+                    line.clear();
+                    std::getline(this->file_, line);
+                    if (!line.empty())
                     {
-                        if (content_[i].size() > 0)
+                        line = mstr::split(line, "\n")[0];
+                        line = mstr::split(line, "\r")[0];
+                    }
+                    this->content_list_.emplace_back(line);
+
+                    SectionInfo section_info;
+                    if (this->searchSection(line, section_info))
+                    {
+                        now_section = line.substr(section_info.pos, section_info.len);
+                        if (this->section_map_.find(now_section) != this->section_map_.end())
                         {
-                            if (content_[i].find("=") != -1 && mstr::split(mstr::split(content_[i], "=")[0])[0] == key)
-                                return i;
+                            printfW("Duplicate section:%s at line:%d!\n", now_section.c_str(), line_id+1);
+                            continue;
                         }
+                        section_info.line = --this->content_list_.end();
+                        section_info.last = --this->content_list_.end();
+                                        
+                        this->section_map_[now_section] = section_info;
+                        continue;
+                    }
+
+                    KeyInfo key_info;
+                    if (this->searchKey(line, key_info))
+                    {        
+                        this->section_map_[now_section].last = --this->content_list_.end();
+
+                        std::string key = line.substr(key_info.key_pos, key_info.key_len);
+                        
+                        if (this->key_map_.find(now_section) != this->key_map_.end() && this->key_map_[now_section].find(key) != this->key_map_[now_section].end())
+                        {
+                            printfW("Duplicate key:%s in section:%s at line:%d!\n", key.c_str(), now_section.c_str(), line_id+1);
+                            continue;
+                        }                       
+                        key_info.line = --this->content_list_.end();
+                        this->key_map_[now_section][key] = key_info;
+                        continue;
                     }
                 }
-                else return -1;
+                return 0;
             }
+        }
 
-            //查找Section的最后一行的下一行所在位置
-            int findSectionEnd(int section_start) const
+        //关闭并保存
+        inline void IniFile::close()
+        {
+            if (this->rwstatus_ == 'w')
+                saveContent();
+            this->content_list_.clear();
+            this->section_map_.clear();
+            this->key_map_.clear();
+            this->file_.close();
+            this->rwstatus_ = 'r';
+            this->file_.clear();
+        }
+
+        inline std::string IniFile::getValue(const std::string& section, const std::string& key)
+        {
+            if (this->key_map_.find(section) == this->key_map_.end())
             {
-                if (section_start < 0)
-                    return section_start;
-                for (int i = section_start + 1; i < content_.size(); ++i)
+                printfW("The section:%s is not exist! Please check it.\n", section.c_str());
+                return "";
+            }
+            if (this->key_map_[section].find(key) == this->key_map_[section].end())
+            {
+                printfW("The key:%s is not exist! Please check it.\n", key.c_str());
+                return "";
+            }
+            KeyInfo& key_info = this->key_map_[section][key];
+            //std::string& line = *key_info.line;
+            return (*key_info.line).substr(key_info.value_pos, key_info.value_len);
+        }
+
+        inline std::string IniFile::getValue(const std::string& key)
+        {
+            return this->getValue("", key);
+        }
+
+        template<class T>
+        inline void IniFile::setValue(const std::string& section, const std::string& key, const T& value)
+        {
+            rwstatus_ = 'w';
+            if (this->key_map_.find(section) == this->key_map_.end())
+            {
+                if (section.empty())
                 {
-                    if (content_[i].size() > 0)
-                    {
-                        if (content_[i][0] == '[')
-                            return i;
-                    }
+                    std::string value_str = mstr::toStr(value);
+                    this->content_list_.emplace_front(key + this->sep_ + value_str);
+                    this->section_map_[section].last = this->content_list_.begin();
+
+                    this->key_map_[section][key].line = this->content_list_.begin();
+                    this->key_map_[section][key].key_pos = 0;
+                    this->key_map_[section][key].key_len = key.size();
+                    this->key_map_[section][key].value_pos = key.size() + 1;
+                    this->key_map_[section][key].value_len = value_str.size();
                 }
-                return content_.size();
-            }
-
-            //查找Section的最后一行的下一行所在位置
-            int findSectionEnd(const std::string& section) const
-            {
-                int section_start = findSection(section);
-                if (section_start >= 0)
-                    return findSectionEnd(section_start);
-                else return -1;
-            }
-
-            void saveContent()
-            {
-                file_.close();
-                file_.open(file_path_, std::ios::binary | std::ios::trunc | std::ios::out);
-                for (int i = 0; i < content_.size(); ++i)
+                else
                 {
-                    if (i == content_.size() - 1)
-                        file_ << content_[i];
-                    else file_ << content_[i] << std::endl;
+                    this->content_list_.emplace_back("[" + section + "]");
+                    this->section_map_[section].line = --this->content_list_.end();
+                    this->section_map_[section].last = --this->content_list_.end();
+                    this->section_map_[section].pos = 1;
+                    this->section_map_[section].len = section.size();
+                    this->key_map_[section] = { };
+                    this->setValue(section, key, value);
                 }
             }
-        };
+            else
+            {
+                if (this->key_map_[section].find(key) == this->key_map_[section].end())
+                {
+                    std::string value_str = mstr::toStr(value);
+                    this->key_map_[section][key].line = this->content_list_.emplace(++this->section_map_[section].last, key + this->sep_ + value_str);
+                    this->key_map_[section][key].key_pos = 0;
+                    this->key_map_[section][key].key_len = key.size();
+                    this->key_map_[section][key].value_pos = key.size() + 1;
+                    this->key_map_[section][key].value_len = value_str.size();
+                }
+                else
+                {
+                    std::string value_str = mstr::toStr(value);
+                    *this->key_map_[section][key].line = key + this->sep_ + value_str;
+                    this->key_map_[section][key].value_len = value_str.size();
+                }
+            }
+        }
+
+        template<class T>
+        inline void IniFile::setValue(const std::string& key, const T& value)
+        {
+            this->setValue("", key, value);
+        }
+
+        /*  已废弃  */
+        inline void IniFile::setNoteSigns(std::vector<std::string> note_signs)
+        {
+            if (!this->file_path_.empty())
+                this->open(this->file_path_, this->sep_, note_signs);
+        }
+
+        inline bool IniFile::searchSection(const std::string& line, SectionInfo& section_info)
+        {
+            //找到注释的位置
+            size_t note_pos = line.size();
+            for (std::string& note_sign : this->note_signs_)
+            {
+                size_t tmp_pos = line.find(note_sign);
+                if (tmp_pos < note_pos)
+                    note_pos = tmp_pos;
+            }
+
+            size_t pos0 = line.find('[');
+            if (pos0 >= note_pos)
+                return false;
+            size_t pos1 = line.find(']', pos0 + 1);
+            if (pos1 >= note_pos)
+                return false;
+            if (pos1 - pos0 <= 1)
+                return false;
+
+            size_t sec_pos0 = line.find_first_not_of(" ", pos0 + 1, 1);
+            size_t sec_pos1 = line.find_last_not_of(" ", pos1 - 1, 1);
+
+            if (sec_pos1 - sec_pos0 >= 0)
+            {
+                std::string value = line.substr(sec_pos0, sec_pos1 - sec_pos0 + 1);
+                section_info.pos = sec_pos0;
+                section_info.len = sec_pos1 - sec_pos0 + 1;
+                return true;
+            }
+            else return false;
+        }
+
+        inline bool IniFile::searchKey(const std::string& line, KeyInfo& key_info)
+        {
+            //找到注释的位置
+            size_t note_pos = line.size();
+            for (std::string& note_sign : this->note_signs_)
+            {
+                size_t tmp_pos = line.find(note_sign);
+                if (tmp_pos < note_pos)
+                    note_pos = tmp_pos;
+            }
+
+            size_t sep_pos = line.find(this->sep_);
+            if (sep_pos >= note_pos)
+                return false;
+
+            std::string key = line.substr(0, sep_pos);
+            std::vector<std::string> key_split = mstr::split(key);
+            if (!key_split.empty())
+            {
+                key_info.key_pos = line.rfind(key_split.back(), sep_pos);
+                key_info.key_len = key_split.back().size();
+            }
+            else return false;
+
+            size_t v_pos0 = line.find_first_not_of(" ", sep_pos + 1, 1);
+            size_t v_pos1 = line.find_last_not_of(" ", note_pos - 1, 1);
+
+            if (v_pos1 - v_pos0 >= 0)
+            {
+                std::string value = line.substr(v_pos0, v_pos1 - v_pos0 + 1);
+                key_info.value_pos = v_pos0;
+                key_info.value_len = v_pos1 - v_pos0 + 1;
+                return true;
+            }
+            else return false;
+        }
+
+
+        inline void IniFile::saveContent()
+        {
+            file_.close();
+            file_.open(file_path_, std::ios::binary | std::ios::trunc | std::ios::out);
+            int i = 0;
+            for (auto& content: this->content_list_)
+            {
+                if (i < this->content_list_.size() - 1)
+                    file_ << content << "\n";
+                else file_ << content;
+                i++;
+            }
+        }
     }
 }
 

@@ -20,6 +20,33 @@ namespace mineutils
 {
     namespace mext
     {
+        /*--------------------------------------------用户接口--------------------------------------------*/
+
+        //从路径加载ncnn的net，正常返回0，出错返回其他值
+        int loadNcnn(ncnn::Net& out_net, const std::string& param_path, const std::string& bin_path);
+
+        //快速运行一次ncnn的net推理
+        std::vector<ncnn::Mat> quickRunNcnn(ncnn::Net& net_in, ncnn::Mat& input, const std::string& in_name,
+            const std::vector<std::string>& out_names);
+
+        //输入ncnn的net路径，快速运行一次ncnn的net推理
+        std::vector<ncnn::Mat> quickRunNcnn(const std::string& param_path, const std::string& model_path, ncnn::Mat& input, const std::string& in_name, const std::vector<std::string>& out_names);
+
+        //打印ncnn的Mat，只支持CHW排列的三位ncnn::Mat
+        template<class Tx = std::pair<int, int>, class Ty = std::pair<int, int>, class Tc = std::pair<int, int>>
+        void printMat(const ncnn::Mat& m, Tx x_range = { 0, INT_MAX }, Ty y_range = { 0, INT_MAX }, Tc c_range = { 0, INT_MAX });
+
+        //打印一组ncnn的Mat，只支持CHW排列的三位ncnn::Mat
+        void printMats(const std::vector<ncnn::Mat>& mats);
+
+
+
+
+
+
+
+        /*--------------------------------------------内部实现--------------------------------------------*/
+
         //从路径加载ncnn的net，正常返回0，出错返回其他值
         inline int loadNcnn(ncnn::Net& out_net, const std::string& param_path, const std::string& bin_path)
         {
@@ -66,8 +93,8 @@ namespace mineutils
         }
 
         //打印ncnn的Mat，只支持CHW排列的三位ncnn::Mat
-        template<class Tx = std::pair<int, int>, class Ty = std::pair<int, int>, class Tc = std::pair<int, int>>
-        void printMat(const ncnn::Mat& m, Tx x_range = { 0, INT_MAX }, Ty y_range = { 0, INT_MAX }, Tc c_range = { 0, INT_MAX })
+        template<class Tx, class Ty, class Tc>
+        inline void printMat(const ncnn::Mat& m, Tx x_range, Ty y_range, Tc c_range)
         {
             using Range = std::pair<int, int>;
             Range x_norm_range = mmath::normRange(x_range, m.w);

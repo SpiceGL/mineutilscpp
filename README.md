@@ -3,8 +3,8 @@
 所有功能都放在命名空间mineutils下，同时根据所属模块分布在次级的命名空间，如mineutils::mstr、mineutils::mtime下；基于第三方库的功能统一在次级的命名空间mineutils::mext下。
 
 ## 版本信息
-当前库版本：1.2.1  
-文档注释修改日期：20240423 
+当前库版本：1.3.0   
+文档注释修改日期：20240513
 
 ## 测试平台
 **Windows:**  
@@ -326,13 +326,21 @@ int main()
 ```  
 
 ## 版本发布日志
+**v1.3.0**  
+* 20240513
+1. log.hpp中简化msgN、printfN、dprintfN的打印信息；
+2. mstr::split函数性能优化，且可以设定最大分割次数，并添加mstr::rsplit函数；
+3. mfile::IniFile使用list+map重写，优化性能；
+4. mpath::isImage添加img_exts形参，mpath::isVideo添加video_exts形参；
+5. 将用户接口的声明放到文件的顶部，将内部实现放在底部。
+
 **v1.2.1**  
 * 20240423
 1. 修复log.hpp中printfN、printfW、printfE等宏的打印错误。
 
 **v1.2.0**  
 * 20240422
-1. mlog.hpp添加msgW、msgE、printfW、printfE等宏用于生成警告和错误信息;
+1. log.hpp添加msgW、msgE、printfW、printfE等宏用于生成警告和错误信息；
 2. mlog::messageW、mlog::messageE、mlog::messageN被标记为废弃，将在2.x.y版本中删除；
 3. 移动和添加dprntf、dprintfW、dprintfE等宏到log.hpp下，用于调试时使用，由编译器NDEBUG宏控制是否生效；
 4. 优化mstr::toStr性能；
@@ -341,9 +349,9 @@ int main()
 **v1.1.0**  
 * 20240410
 1. time.hpp中更改sleep系列函数的输入参数类型为long long型；
-2. time.hpp添加LocalTimeController类。
-3. mio::print不再对bool类型值打印true和false。
-4. 现在在Linux系统上可以通过`strings xxx | grep version`命令查找版本信息
+2. time.hpp添加LocalTimeController类；
+3. mio::print不再对bool类型值打印true和false；
+4. 现在在Linux系统上可以通过`strings xxx | grep version`命令查找版本信息。
 
 **v1.0.3**  
 * 20240112

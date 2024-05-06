@@ -8,9 +8,9 @@
 #include<tuple>
 
 #define MINEUTILS_MAJOR_VERSION "1"   //主版本号，对应不向下兼容的API或文件改动
-#define MINEUTILS_MINOR_VERSION "2"   //次版本号，对应不影响现有API使用的新功能增加
-#define MINEUTILS_PATCH_VERSION "1"   //修订版本号，对应不改变接口的BUG修复或效能优化
-#define MINEUTILS_DATE_VERSION "20240423-Release"   //日期版本号，对应文档和注释级别的改动和测试阶段
+#define MINEUTILS_MINOR_VERSION "3"   //次版本号，对应不影响现有API使用的新功能增加
+#define MINEUTILS_PATCH_VERSION "0"   //修订版本号，对应不改变接口的BUG修复或效能优化
+#define MINEUTILS_DATE_VERSION "20240513-Release"   //日期版本号，对应文档和注释级别的改动和测试阶段
 
 #ifdef __GNUC__ 
 #define MINE_FUNCSIG __PRETTY_FUNCTION__

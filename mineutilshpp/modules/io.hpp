@@ -47,8 +47,29 @@ namespace mineutils
 {
     namespace mio
     {
+        /*--------------------------------------------用户接口--------------------------------------------*/
+
+        /*  实现类似Python的print打印功能
+            -可以接受任意数量、任意类型的参数
+            -可以正常打印任意支持std::cout<<的内置数据类型
+            -可以正常打印任意在同一个namespace内重载了std::cout<<的自定义类型
+            -拓展了std::vector、std::tuple等常用STL容器及OpenCV、NCNN的部分数据类型的打印
+            -字符和字符串类型只能正确打印char和st::string类型，wchar_t、char16_t等宽字符型无法正确打印
+            -不支持的类型将会打印<类型名: 地址>
+            -在不混用print函数和std::cout时，线程安全  */
+        template<class T, class... Args>
+        void print(const T& arg, const Args&... args);
+
+
+
+
+
+
+
+
+        /*--------------------------------------------内部实现--------------------------------------------*/
         template <class T>
-        struct CoutChecker
+        struct _CoutChecker
         {
             template<class AnyTp, class _CheckPos = decltype(std::cout << AnyTp()) >
             static constexpr bool coutCheck(AnyTp*) { return true; }
@@ -57,12 +78,7 @@ namespace mineutils
             static constexpr bool result = coutCheck(static_cast<T*>(0));  
         };
         template <typename T>
-        constexpr bool CoutChecker<T>::result;
-
-
-        /*-------------------------------------声明--------------------------------------*/
-        template<class T, class... Args>
-        void print(const T& arg, const Args&... args);
+        constexpr bool _CoutChecker<T>::result;
 
         template<class T, class... Args>
         void _recurPrint(const T& arg, const Args&... args);
@@ -101,24 +117,21 @@ namespace mineutils
 
         void _print(const std::string& str);
 
-        template<class T, typename std::enable_if<CoutChecker<T>::result, void**>::type = nullptr>
-        inline void _print(const T& arg);
+        template<class T, typename std::enable_if<_CoutChecker<T>::result, void**>::type = nullptr>
+        void _print(const T& arg);
 
-        template<class T, class = typename std::enable_if<!CoutChecker<T>::result>::type>
-        inline void _print(const T& arg);
+        template<class T, class = typename std::enable_if<!_CoutChecker<T>::result>::type>
+        void _print(const T& arg);
 
         template<class T, int N>
         void _print(const T(&arr)[N]);
 
-//#ifdef CV_HPP_MINEUTILS
         void _print(const cv::Mat& img);
 
         void _print(const cv::MatExpr& img);
-//#endif // CV_HPP_MINEUTILS
 
-//#ifdef NCNN_HPP_MINEUTILS
         void _print(const ncnn::Mat& m);
-//#endif // NCNN_HPP_MINEUTILS
+
 
 
         /*-------------------------------------定义--------------------------------------*/
@@ -128,14 +141,6 @@ namespace mineutils
             return mtx;
         }
 
-
-        /*  实现类似Python的print打印功能
-            -可以接受任意数量、任意类型的参数
-            -可以正常打印任意支持std::cout<<的内置数据类型
-            -可以正常打印任意在同一个namespace内重载了std::cout<<的自定义类型
-            -拓展了std::vector、std::tuple等常用STL容器及OpenCV、NCNN的部分数据类型的打印
-            -不支持的类型将会打印<类型名: 地址>
-            -在不混用print函数和std::cout时，线程安全  */
         template<class T, class... Args>
         inline void print(const T& arg, const Args&... args)
         {
@@ -160,7 +165,7 @@ namespace mineutils
 
         //为print函数添加对std::array类型的支持
         template<class T, size_t N>
-        void _print(const std::array<T, N>& arr)
+        inline void _print(const std::array<T, N>& arr)
         {
             std::cout << "{";
             if (N > 0)
@@ -291,13 +296,20 @@ namespace mineutils
         //为print函数添加对std::string类型的支持
         inline void _print(const std::string& str)
         {
+            //std::cout << "\"" <<  str << "\"";
             std::cout << str;
         }
 
         //为print函数拓展其他支持std::cout<<的类型
-        template<class T, typename std::enable_if<CoutChecker<T>::result, void**>::type>
+        template<class T, typename std::enable_if<_CoutChecker<T>::result, void**>::type>
         inline void _print(const T& arg)
         {
+            //std::cout << "test: "<< mtype::isInTypes<T, const char*>() << "\n";
+            //if (mtype::isInTypes<T, char*, const char*>())
+            //    std::cout << "\"" << arg << "\"";
+            //else if (mtype::isInTypes<T, char>())
+            //    std::cout << "\'" << arg << "\'";
+            //else std::cout << arg;
             std::cout << arg;
         }
 
@@ -316,7 +328,8 @@ namespace mineutils
         template<class T, int N>
         inline void _print(const T(&arr)[N])
         {
-            if (mtype::isInTypes<T, char, wchar_t>())
+            if (mtype::isInTypes<T, char>())
+                //std::cout << "\"" << arr << "\"";
                 std::cout << arr;
             else
             {

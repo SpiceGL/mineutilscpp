@@ -13,12 +13,13 @@ namespace mineutils
 {
     namespace mlog
     {
+        /*--------------------------------------------用户接口--------------------------------------------*/
 
 /*  生成带函数名的正常提示信息，将f_str中的"{}"替换为后续的...(__VA_ARGS__)参数
     @param f_str: 要生成的信息主体, 如 "hello {}", 其中 "{}"标记将会按顺序被后续的...(__VA_ARGS__)参数替换。
     @param ...(__VA_ARGS__): 用于替换f_str中"{}"
     @return 生成的信息   */
-#define msgN(f_str, ...) mineutils::mstr::fstr((mineutils::mlog::_getFstrN() + (f_str)), MINE_FUNCSIG, ##__VA_ARGS__)
+#define msgN(f_str, ...) mineutils::mstr::fstr((mineutils::mlog::_getFstrN() + (f_str)), __func__, ##__VA_ARGS__)
 
 /*  生成带函数名和位置的警告信息，将f_str中的"{}"替换为后续的...(__VA_ARGS__)参数
     @param f_str: 要生成的信息主体, 如 "hello {}", 其中 "{}"标记将会按顺序被后续的...(__VA_ARGS__)参数替换。
@@ -33,7 +34,7 @@ namespace mineutils
 #define msgE(f_str, ...) mineutils::mstr::fstr((mineutils::mlog::_getFstrE() + (f_str)), MINE_FUNCSIG, __FILE__, __LINE__, ##__VA_ARGS__)
 
 //按printf的格式调用，打印带函数名的正常提示信息
-#define printfN(fmt_chars, ...) printf((mineutils::mlog::_getFmtN() + (fmt_chars)).c_str(), MINE_FUNCSIG, ##__VA_ARGS__)
+#define printfN(fmt_chars, ...) printf((mineutils::mlog::_getFmtN() + (fmt_chars)).c_str(), __func__, ##__VA_ARGS__)
 
 //按printf的格式调用，打印带函数名和位置的警告信息
 #define printfW(fmt_chars, ...) printf((mineutils::mlog::_getFmtW() + (fmt_chars)).c_str(), MINE_FUNCSIG, __FILE__, __LINE__, ##__VA_ARGS__)
@@ -53,21 +54,30 @@ namespace mineutils
 #define dprintfE(fmt_chars, ...) ((void*)0)
 #endif 
 
+
+
+
+
+        /*--------------------------------------------内部实现--------------------------------------------*/
+
         template <class... Ts>
-        inline MINE_DEPRECATED("Function \"messageW\" has been deprecated, please replace with macro definition \"msgW\"(in log.hpp)!") std::string messageW(const std::string& fstr_content, const Ts... args)
+        inline MINE_DEPRECATED("Function \"messageW\" has been deprecated, please replace with macro definition \"msgW\"(in log.hpp)!") 
+            std::string messageW(const std::string& fstr_content, const Ts... args)
         {
             return mstr::color("!Warning! ", mstr::Color::yellow) + mstr::fstr(fstr_content, args...);
         }
 
 
         template <class... Ts>
-        inline MINE_DEPRECATED("Function \"messageE\" has been deprecated, please replace with macro definition \"msgE\"(in log.hpp)!") std::string messageE(const std::string& fstr_content, const Ts... args)
+        inline MINE_DEPRECATED("Function \"messageE\" has been deprecated, please replace with macro definition \"msgE\"(in log.hpp)!") 
+            std::string messageE(const std::string& fstr_content, const Ts... args)
         {
             return mstr::color("!!!Error!!! ", mstr::Color::red) + mstr::fstr(fstr_content, args...);
         }
 
         template <class... Ts>
-        inline MINE_DEPRECATED("Function \"messageN\" has been deprecated, please replace with macro definition \"msgN\"(in log.hpp)!") std::string messageN(mstr::Color str_color, const std::string& fstr_content, const Ts... args)
+        inline MINE_DEPRECATED("Function \"messageN\" has been deprecated, please replace with macro definition \"msgN\"(in log.hpp)!") 
+            std::string messageN(mstr::Color str_color, const std::string& fstr_content, const Ts... args)
         {
             return mstr::color(mstr::fstr(fstr_content, args...), str_color);
         }
