@@ -8,6 +8,12 @@
 
 #include"str.hpp"
 
+//命名空间::类名::函数名
+#define MINE_FUNCNAME (mineutils::mstr::rsplit(mineutils::mstr::rsplit(MINE_FUNCSIG, "(", 1).front(), " ", 1).back().c_str())
+//
+//#define MINE_CLASSNAME (mineutils::mlog::_getClassName(MINE_FUNCNAME).c_str())
+
+
 
 namespace mineutils
 {
@@ -19,7 +25,7 @@ namespace mineutils
     @param f_str: 要生成的信息主体, 如 "hello {}", 其中 "{}"标记将会按顺序被后续的...(__VA_ARGS__)参数替换。
     @param ...(__VA_ARGS__): 用于替换f_str中"{}"
     @return 生成的信息   */
-#define msgN(f_str, ...) mineutils::mstr::fstr((mineutils::mlog::_getFstrN() + (f_str)), __func__, ##__VA_ARGS__)
+#define msgN(f_str, ...) mineutils::mstr::fstr((mineutils::mlog::_getFstrN() + (f_str)), MINE_FUNCNAME, ##__VA_ARGS__)
 
 /*  生成带函数名和位置的警告信息，将f_str中的"{}"替换为后续的...(__VA_ARGS__)参数
     @param f_str: 要生成的信息主体, 如 "hello {}", 其中 "{}"标记将会按顺序被后续的...(__VA_ARGS__)参数替换。
@@ -34,7 +40,7 @@ namespace mineutils
 #define msgE(f_str, ...) mineutils::mstr::fstr((mineutils::mlog::_getFstrE() + (f_str)), MINE_FUNCSIG, __FILE__, __LINE__, ##__VA_ARGS__)
 
 //按printf的格式调用，打印带函数名的正常提示信息
-#define printfN(fmt_chars, ...) printf((mineutils::mlog::_getFmtN() + (fmt_chars)).c_str(), __func__, ##__VA_ARGS__)
+#define printfN(fmt_chars, ...) printf((mineutils::mlog::_getFmtN() + (fmt_chars)).c_str(), MINE_FUNCNAME, ##__VA_ARGS__)
 
 //按printf的格式调用，打印带函数名和位置的警告信息
 #define printfW(fmt_chars, ...) printf((mineutils::mlog::_getFmtW() + (fmt_chars)).c_str(), MINE_FUNCSIG, __FILE__, __LINE__, ##__VA_ARGS__)
@@ -116,6 +122,12 @@ namespace mineutils
             static std::string error_message("!!!Error!!! \"%s\"[%s](line %d): ");
             return error_message;
         }
+
+        //inline std::string _getClassName(const char* funcname)
+        //{
+        //    auto vec = mineutils::mstr::rsplit(funcname, "::", 1);
+        //    return (vec.size() > 1 ? vec[0] : "");
+        //}
     }
 
 

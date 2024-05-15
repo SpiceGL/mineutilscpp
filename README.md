@@ -3,8 +3,8 @@
 所有功能都放在命名空间mineutils下，同时根据所属模块分布在次级的命名空间，如mineutils::mstr、mineutils::mtime下；基于第三方库的功能统一在次级的命名空间mineutils::mext下。
 
 ## 版本信息
-当前库版本：1.3.0   
-文档注释修改日期：20240513
+当前库版本：1.4.0   
+文档注释修改日期：20240530
 
 ## 测试平台
 **Windows:**  
@@ -326,6 +326,14 @@ int main()
 ```  
 
 ## 版本发布日志
+**v1.4.0**  
+* 20240530
+1. mstr添加toOrdinal函数；
+2. mmath添加align函数；
+3. mmath::BaseBox类的构造函数添加静态断言，要求模板类型必须为整数或浮点数类型；
+4. log.hpp添加MINE_FUNCNAME宏，用于获取namespace::class::function形式的函数名，并相应更改printfN和msgN宏；
+5. mbase添加printVersion函数。
+
 **v1.3.0**  
 * 20240513
 1. log.hpp中简化msgN、printfN、dprintfN的打印信息；
@@ -340,11 +348,12 @@ int main()
 
 **v1.2.0**  
 * 20240422
-1. log.hpp添加msgW、msgE、printfW、printfE等宏用于生成警告和错误信息；
-2. mlog::messageW、mlog::messageE、mlog::messageN被标记为废弃，将在2.x.y版本中删除；
-3. 移动和添加dprntf、dprintfW、dprintfE等宏到log.hpp下，用于调试时使用，由编译器NDEBUG宏控制是否生效；
-4. 优化mstr::toStr性能；
-5. mstr::fstr函数不再打印警告信息。
+1. base.hpp添加MINE_FUNCSIG宏用于获得函数信息，添加MINE_DEPRECATED宏用于标记废弃；
+2. log.hpp添加msgW、msgE、printfW、printfE等宏用于生成警告和错误信息；
+3. mlog::messageW、mlog::messageE、mlog::messageN被标记为废弃，将在2.x.y版本中删除；
+4. 移动和添加dprntf、dprintfW、dprintfE等宏到log.hpp下，用于调试时使用，由编译器NDEBUG宏控制是否生效；
+5. 优化mstr::toStr性能；
+6. mstr::fstr函数不再打印警告信息。
 
 **v1.1.0**  
 * 20240410

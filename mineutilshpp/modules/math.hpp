@@ -38,14 +38,18 @@ namespace mineutils
             @return 实际range   */
         std::pair<int, int> normRange(int idx, int len);
 
+        //将x按a值向上对齐
+        unsigned int align(unsigned int x, unsigned int a);
 
-        template<class T>
+        //template<class T>
+        //class BaseBox;
+
+        template<class T = int/*typename std::enable_if<std::is_integral<T>::value || std::is_floating_point<T>::value, void**>::type*/>
         class BaseBox
         {
         public:
-            BaseBox() {}
-
-            BaseBox(const T& v0, const T& v1, const T& v2, const T& v3);
+            BaseBox();
+            BaseBox(T v0, T v1, T v2, T v3);
             BaseBox(const BaseBox<T>& box);
             virtual ~BaseBox() {}
             T& operator[](int idx);
@@ -79,7 +83,7 @@ namespace mineutils
             T& b = bottom;
 
             LTRBBox() :BaseBox<T>() {}
-            LTRBBox(const T& v0, const T& v1, const T& v2, const T& v3) :BaseBox<T>(v0, v1, v2, v3) {}
+            LTRBBox(T v0, T v1, T v2, T v3) :BaseBox<T>(v0, v1, v2, v3) {}
             LTRBBox(const LTRBBox<T>& ltrb) :BaseBox<T>(ltrb) {}
             LTRBBox<T>& operator=(const LTRBBox<T>& ltrb);
 
@@ -106,7 +110,7 @@ namespace mineutils
             T& height = this->h;
 
             XYWHBox() :BaseBox<T>() {}
-            XYWHBox(const T& v0, const T& v1, const T& v2, const T& v3) :BaseBox<T>(v0, v1, v2, v3) {}
+            XYWHBox(T v0, T v1, T v2, T v3) :BaseBox<T>(v0, v1, v2, v3) {}
             XYWHBox(const XYWHBox<T>& xywh) :BaseBox<T>(xywh) {}
             XYWHBox<T>& operator=(const XYWHBox<T>& xywh);
 
@@ -135,7 +139,7 @@ namespace mineutils
             T& h = this->height;
 
             LTWHBox() :BaseBox<T>() {}
-            LTWHBox(const T& v0, const T& v1, const T& v2, const T& v3) :BaseBox<T>(v0, v1, v2, v3) {}
+            LTWHBox(T v0, T v1, T v2, T v3) :BaseBox<T>(v0, v1, v2, v3) {}
             LTWHBox(const LTWHBox<T>& ltwh) :BaseBox<T>(ltwh) {}
             LTWHBox<T>& operator=(const LTWHBox<T>& ltwh);
 
@@ -218,16 +222,27 @@ namespace mineutils
                 dst_start = idx + len, dst_end = idx + len + 1;
             else
             {
-                std::cout << msgW("idx={} out of index range!\n", idx);
+                printfW("idx:%d out of index range:%d!\n", idx, len);
                 return { -1, -1 };
             }
             return { dst_start, dst_end };
         }
 
-        template<class T>
-        inline BaseBox<T>::BaseBox(const T& v0, const T& v1, const T& v2, const T& v3)
+        inline unsigned int align(unsigned int x, int a)
         {
-            //static_assert(std::is_integral<T>::value || std::is_floating_point<T>::value, "Class T is not integral or floating_point!");
+            return ((x)+(a)-1) &~((a)-1);
+        }
+
+        template<class T>
+        inline BaseBox<T>::BaseBox()
+        { 
+            static_assert(std::is_integral<T>::value || std::is_floating_point<T>::value, "Class T is not integral or floating_point!"); 
+        }
+
+        template<class T>
+        inline BaseBox<T>::BaseBox(T v0, T v1, T v2, T v3)
+        {
+            static_assert(std::is_integral<T>::value || std::is_floating_point<T>::value, "Class T is not integral or floating_point!");
             data_[0] = v0;
             data_[1] = v1;
             data_[2] = v2;
@@ -236,6 +251,7 @@ namespace mineutils
         template<class T>
         inline BaseBox<T>::BaseBox(const BaseBox<T>& box)
         {
+            static_assert(std::is_integral<T>::value || std::is_floating_point<T>::value, "Class T is not integral or floating_point!");
             this->data_[0] = box.data_[0];
             this->data_[1] = box.data_[1];
             this->data_[2] = box.data_[2];

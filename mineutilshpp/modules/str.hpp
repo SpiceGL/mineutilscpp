@@ -39,9 +39,13 @@ namespace mineutils
         //部分终端不一定支持彩色字体显示，因此默认关闭该功能
         void setColorStrOn(bool ColorStr_on);
 
+        //将数字转换为序数词，1st、2nd等，只接受正整数
+        std::string toOrdinal(int number);
+
         //将输入直接转换为字符串
         template<class T>
         std::string toStr(const T& arg);
+
 
         /*  类似Python字符串的zfill函数，将整型的数字转换为字符串并在前面添加字符
             @param n：输入的整型数字
@@ -148,6 +152,23 @@ namespace mineutils
         {
             static std::ostringstream str_buf;   //给toStr函数使用的字符串流
             return str_buf;
+        }
+
+        //将数字转换为序数词，1st、2nd等，只接受正整数，否则会返回空字符串
+        inline std::string toOrdinal(int number)
+        {
+            if(number <= 0)
+            { 
+                printf("!!!Error!!! \"%s\"[%s](line %d): Param number:%d must be positive integer!\n", MINE_FUNCSIG, __FILE__, __LINE__, number);
+                return "";
+            }
+            if (number == 1)
+                return "1st";
+            else if (number == 2)
+                return "2nd";
+            else if (number == 3)
+                return "3rd";
+            else return std::to_string(number) + "th";
         }
 
         template<class T>

@@ -8,9 +8,10 @@
 #include<tuple>
 
 #define MINEUTILS_MAJOR_VERSION "1"   //主版本号，对应不向下兼容的API或文件改动
-#define MINEUTILS_MINOR_VERSION "3"   //次版本号，对应不影响现有API使用的新功能增加
+#define MINEUTILS_MINOR_VERSION "4"   //次版本号，对应不影响现有API使用的新功能增加
 #define MINEUTILS_PATCH_VERSION "0"   //修订版本号，对应不改变接口的BUG修复或效能优化
-#define MINEUTILS_DATE_VERSION "20240513-Release"   //日期版本号，对应文档和注释级别的改动和测试阶段
+#define MINEUTILS_DATE_VERSION "20240530-release"   //日期版本号，对应文档和注释级别的改动和测试阶段
+
 
 #ifdef __GNUC__ 
 #define MINE_FUNCSIG __PRETTY_FUNCTION__
@@ -28,16 +29,11 @@ namespace mineutils
 {
     namespace mbase
     {
-        static volatile char MINEUTILS_VERSION[64] = "mineutils version: " MINEUTILS_MAJOR_VERSION "." MINEUTILS_MINOR_VERSION "." MINEUTILS_PATCH_VERSION "-" MINEUTILS_DATE_VERSION;
-
         //获取mineutils库的版本
-        inline std::string getVersion()
-        {
-            char version[64];
-            snprintf(version, 64, "mineutilshpp version is %s.%s.%s-%s", MINEUTILS_MAJOR_VERSION, MINEUTILS_MINOR_VERSION, MINEUTILS_PATCH_VERSION, MINEUTILS_DATE_VERSION);
-            return version;
-        }
+        std::string getVersion();
 
+        //打印mineutils库的版本
+        int printVersion(const std::string& project_name);
 
         class CaseTag0
         {
@@ -83,6 +79,27 @@ namespace mineutils
 
         //包含两个成员的tuple，用于重载函数的选择
         static std::tuple<mbase::CaseTag0&, mbase::CaseTag1&>& BOOL_CASE_TAGS = mbase::_creatBoolCaseTags();
+
+        inline volatile char* _keepVersionString()
+        {
+            static volatile char MINEUTILS_VERSION[64] = "mineutils version: " MINEUTILS_MAJOR_VERSION "." MINEUTILS_MINOR_VERSION "." MINEUTILS_PATCH_VERSION "-" MINEUTILS_DATE_VERSION;
+            return MINEUTILS_VERSION;
+        }
+        static volatile char* _tmp_keepVersionString = _keepVersionString();
+
+        inline std::string getVersion()
+        {
+            std::string MINEUTILS_VERSION = "mineutils-" MINEUTILS_MAJOR_VERSION "." MINEUTILS_MINOR_VERSION "." MINEUTILS_PATCH_VERSION "-" MINEUTILS_DATE_VERSION;
+            return MINEUTILS_VERSION;
+        }
+
+        inline int printVersion(const std::string& project_name)
+        {
+            std::string MINEUTILS_VERSION = mbase::getVersion();
+            std::string sep_line;           
+            sep_line.resize(MINEUTILS_VERSION.size() + project_name.size() + 7, '-');
+            return printf("%s\n%s using %s\n%s\n", sep_line.c_str(), project_name.c_str(), MINEUTILS_VERSION.c_str(), sep_line.c_str());
+        }
     }
 }
 
