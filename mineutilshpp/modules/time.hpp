@@ -363,7 +363,7 @@ namespace mineutils
         inline long long MeanTimeCounter::printMeanTimeCost(const std::string& print_head, const std::string& codeblock_tag, mtime::Unit time_unit)
         {
             if (_getTimeCounterOn() && time_counter_on_)
-                return printMeanTimeCost(print_head + ": " + codeblock_tag, time_unit);
+                return printMeanTimeCost("\"" + print_head + "\": " + codeblock_tag, time_unit);
             return -1;
         }
 

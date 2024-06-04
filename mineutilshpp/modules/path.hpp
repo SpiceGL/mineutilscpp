@@ -25,62 +25,63 @@
 
 namespace mineutils
 {
+    //输入的路径应为合法格式
     namespace mpath
     {
         /*--------------------------------------------用户接口--------------------------------------------*/
 
         //将windows路径中的\\变为标准的/分隔符，并将路径标准化
-        std::string normPath(std::string pth);
+        std::string normPath(const std::string& path);
 
         //判断路径是否存在
-        bool exists(std::string pth);
+        bool exists(const std::string& path);
 
         //从路径字符串获取文件名
-        std::string splitName(std::string pth, bool suffix = true);
+        std::string splitName(const std::string& path, bool suffix = true);
 
         //获取输入的后缀名
-        std::string extension(std::string pth);
+        std::string extension(const std::string& path);
 
         //判断路径是否为绝对路径
-        bool isAbs(std::string pth);
+        bool isAbs(const std::string& path);
 
         //判断路径是否为真实目录
-        bool isDir(std::string pth);
+        bool isDir(const std::string& path);
 
         //判断路径是否为真实文件
-        bool isFile(std::string pth);
+        bool isFile(const std::string& path);
 
         //判断路径是否为真实的图像文件
-        bool isImage(std::string pth, const std::set<std::string>& img_exts = { "png", "PNG", "jpg", "JPG", "jpeg", "JPEG" });
+        bool isImage(const std::string& path, const std::set<std::string>& img_exts = { "png", "PNG", "jpg", "JPG", "jpeg", "JPEG" });
 
         //判断路径是否为真实的视频文件
-        bool isVideo(std::string pth, const std::set<std::string>& video_exts = { "avi", "AVI", "mp4", "MP4", "flv", "FLV" });
+        bool isVideo(const std::string& path, const std::set<std::string>& video_exts = { "avi", "AVI", "mp4", "MP4", "flv", "FLV" });
 
         //实现类似python的os.path.join功能
         template<class... Strs>
-        std::string join(std::string pth1, std::string pth2, Strs... pths);
+        std::string join(const std::string& path1, const std::string& path2, const Strs&... paths);
 
 #if defined(_MSC_VER)
         //获取目录下的一级文件和目录
-        std::vector<std::string> listDir(std::string pth, bool return_path = true, std::set<std::string> ignore_names = {});
+        std::vector<std::string> listDir(const std::string& path, bool return_path = true, std::set<std::string> ignore_names = {});
 
         //创建目录
-        bool makeDirs(std::string pth);
+        bool makeDirs(const std::string& path);
 #else
         //获取目录下的一级文件和目录
-        std::vector<std::string> listDir(std::string pth, bool return_path = true, std::set<std::string> ignore_names = {});
+        std::vector<std::string> listDir(const std::string& path, bool return_path = true, std::set<std::string> ignore_names = {});
 
         //创建目录
-        bool makeDirs(std::string pth);
+        bool makeDirs(const std::string& path);
 #endif
         //返回路径字符串对应的父目录
-        std::string parent(std::string pth);
+        std::string parent(const std::string& path);
 
         //删除文件或目录
-        bool remove(std::string pth);
+        bool remove(const std::string& path);
 
         //遍历目录下的所有文件，出错时返回空vector
-        std::vector<std::string> walk(std::string pth, bool return_path = true);
+        std::vector<std::string> walk(const std::string& path, bool return_path = true);
 
 
 
@@ -95,9 +96,9 @@ namespace mineutils
         /*--------------------------------------------内部实现--------------------------------------------*/
 
         //将windows路径中的\\变为标准的/分隔符，并将路径标准化
-        inline std::string normPath(std::string pth)
+        inline std::string normPath(const std::string& path)
         {
-            //std::string::find只有完全匹配才返回正确idx，std::string::find_first_of在有一个字符匹配时就返回正确idx
+            std::string pth = path;
             size_t pos;
             while (pth.find("\\") != -1)
             {
@@ -118,6 +119,8 @@ namespace mineutils
             {
                 pth.replace(0, 2, "");
             }
+            if (pth.empty())
+                return ".";
             if (pth.rfind("/.") != -1 and pth.rfind("/.") == pth.size() - 2)
             {
                 pos = pth.rfind("/.");
@@ -134,17 +137,17 @@ namespace mineutils
         }
 
         //判断路径是否存在
-        inline bool exists(std::string pth)
+        inline bool exists(const std::string& path)
         {
-            pth = mpath::normPath(pth);
+            std::string pth = mpath::normPath(path);
             struct stat buffer;
             return stat(pth.c_str(), &buffer) == 0;
         }
 
         //从路径字符串获取文件名
-        inline std::string splitName(std::string pth, bool suffix)
+        inline std::string splitName(const std::string& path, bool suffix)
         {
-            pth = mpath::normPath(pth);
+            std::string pth = mpath::normPath(path);
             std::string name;
             if (suffix)
                 name = pth.substr(pth.find_last_of('/') + 1);
@@ -153,28 +156,28 @@ namespace mineutils
         }
 
         //获取输入的后缀名
-        inline std::string extension(std::string pth)
+        inline std::string extension(const std::string& path)
         {
-            std::string name = mpath::splitName(pth, true);
-            size_t ext_pos = name.find_last_of(".");
+            std::string pth = mpath::splitName(path, true);
+            size_t ext_pos = pth.find_last_of(".");
             if (ext_pos == -1)
                 return "";
-            else return name.substr(ext_pos + 1);
+            else return pth.substr(ext_pos + 1);
         }
 
         //判断路径是否为绝对路径
-        inline bool isAbs(std::string pth)
+        inline bool isAbs(const std::string& path)
         {
-            pth = mpath::normPath(pth);
+            std::string pth = mpath::normPath(path);
             if (pth.find(":/") != -1)
                 return pth.substr(1, 2) == ":/";
             else return pth.substr(0, 1) == "/";
         }
 
         //判断路径是否为真实目录
-        inline bool isDir(std::string pth)
+        inline bool isDir(const std::string& path)
         {
-            pth = mpath::normPath(pth);
+            std::string pth = mpath::normPath(path);
             struct stat buffer;
             if (stat(pth.c_str(), &buffer) == 0)
             {
@@ -185,9 +188,9 @@ namespace mineutils
         }
 
         //判断路径是否为真实文件
-        inline bool isFile(std::string pth)
+        inline bool isFile(const std::string& path)
         {
-            pth = mpath::normPath(pth);
+            std::string pth = mpath::normPath(path);
             struct stat buffer;
             if (stat(pth.c_str(), &buffer) == 0)
             {
@@ -198,9 +201,9 @@ namespace mineutils
         }
 
         //判断路径是否为真实的图像文件
-        inline bool isImage(std::string pth, const std::set<std::string>& img_exts)
+        inline bool isImage(const std::string& path, const std::set<std::string>& img_exts)
         {
-            pth = mpath::normPath(pth);
+            std::string pth = mpath::normPath(path);
             if (!mpath::isFile(pth))
                 return false;
             std::string ext = mpath::extension(pth);
@@ -210,9 +213,9 @@ namespace mineutils
         }
 
         //判断路径是否为真实的视频文件
-        inline bool isVideo(std::string pth, const std::set<std::string>& video_exts)
+        inline bool isVideo(const std::string& path, const std::set<std::string>& video_exts)
         {
-            pth = mpath::normPath(pth);
+            std::string pth = mpath::normPath(path);
             if (!isFile(pth))
                 return false;
             std::string ext = mpath::extension(pth);
@@ -221,32 +224,32 @@ namespace mineutils
             else return true;
         }
 
-        inline std::string _join(const std::string& pth)
+        inline std::string& _join(std::string& path)
         {
-            return pth;
+            return path;
         }
 
         template<class... Strs>
-        inline std::string _join(const std::string& pth1, std::string pth2, Strs... pths)
+        inline std::string _join(const std::string& path1, const std::string& path2, const Strs&... paths)
         {
-            pth2 = mpath::normPath(pth2);
-            pth2 = pth1 + "/" + pth2;
-            return mpath::_join(pth2, pths...);
+            std::string pth2 = mpath::normPath(path2);
+            pth2 = path1 + "/" + pth2;
+            return mpath::_join(pth2, paths...);
         }
 
         //实现类似python的os.path.join功能
         template<class... Strs>
-        inline std::string join(std::string pth1, std::string pth2, Strs... pths)
+        inline std::string join(const std::string& path1, const std::string& path2, const Strs&... paths)
         {
-            pth1 = mpath::normPath(pth1);
-            return mpath::_join(pth1, pth2, pths...);
+            std::string pth1 = mpath::normPath(path1);
+            return mpath::_join(pth1, path2, paths...);
         }
 
 #if defined(_MSC_VER)
         //获取目录下的一级文件和目录
-        inline std::vector<std::string> listDir(std::string pth, bool return_path, std::set<std::string> ignore_names)
+        inline std::vector<std::string> listDir(const std::string& path, bool return_path, std::set<std::string> ignore_names)
         {
-            pth = mpath::normPath(pth);
+            std::string pth = mpath::normPath(path);
             intptr_t hFile = 0;
             struct _finddata_t fileinfo;
             std::vector<std::string> files;
@@ -278,11 +281,11 @@ namespace mineutils
         }
 
         //创建目录
-        inline bool makeDirs(std::string pth)
+        inline bool makeDirs(const std::string& path)
         {
-            if (mpath::exists(pth))
+            if (mpath::exists(path))
                 return true;
-            pth = mpath::normPath(pth);
+            std::string pth = mpath::normPath(path);
             size_t sep_pos;
             std::string pth_tree;
             if (mpath::isAbs(pth))
@@ -300,9 +303,9 @@ namespace mineutils
         }
 #else
         //获取目录下的一级文件和目录
-        inline std::vector<std::string> listDir(std::string pth, bool return_path, std::set<std::string> ignore_names)
+        inline std::vector<std::string> listDir(const std::string& path, bool return_path, std::set<std::string> ignore_names)
         {
-            pth = mpath::normPath(pth);
+            std::string pth = mpath::normPath(path);
             DIR* pDir;
             struct dirent* ptr;
             std::vector<std::string> files;
@@ -329,11 +332,11 @@ namespace mineutils
         }
 
         //创建目录
-        inline bool makeDirs(std::string pth)
+        inline bool makeDirs(const std::string& path)
         {
-            if (mpath::exists(pth))
+            if (mpath::exists(path))
                 return true;
-            pth = mpath::normPath(pth);
+            std::string pth = mpath::normPath(path);
             size_t sep_pos = 0;
             std::string pth_tree;
             do
@@ -347,17 +350,17 @@ namespace mineutils
         }
 #endif
 
-        //返回路径字符串对应的父目录
-        inline std::string parent(std::string pth)
+        //返回路径字符串对应的父目录，仅分割字符串，不对..符号进行逻辑判断
+        inline std::string parent(const std::string& path)
         {
-            pth = mpath::normPath(pth);
+            std::string pth = mpath::normPath(path);
             std::string parent = pth.substr(0, pth.find_last_of('/'));
             return parent;
         }
 
-        inline void _removedir(std::string pth)
+        inline void _removedir(const std::string& path)
         {
-            std::vector<std::string> listdir_res = mpath::listDir(pth, true);
+            std::vector<std::string> listdir_res = mpath::listDir(path, true);
             for (std::string& sub_path : listdir_res)
             {
                 if (mpath::isDir(sub_path))
@@ -367,16 +370,16 @@ namespace mineutils
                 else ::remove(sub_path.c_str());
             }
 #if defined(_MSC_VER)
-            ::_rmdir(pth.c_str());
+            ::_rmdir(path.c_str());
 #else
-            ::rmdir(pth.c_str());
+            ::rmdir(path.c_str());
 #endif
         }
 
         //删除文件或目录
-        inline bool remove(std::string pth)
+        inline bool remove(const std::string& path)
         {
-            pth = mpath::normPath(pth);
+            std::string pth = mpath::normPath(path);
             if (mpath::isDir(pth))
             {
                 mpath::_removedir(pth);
@@ -389,9 +392,9 @@ namespace mineutils
         }
 
         //遍历目录下的所有文件，出错时返回空vector
-        inline std::vector<std::string> walk(std::string pth, bool return_path)
+        inline std::vector<std::string> walk(const std::string& path, bool return_path)
         {
-            pth = mpath::normPath(pth);
+            std::string pth = mpath::normPath(path);
             std::vector<std::string> filenames;
             std::string filename;
 

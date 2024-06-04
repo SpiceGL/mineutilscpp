@@ -9,7 +9,7 @@
 #include"str.hpp"
 
 //命名空间::类名::函数名
-#define MINE_FUNCNAME (mineutils::mstr::rsplit(mineutils::mstr::rsplit(MINE_FUNCSIG, "(", 1).front(), " ", 1).back().c_str())
+#define MINE_FUNCNAME (mineutils::mstr::rsplit(mineutils::mstr::split(MINE_FUNCSIG, __func__ + std::string("("), 1).front(), " ", 1).back() + __func__).c_str()
 //
 //#define MINE_CLASSNAME (mineutils::mlog::_getClassName(MINE_FUNCNAME).c_str())
 
