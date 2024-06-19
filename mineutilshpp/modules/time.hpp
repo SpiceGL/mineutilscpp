@@ -464,7 +464,7 @@ namespace mineutils
         inline LocalTimeCounter::LocalTimeCounter(const std::string& print_head, const std::string& codeblock_tag, mtime::Unit time_unit, bool time_counter_on)
         {
             start_t_ = mtime::now();
-            codeblock_tag_ = print_head + ": " + codeblock_tag;
+            codeblock_tag_ = "\"" + print_head + "\": " + codeblock_tag;
             time_unit_ = time_unit;
             time_counter_on_ = time_counter_on;
         }
