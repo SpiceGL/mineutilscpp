@@ -10,7 +10,6 @@
 
 #include"str.hpp"
 #include"log.hpp"
-#include"type.hpp"
 
 
 namespace mineutils

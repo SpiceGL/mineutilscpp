@@ -68,17 +68,6 @@ namespace mineutils
 
 
         /*--------------------------------------------内部实现--------------------------------------------*/
-        template <class T>
-        struct _CoutChecker
-        {
-            template<class AnyTp, class _CheckPos = decltype(std::cout << AnyTp()) >
-            static constexpr bool coutCheck(AnyTp*) { return true; }
-
-            static constexpr bool coutCheck(...) { return false; }
-            static constexpr bool result = coutCheck(static_cast<T*>(0));  
-        };
-        template <typename T>
-        constexpr bool _CoutChecker<T>::result;
 
         template<class T, class... Args>
         void _recurPrint(const T& arg, const Args&... args);
@@ -95,10 +84,10 @@ namespace mineutils
         void _print(const std::tuple<Ts...>& tp);
 
         template<size_t Idx, class... Ts>
-        void _printTuple(const std::tuple<Ts...>& tp, const int& size_tp, mbase::CaseTag1& tag);
+        void _printTuple(const std::tuple<Ts...>& tp, const int& size_tp, std::true_type bool_tag);
 
         template<size_t Idx, class... Ts>
-        void _printTuple(const std::tuple<Ts...>& tp, const int& size_tp, mbase::CaseTag0& tag);
+        void _printTuple(const std::tuple<Ts...>& tp, const int& size_tp, std::false_type bool_tag);
 
         template<class T1, class T2, class... Ts>
         void _print(const std::map<T1, T2, Ts...>& m);
@@ -116,11 +105,11 @@ namespace mineutils
         void _print_stdcter(const CTer<T, Ts...>& cter);
 
         void _print(const std::string& str);
-
-        template<class T, typename std::enable_if<_CoutChecker<T>::result, void**>::type = nullptr>
+        
+        template<class T, typename std::enable_if<std::is_same<decltype(std::cout << std::declval<T>()), std::ostream&>::value, int>::type = 0>
         void _print(const T& arg);
 
-        template<class T, class = typename std::enable_if<!_CoutChecker<T>::result>::type>
+        template<class T, typename std::enable_if<!std::is_same<decltype(std::cout << std::declval<T>()), std::ostream&>::value, int>::type = 0>
         void _print(const T& arg);
 
         template<class T, int N>
@@ -200,14 +189,11 @@ namespace mineutils
             constexpr int size_tp = std::tuple_size<std::tuple<Ts...>>::value;
             if (Idx == 0)
                 std::cout << "{";
-
-            constexpr int type_id = (Idx < size_tp);
-            auto& case_tag = std::get<type_id>(mbase::BOOL_CASE_TAGS);
-            mio::_printTuple<Idx, Ts...>(tp, size_tp, case_tag);
+            mio::_printTuple<Idx, Ts...>(tp, size_tp, std::integral_constant<bool, Idx < size_tp>());
         }
 
         template<size_t Idx, class... Ts>
-        inline void _printTuple(const std::tuple<Ts...>& tp, const int& size_tp, mbase::CaseTag1& tag)
+        inline void _printTuple(const std::tuple<Ts...>& tp, const int& size_tp, std::true_type bool_tag)
         {
             if (Idx < size_tp - 1)
             {
@@ -224,7 +210,7 @@ namespace mineutils
         }
 
         template<size_t Idx, class... Ts>
-        inline void _printTuple(const std::tuple<Ts...>& tp, const int& size_tp, mbase::CaseTag0& tag)
+        inline void _printTuple(const std::tuple<Ts...>& tp, const int& size_tp, std::false_type bool_tag)
         {
             std::cout << "}";
         }
@@ -301,7 +287,7 @@ namespace mineutils
         }
 
         //为print函数拓展其他支持std::cout<<的类型
-        template<class T, typename std::enable_if<_CoutChecker<T>::result, void**>::type>
+        template<class T, typename std::enable_if<std::is_same<decltype(std::cout << std::declval<T>()), std::ostream&>::value, int>::type>
         inline void _print(const T& arg)
         {
             //std::cout << "test: "<< mtype::isInTypes<T, const char*>() << "\n";
@@ -314,7 +300,7 @@ namespace mineutils
         }
 
         //为print函数拓展其他不支持std::cout<<的类型
-        template<class T, class>
+        template<class T, typename std::enable_if<!std::is_same<decltype(std::cout << std::declval<T>()), std::ostream&>::value, int>::type>
         inline void _print(const T& arg)
         {
 #ifdef __GNUC__

@@ -26,9 +26,6 @@ namespace mineutils
         {
         public:
             IniFile() { }
-            IniFile(const IniFile& file) = delete;
-            IniFile& operator=(const IniFile& file) = delete;
-            ~IniFile();
 
             /*  打开ini文件，不存在的文件无法打开
                 @param path: 文件路径
@@ -36,25 +33,31 @@ namespace mineutils
                 @param note_signs: 注释标记符，默认为{ "#", ";" }
                 @return 0代表正常，其他代表失败   */
             int open(const std::string& path, const char& key_value_sep = '=', const std::vector<std::string>& note_signs = { "#", ";" });
+
             //关闭并保存文件
             void close();
 
             //通过section和key获取value的值
             std::string getValue(const std::string& section, const std::string& key);
+
             //通过key获取value的值，只能获取无section的key-value条目
             std::string getValue(const std::string& key);
 
             //设置和添加key-value条目
             template<class T>
             void setValue(const std::string& section, const std::string& key, const T& value);
+
             //设置和添加无section的key-value条目
             template<class T>
             void setValue(const std::string& key, const T& value);
 
-            /*  已废弃  */
+
+            //已废弃
             inline void MINE_DEPRECATED("Function \"IniFile::setNoteSigns\" has been deprecated, please set note_signs when calling function \"IniFile::open\"!")
                 setNoteSigns(std::vector<std::string> note_signs = { "#", ";" });
-
+            IniFile(const IniFile& file) = delete;
+            IniFile& operator=(const IniFile& file) = delete;
+            ~IniFile();
         private:
             struct SectionInfo
             {

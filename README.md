@@ -3,8 +3,8 @@
 所有功能都放在命名空间mineutils下，同时根据所属模块分布在次级的命名空间，如mineutils::mstr、mineutils::mtime下；基于第三方库的功能统一在次级的命名空间mineutils::mext下。
 
 ## 版本信息
-当前库版本：1.4.2   
-文档注释修改日期：20240619
+当前库版本：1.5.0    
+文档注释修改日期：20240701
 
 ## 测试平台
 **Windows:**  
@@ -35,9 +35,8 @@ arm-unknown-nto-qnx6.6.0eabi-gcc
 * 最后根据模块使用其中的功能，如`mstr::toStr(123)`。 
 * 在Linux上可以通过`strings xxx | grep version`命令查找应用使用的mineutils库版本。  
 
-**注1：** io.hpp中仅声明了OpenCV和NCNN的数据类型的print相关函数，函数的实现在cv.hpp及ncnn.hpp中，因此如果使用print函数输出OpenCV或NCNN的相关数据类型，需要导入cv.hpp或ncnn.hpp。以OpenCV数据类型为例，如果未导入cv.hpp或__cvutils__.h，那么使用mio::print函数输出cv::Mat等类型时，会产生“undefined reference”、“无法解析的外部符号”类型的编译错误。   
-**注2：** 
-以下划线开头的函数和类不建议外部使用，这些仅用于内部功能实现，可能随时删改，且删改后只会变动PATCH版本。  
+**注：** 
+以下划线开头的函数和类不建议外部使用，这些仅用于内部功能实现，可能随时删改。  
 
 ## 模块介绍
 | 模块 | 功能|
@@ -243,6 +242,54 @@ int main()
     ...
 }
 ```  
+### thread.hpp:
+```
+...
+
+struct Args
+{
+    const char* name = "Args";
+};
+
+int testFunc1(Args& args)
+{
+    printf("%s\n", __func__);
+    args.name = __func__;
+    mtime::sleep(1);
+    return 0;
+}
+
+class TestFunc2
+{
+public:
+    void testFunc2(void* args)
+    {
+        printf("%s\n", __func__);
+        ((Args*)args)->name = __func__;
+        mtime::sleep(1);
+    }
+};
+
+int main()
+{
+    mthread::ThreadPool thd_pool(2, 100);
+    
+    while(true)
+    {
+        Args args1;
+        Args args2;
+        TestFunc2 test_func2;
+
+        auto task_state1 = thd_pool.addTask(testFunc1, std::ref(args1));
+        auto task_state2 = thd_pool.addTask(&TestFunc2::testFunc2, &test_func2, &args2);
+
+        task_state1.wait();
+        task_state2.wait();
+        
+        ...
+    } 
+}
+```  
 ### io.hpp:
 ```
 ...
@@ -326,6 +373,13 @@ int main()
 ```  
 
 ## 版本发布日志
+**v1.5.0**  
+* 20240701
+1.添加thread.hpp模块和线程池类型mthread::ThreadPool类；
+2.优化mio::print的实现方式，并修复缺少无参构造函数的类型无法正确打印的问题；
+3.标记mbase中的BOOL_CASE_TAGS及相关类型为废弃，建议使用std::integral_constant<bool, value>代替。
+
+
 **v1.4.2**  
 * 20240619
 1. 将带参数的mtype::isSameType函数标记为废弃；

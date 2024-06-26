@@ -8,14 +8,14 @@
 #include<tuple>
 
 #define MINEUTILS_MAJOR_VERSION "1"   //主版本号，对应不向下兼容的API或文件改动
-#define MINEUTILS_MINOR_VERSION "4"   //次版本号，对应不影响现有API使用的新功能增加
-#define MINEUTILS_PATCH_VERSION "2"   //修订版本号，对应不改变接口的BUG修复或效能优化
-#define MINEUTILS_DATE_VERSION "20240619-release"   //日期版本号，对应文档和注释级别的改动和测试阶段
+#define MINEUTILS_MINOR_VERSION "5"   //次版本号，对应不影响现有API使用的新功能增加
+#define MINEUTILS_PATCH_VERSION "0"   //修订版本号，对应不改变接口的BUG修复或效能优化
+#define MINEUTILS_DATE_VERSION "20240701-release"   //日期版本号，对应文档和注释级别的改动和测试阶段
 
 
 #ifdef __GNUC__ 
 #define MINE_FUNCSIG __PRETTY_FUNCTION__
-#define MINE_DEPRECATED(msg) __attribute__ ((deprecated(msg)))
+#define MINE_DEPRECATED(msg) __attribute__((deprecated(msg)))
 #elif defined(_MSC_VER)
 #define MINE_FUNCSIG __FUNCSIG__
 #define MINE_DEPRECATED(msg) __declspec(deprecated(msg))
@@ -29,12 +29,28 @@ namespace mineutils
 {
     namespace mbase
     {
+        /*--------------------------------------------用户接口--------------------------------------------*/
+
         //获取mineutils库的版本
         std::string getVersion();
 
         //打印mineutils库的版本
         int printVersion(const std::string& project_name);
 
+
+
+
+
+
+
+
+
+
+        
+
+
+        /*--------------------------------------------内部实现--------------------------------------------*/
+         
         class CaseTag0
         {
         public:
@@ -78,7 +94,12 @@ namespace mineutils
         }
 
         //包含两个成员的tuple，用于重载函数的选择
-        static std::tuple<mbase::CaseTag0&, mbase::CaseTag1&>& BOOL_CASE_TAGS = mbase::_creatBoolCaseTags();
+        MINE_DEPRECATED("Deprecated. Please replace with std::integral_constant<bool, value>()")
+            static std::tuple<mbase::CaseTag0&, mbase::CaseTag1&> BOOL_CASE_TAGS = mbase::_creatBoolCaseTags();
+#ifdef _MSC_VER
+        class MINE_DEPRECATED("Deprecated. Please replace with std::false_type") CaseTag0;
+        class MINE_DEPRECATED("Deprecated. Please replace with std::true_type") CaseTag1;
+#endif // _MSC_VER
 
         inline volatile char* _keepVersionString()
         {

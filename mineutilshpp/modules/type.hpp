@@ -19,12 +19,12 @@ namespace mineutils
             -忽略引用&修饰
             -比较非指针类型时忽略const修饰
             -比较指针或C风格数组类型时无法忽略const修饰   */
-        template<class T1, class T2, class ...Ts>
+        template<class T1, class T2, class ...Types>
         constexpr bool isSameType();
 
 
         //用于判断T是否属于后面的多种类型
-        template<class T, class T1, class... Types>
+        template<class T, class Tother, class... Tothers>
         constexpr bool isInTypes();
 
 
@@ -37,55 +37,51 @@ namespace mineutils
         /*--------------------------------------------内部实现--------------------------------------------*/
 
         template<class T1, class T2>
-        inline constexpr bool _isSameType(mbase::CaseTag0& tag)
+        inline constexpr bool _isSameType(std::false_type bool_tag)
         {
             return std::is_same<typename std::decay<T1>::type, typename std::decay<T2>::type>::value;
         }
 
-        template<class T1, class T2, class ...Ts>
-        inline constexpr bool _isSameType(mbase::CaseTag1& tag)
+        template<class T1, class T2, class ...Types>
+        inline constexpr bool _isSameType(std::true_type bool_tag)
         {
-            return std::is_same<typename std::decay<T1>::type, typename std::decay<T2>::type>::value and mtype::isSameType<T1, Ts...>();
+            return std::is_same<typename std::decay<T1>::type, typename std::decay<T2>::type>::value and mtype::isSameType<T1, Types...>();
         }
 
 
-        template<class T1, class T2, class ...Ts>
+        template<class T1, class T2, class ...Types>
         inline constexpr bool isSameType()
         {
-            return mtype::_isSameType<T1, T2, Ts...>(std::get<(sizeof...(Ts) > 0)>(mbase::BOOL_CASE_TAGS));
+            //std::integral_constant < bool, (sizeof...(Types) > 0) > ();
+            //std::integral_constant<bool, Idx < size_tp>();
+            return mtype::_isSameType<T1, T2, Types...>(std::integral_constant<bool, (sizeof...(Types) > 0)>());
         }
 
         //用于判断输入参数是不是相同类型
-        template<class T1, class T2, class ...Ts>
-        inline MINE_DEPRECATED("Deprecated. Please replace with the other fuction \"isSameType\"(in type.hpp).") constexpr bool isSameType(T1& arg1, T2& arg2, Ts & ...args)
+        template<class T1, class T2, class ...Types>
+        inline MINE_DEPRECATED("Deprecated. Please replace with the other fuction \"isSameType\"(in type.hpp)") constexpr bool isSameType(T1& arg1, T2& arg2, Types & ...args)
         {
-            return mtype::isSameType<T1, T2, Ts...>();
+            return mtype::isSameType<T1, T2, Types...>();
         }
 
-        //template<class T1, class T2, class ...Ts>
-        //constexpr bool isSameType(T1* const arg1, T2* const arg2, Ts* const ...args)
-        //{
-        //    return mtype::_isSameType<T1, T2, Ts...>(std::get<(sizeof...(Ts) > 0)>(mbase::BOOL_CASE_TAGS));
-        //}
 
-
-        template<class T, class T1>
-        inline constexpr bool _isInTypes(mbase::CaseTag0& tag)
+        template<class T, class Tother>
+        inline constexpr bool _isInTypes(std::false_type bool_tag)
         {
-            return mtype::isSameType<T, T1>();
+            return mtype::isSameType<T, Tother>();
         }
 
-        template<class T, class T1, class... Types>
-        inline constexpr bool _isInTypes(mbase::CaseTag1& tag)
+        template<class T, class Tother, class... Tothers>
+        inline constexpr bool _isInTypes(std::true_type bool_tag)
         {
-            return mtype::isSameType<T, T1>() or isInTypes<T, Types...>();
+            return mtype::isSameType<T, Tother>() or isInTypes<T, Tothers...>();
         }
 
         //用于判断T是否属于后面的多种类型
-        template<class T, class T1, class... Types>
+        template<class T, class Tother, class... Tothers>
         inline constexpr bool isInTypes()
         {
-            return mtype::_isInTypes<T, T1, Types...>(std::get<(sizeof...(Types) > 0)>(mbase::BOOL_CASE_TAGS));
+            return mtype::_isInTypes<T, Tother, Tothers...>(std::integral_constant<bool, (sizeof...(Tothers) > 0)>());
         }
 
     }

@@ -9,7 +9,8 @@
 #include"modules/log.hpp"   //based on str.hpp
 #include"modules/file.hpp"   //based on str.hpp & log.hpp
 #include"modules/path.hpp"   //based on str.hpp & log.hpp
-#include"modules/math.hpp"   //based on str.hpp, log.hpp & type.hpp
+#include"modules/math.hpp"   //based on str.hpp & log.hpp
+#include"modules/thread.hpp"   //based on log.hpp & time.hpp
 #include"modules/io.hpp"   //based on base.hpp, type.hpp, log.hpp & math.hpp, and extended by cv.hpp & ncnn.hpp
 
 
@@ -19,7 +20,7 @@
 /*  设计逻辑上的层级
     TOP                cv.hpp    ncnn.hpp
                             io.hpp
-               file.hpp    math.hpp    path.hpp
+         file.hpp    math.hpp    path.hpp   thread.hpp
                            log.hpp
                str.hpp     time.hpp    type.hpp
     BASE                   base.hpp
