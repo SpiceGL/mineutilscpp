@@ -30,11 +30,10 @@ namespace mineutils
             TaskState(TaskState&& future_state) noexcept;
             TaskState& operator=(TaskState&& future_state) noexcept;
 
-            //判断任务是否结束    
+            //判断任务是否结束，无参构造后为true
             bool finished();           
             //等待任务结束
             void wait();   
-
 
             TaskState(const TaskState& future_state) = delete;
             TaskState& operator=(const TaskState& future_state) = delete;
@@ -61,7 +60,6 @@ namespace mineutils
             template<class Fn, class... Args>
             TaskState addTask(const Fn& func, Args&&... args);
          
-
             ThreadPool(const ThreadPool& thd_pool) = delete;
             ThreadPool& operator=(const ThreadPool& thd_pool) = delete;
             ~ThreadPool();
@@ -156,7 +154,8 @@ namespace mineutils
             this->cond_var_.notify_all();
             for (auto& thd : this->work_thds_)
             {
-                thd.join();
+                if (thd.joinable())
+                    thd.join();
             }
             {
                 std::lock_guard<std::mutex> lk(this->task_mtx_);

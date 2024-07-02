@@ -3,8 +3,8 @@
 所有功能都放在命名空间mineutils下，同时根据所属模块分布在次级的命名空间，如mineutils::mstr、mineutils::mtime下；基于第三方库的功能统一在次级的命名空间mineutils::mext下。
 
 ## 版本信息
-当前库版本：1.5.0    
-文档注释修改日期：20240701
+当前库版本：1.5.1    
+文档注释修改日期：20240704
 
 ## 测试平台
 **Windows:**  
@@ -373,20 +373,24 @@ int main()
 ```  
 
 ## 版本发布日志
-**v1.5.0**  
-* 20240701
-1.添加thread.hpp模块和线程池类型mthread::ThreadPool类；
-2.优化mio::print的实现方式，并修复缺少无参构造函数的类型无法正确打印的问题；
-3.标记mbase中的BOOL_CASE_TAGS及相关类型为废弃，建议使用std::integral_constant<bool, value>代替。
+**v1.5.1**  
+* 20240704  
+1. 修改mstr::toOrdinal的实现方式以适配QNX项目；  
+2. mfile::IniFile操作增加内部open状态判断。  
 
+**v1.5.0**  
+* 20240701  
+1. 添加thread.hpp模块和线程池类型mthread::ThreadPool类；  
+2. 优化mio::print的实现方式，并修复缺少无参构造函数的类型无法正确打印的问题；  
+3. 标记mbase中的BOOL_CASE_TAGS及相关类型为废弃，建议使用std::integral_constant<bool, value>代替。  
 
 **v1.4.2**  
-* 20240619
+* 20240619  
 1. 将带参数的mtype::isSameType函数标记为废弃；
 2. mtime::LocalTimeCounter类的打印格式稍作调整。
 
 **v1.4.1**  
-* 20240604
+* 20240604  
 1. mpath下的函数逻辑优化；
 2. 修复MINE_FUNCNAME宏在少数情况下为空的bug。
 
@@ -399,7 +403,7 @@ int main()
 5. mbase添加printVersion函数。
 
 **v1.3.0**  
-* 20240513
+* 20240513  
 1. log.hpp中简化msgN、printfN、dprintfN的打印信息；
 2. mstr::split函数性能优化，且可以设定最大分割次数，并添加mstr::rsplit函数；
 3. mfile::IniFile使用list+map重写，优化性能；
@@ -407,7 +411,7 @@ int main()
 5. 将用户接口的声明放到文件的顶部，将内部实现放在底部。
 
 **v1.2.1**  
-* 20240423
+* 20240423  
 1. 修复log.hpp中printfN、printfW、printfE等宏的打印错误。
 
 **v1.2.0**  

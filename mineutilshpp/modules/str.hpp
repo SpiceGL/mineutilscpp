@@ -168,7 +168,7 @@ namespace mineutils
                 return "2nd";
             else if (number == 3)
                 return "3rd";
-            else return std::to_string(number) + "th";
+            else return mstr::toStr(number) + "th";
         }
 
         template<class T>

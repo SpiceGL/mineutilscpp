@@ -59,6 +59,7 @@ namespace mineutils
             IniFile& operator=(const IniFile& file) = delete;
             ~IniFile();
         private:
+
             struct SectionInfo
             {
                 std::list<std::string>::iterator line;
@@ -116,8 +117,7 @@ namespace mineutils
                 ios::trunc：　  //如果文件存在，把文件长度设为0   */
             if (this->file_.is_open())
             {
-                printf("IniFile: File was opened. Open the file again.");
-                std::cout << msgN("File was opened. Open the file again.\n");
+                printfW("File opened. Close the old file and open the new file.\n");
                 this->file_.close();
             }
 
@@ -205,6 +205,11 @@ namespace mineutils
 
         inline std::string IniFile::getValue(const std::string& section, const std::string& key)
         {
+            if (!this->file_.is_open())
+            {
+                printfE("File not opened!\n");
+                return "";
+            }
             if (this->key_map_.find(section) == this->key_map_.end())
             {
                 printfW("The section:%s is not exist! Please check it.\n", section.c_str());
@@ -228,6 +233,11 @@ namespace mineutils
         template<class T>
         inline void IniFile::setValue(const std::string& section, const std::string& key, const T& value)
         {
+            if (!this->file_.is_open())
+            {
+                printfE("File not opened!\n");
+                return;
+            }
             rwstatus_ = 'w';
             if (this->key_map_.find(section) == this->key_map_.end())
             {
