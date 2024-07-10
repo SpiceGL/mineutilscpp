@@ -100,17 +100,17 @@ namespace mineutils
         {
             std::string pth = path;
             size_t pos;
-            while (pth.find("\\") != -1)
+            while (pth.find("\\") != std::string::npos)
             {
                 pos = pth.find("\\");
                 pth.replace(pos, 1, "/");
             }
-            while (pth.find("//") != -1)
+            while (pth.find("//") != std::string::npos)
             {
                 pos = pth.find("//");
                 pth.replace(pos, 2, "/");
             }
-            while (pth.find("/./") != -1)
+            while (pth.find("/./") != std::string::npos)
             {
                 pos = pth.find("/./");
                 pth.replace(pos, 3, "/");
@@ -121,7 +121,7 @@ namespace mineutils
             }
             if (pth.empty())
                 return ".";
-            if (pth.rfind("/.") != -1 and pth.rfind("/.") == pth.size() - 2)
+            if (pth.rfind("/.") != std::string::npos and pth.rfind("/.") == pth.size() - 2)
             {
                 pos = pth.rfind("/.");
                 pth.replace(pos + 1, 1, "");
@@ -130,7 +130,7 @@ namespace mineutils
             {
                 if (pth.find(":/") == 1 and pth.size() > 4)
                     pth.replace(pth.size() - 1, 1, "");
-                else if (pth.find(":/") == -1 and pth.size() > 1)
+                else if (pth.find(":/") == std::string::npos and pth.size() > 1)
                     pth.replace(pth.size() - 1, 1, "");
             }
             return pth;
@@ -160,7 +160,7 @@ namespace mineutils
         {
             std::string pth = mpath::splitName(path, true);
             size_t ext_pos = pth.find_last_of(".");
-            if (ext_pos == -1)
+            if (ext_pos == std::string::npos)
                 return "";
             else return pth.substr(ext_pos + 1);
         }
@@ -169,7 +169,7 @@ namespace mineutils
         inline bool isAbs(const std::string& path)
         {
             std::string pth = mpath::normPath(path);
-            if (pth.find(":/") != -1)
+            if (pth.find(":/") != std::string::npos)
                 return pth.substr(1, 2) == ":/";
             else return pth.substr(0, 1) == "/";
         }
@@ -260,7 +260,7 @@ namespace mineutils
                 std::cout << msgW("The input path is not a folder or does not exist. Please check it!\n");
                 return {};
             }
-            if ((hFile = _findfirst(p.append("/*").c_str(), &fileinfo)) != -1)
+            if ((hFile = _findfirst(p.append("/*").c_str(), &fileinfo)) != std::string::npos)
             {
                 do
                 {
@@ -298,7 +298,7 @@ namespace mineutils
                 pth_tree = pth.substr(0, sep_pos);
                 if (!mpath::isDir(pth_tree))
                     _mkdir(pth_tree.c_str());
-            } while (sep_pos != -1);
+            } while (sep_pos != std::string::npos);
             return mpath::isDir(pth);
         }
 #else
@@ -345,7 +345,7 @@ namespace mineutils
                 pth_tree = pth.substr(0, sep_pos);
                 if (!mpath::isDir(pth_tree))
                     mkdir(pth_tree.c_str(), 0777);
-            } while (sep_pos != -1);
+            } while (sep_pos != std::string::npos);
             return mpath::isDir(pth);
         }
 #endif

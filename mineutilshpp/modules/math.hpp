@@ -37,13 +37,11 @@ namespace mineutils
             @return 实际range   */
         std::pair<int, int> normRange(int idx, int len);
 
-        //将x按a值向上对齐
-        unsigned int align(unsigned int x, unsigned int a);
+        //将x按a值向上对齐，注意a不要超出x取值上下限绝对值
+        int align(int x, unsigned int a);
 
-        //template<class T>
-        //class BaseBox;
 
-        template<class T = int/*typename std::enable_if<std::is_integral<T>::value || std::is_floating_point<T>::value, void**>::type*/>
+        template<class T>
         class BaseBox
         {
         public:
@@ -227,9 +225,14 @@ namespace mineutils
             return { dst_start, dst_end };
         }
 
-        inline unsigned int align(unsigned int x, int a)
+        inline int align(int x, unsigned int a)
         {
-            return ((x)+(a)-1) &~((a)-1);
+            int rem = x % (int)a;
+            if (rem > 0)
+                return a - rem + x;
+            else if (rem < 0)
+                return x - rem;
+            else return x;
         }
 
         template<class T>

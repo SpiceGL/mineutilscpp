@@ -4,7 +4,6 @@
 #define STR_HPP_MINEUTILS
 
 #include<atomic>
-#include<mutex>
 #include<iomanip>
 #include<iostream>
 #include<sstream>
@@ -12,6 +11,7 @@
 #include<vector>
 
 #include"base.hpp"
+#include"type.hpp"
 
 
 namespace mineutils
@@ -32,27 +32,26 @@ namespace mineutils
             white = 7
         };
 
-        //为字符串添加颜色标记，效果默认关闭
+        //为字符串添加颜色标记，因不同终端互不兼容，效果默认关闭
         std::string color(const std::string& str, const mstr::Color str_color);
 
         //设置是否开启彩色字体的效果
-        //部分终端不一定支持彩色字体显示，因此默认关闭该功能
+        //部分终端不一定支持彩色字体显示，因此默认关闭彩色字体
         void setColorStrOn(bool ColorStr_on);
 
         //将数字转换为序数词，1st、2nd等，只接受正整数
         std::string toOrdinal(int number);
-
+      
         //将输入直接转换为字符串
-        template<class T>
+        template<class T, typename std::enable_if<mtype::StdCoutChecker<T>::value, int>::type = 0>
         std::string toStr(const T& arg);
-
 
         /*  类似Python字符串的zfill函数，将整型的数字转换为字符串并在前面添加字符
             @param n：输入的整型数字
             @param min_len：转换结果的长度
             @param padding：用于填充的字符
             @return 转换结果   */
-        std::string zfillInt(long long n, int min_len = 0, char padding = '0');
+        std::string zfillInt(long long n, unsigned int min_len = 0, char padding = '0');
 
         /*  类似Python字符串的zfill函数，将浮点型的数字转换为字符串并在前后添加字符
             @param f：输入的浮点数字
@@ -61,21 +60,21 @@ namespace mineutils
             @param int_padding：用于填充整数部分的字符
             @param flt_padding：用于填充小数部分的字符
             @return 转换结果   */
-        std::string zfillFlt(long double f, int min_len_int = 0, int flt_precision = 4,
+        std::string zfillFlt(long double f, unsigned int min_len_int = 0, unsigned int flt_precision = 4,
             char int_padding = ' ', char flt_padding = '0');
 
         //实现类似于python的f-string功能，将字符串中的"{}"替换为后续的参数
         template<class... Ts>
         std::string fstr(std::string s, const Ts& ...args);
 
-        /*  实现正向对字符串分割的功能，以vector形式返回。分割空字符串会返回包含一个空字符串的vector(类Python规则)
+        /*  实现正向查找sep对字符串分割的功能，以vector形式返回。分割空字符串会返回包含一个空字符串的vector(类Python规则)
             @param s：待分割的字符串
             @param sep：分割符，不可为空字符串
             @param max_split_times：最大分割次数，-1代表全部分割
             @return 分割结果，至少返回包含一个元素的vector   */
         std::vector<std::string> split(std::string s, const std::string& sep, size_t max_split_times = -1);
 
-        /*  实现反向对字符串分割的功能，以vector形式返回。分割空字符串会返回包含一个空字符串的vector(类Python规则)
+        /*  实现反向查找sep对字符串分割的功能，以vector形式返回。分割空字符串会返回包含一个空字符串的vector(类Python规则)
             @param s：待分割的字符串
             @param sep：分割符，不可为空字符串
             @param max_split_times：最大分割次数，-1代表全部分割
@@ -142,18 +141,6 @@ namespace mineutils
             return str;
         }
 
-        inline std::mutex& _getMtx_toStr()
-        {
-            static std::mutex mtx;
-            return mtx;
-        }
-
-        inline std::ostringstream& _getOS_toStr()
-        {
-            static std::ostringstream str_buf;   //给toStr函数使用的字符串流
-            return str_buf;
-        }
-
         //将数字转换为序数词，1st、2nd等，只接受正整数，否则会返回空字符串
         inline std::string toOrdinal(int number)
         {
@@ -171,18 +158,17 @@ namespace mineutils
             else return mstr::toStr(number) + "th";
         }
 
-        template<class T>
+        template<class T, typename std::enable_if<mtype::StdCoutChecker<T>::value, int>::type>
         inline std::string toStr(const T& arg)
         {
-            std::lock_guard<std::mutex> lk(_getMtx_toStr());
-            std::ostringstream& str_buf = _getOS_toStr();
+            MINE_THREAD_LOCAL std::ostringstream str_buf;
             str_buf.clear();
             str_buf.str("");
             str_buf << arg;
             return str_buf.str();
         }
 
-        inline std::string zfillInt(long long n, int min_len, char padding)
+        inline std::string zfillInt(long long n, unsigned int min_len, char padding)
         {
             std::string s = toStr(n);
             if (s.length() < min_len)
@@ -192,18 +178,19 @@ namespace mineutils
             return s;
         }
 
-        inline std::string zfillFlt(long double f, int min_len_int, int flt_precision,
+        inline std::string zfillFlt(long double f, unsigned int min_len_int, unsigned int flt_precision,
             char int_padding, char flt_padding)
         {
             //static_assert(std::is_floating_point<FT>::value, "Class FT must be floating_point!");
-            std::ostringstream buffer;
+            MINE_THREAD_LOCAL std::ostringstream buffer;
+            buffer.clear();
             buffer << std::setprecision(flt_precision) << f;
             std::string s = buffer.str();
 
             /*找到输入小数的整数部分和小数部分，分别处理并合并*/
             std::string int_part, flt_part;
             size_t point_pos = s.find(".");
-            if (point_pos != -1)
+            if (point_pos != std::string::npos)
             {
                 int_part = s.substr(0, point_pos);
                 flt_part = s.substr(point_pos + 1);
@@ -223,7 +210,7 @@ namespace mineutils
 
 
         //fstr函数的相关
-        inline std::string _fstr(std::string& s, size_t pos_offset)
+        inline std::string _fstr(std::string& s, size_t)
         {
             return s;
         }
@@ -233,7 +220,7 @@ namespace mineutils
         inline std::string _fstr(std::string& s, size_t pos_offset, const T& arg, const Ts&... args)
         {
             size_t pos = s.find("{}", pos_offset);
-            if (pos != -1)
+            if (pos != std::string::npos)
             {
                 std::string arg_s = mstr::toStr(arg);
                 s.replace(pos, 2, arg_s);
@@ -265,8 +252,8 @@ namespace mineutils
             size_t sep_pos;
             std::string s_tmp;   //s_tmp存放已处理的字段，s存放待处理的字段
 
-            int now_split_times = 0;
-            while ((sep_pos = s.find(sep)) != -1)
+            size_t now_split_times = 0;
+            while ((sep_pos = s.find(sep)) != std::string::npos)
             {
                 s_tmp = s.substr(0, sep_pos);
                 s = s.substr(sep_pos + sep.length());
@@ -295,8 +282,8 @@ namespace mineutils
             size_t sep_pos;
             std::string s_tmp;   //s_tmp存放已处理的字段，s存放待处理的字段
 
-            int now_split_times = 0;
-            while ((sep_pos = s.rfind(sep)) != -1)
+            size_t now_split_times = 0;
+            while ((sep_pos = s.rfind(sep)) != std::string::npos)
             {
                 s_tmp = s.substr(sep_pos + sep.length());
                 s = s.substr(0, sep_pos);
@@ -310,27 +297,14 @@ namespace mineutils
             return strs;
         }
 
-        inline std::mutex& _getMtx_split()
-        {
-            static std::mutex mtx;
-            return mtx;
-        }
-
-        inline std::stringstream& _getSS_split()
-        {
-            static std::stringstream ss;   //给toStr函数使用的字符串流
-            return ss;
-        }
-
         inline std::vector<std::string> split(std::string s)
         {
             if (s.empty())
             {
                 return { };
             }
-            //std::stringstream ss(s);
-            std::lock_guard<std::mutex> lk(_getMtx_split());
-            std::stringstream& ss = _getSS_split();
+
+            MINE_THREAD_LOCAL std::stringstream ss;
 
             ss.clear();
             ss << s;

@@ -1,22 +1,19 @@
 # mineutilscpp
 一些C++的便利功能封装，用于方便自己编程，代码基于C++11标准，文本使用UTF8-SIG编码。   
 所有功能都放在命名空间mineutils下，同时根据所属模块分布在次级的命名空间，如mineutils::mstr、mineutils::mtime下；基于第三方库的功能统一在次级的命名空间mineutils::mext下。
+所有函数接口都保证自身线程安全，类接口不保证线程安全。
 
 ## 版本信息
-当前库版本：1.5.1    
-文档注释修改日期：20240704
+当前库版本：1.6.0   
+文档注释修改日期：20240729   
 
 ## 测试平台
 **Windows:**  
 VS2019  
 **Linux:**  
-gcc 9.4.0  
-arm-linux-gnueabihf-gcc 8.3.0  
-arm-linux-gnueabihf-gcc 9.4.0  
-aarch64-linux-gnu-gcc 6.3.1  
-aarch64-linux-gnu-gcc 9.4.0  
-**QNX660:**  
-arm-unknown-nto-qnx6.6.0eabi-gcc   
+arm-linux-gnueabihf-gcc 8.3.0    
+**QNX660:**    
+arm-unknown-nto-qnx6.6.0eabi-gcc 4.7.3  
 **注：** qnx660上编译时需要额外添加g++指令：-D_GLIBCXX_USE_NANOSLEEP  
 
 ## 使用方法
@@ -65,30 +62,6 @@ arm-unknown-nto-qnx6.6.0eabi-gcc
 int main()
 {
     std::string version = mbase::getVersion();   //获取mineutils库版本
-    
-    ...
-}
-```   
-### str.hpp:
-```
-...
-
-int main()
-{
-    //输出红色字体
-    mstr::setColorStrOn(true);   //全局开启彩色字体显示
-    std::string s1 = "hello world!"
-    std::cout << mstr::color(s1, mstr::Color::red) << std::endl;
-    
-    //填充数字
-    std::string s2 = mstr::zfillInt(5, 3, '0');   //返回"005"
-    
-    //参数填入字符串
-    std::string s3 = mstr::fstr("{} has {} billion people.", "China", "1.4");   //返回"China has 1.4 billion people."
-    
-    //字符串分割
-    std::string s4 = " hello world! ";
-    std::vector res = mstr::split(s4);   //返回vector{"hello", "world!"};
     
     ...
 }
@@ -160,6 +133,30 @@ int main()
     char c = '0';
     bool res3 = mtype::isSameType(a, b);   //true
     bool res4 = mtype::isSameType(a, c);   //false
+    
+    ...
+}
+```   
+### str.hpp:
+```
+...
+
+int main()
+{
+    //输出红色字体
+    mstr::setColorStrOn(true);   //全局开启彩色字体显示
+    std::string s1 = "hello world!"
+    std::cout << mstr::color(s1, mstr::Color::red) << std::endl;
+    
+    //填充数字
+    std::string s2 = mstr::zfillInt(5, 3, '0');   //返回"005"
+    
+    //参数填入字符串
+    std::string s3 = mstr::fstr("{} has {} billion people.", "China", "1.4");   //返回"China has 1.4 billion people."
+    
+    //字符串分割
+    std::string s4 = " hello world! ";
+    std::vector res = mstr::split(s4);   //返回vector{"hello", "world!"};
     
     ...
 }
@@ -373,6 +370,15 @@ int main()
 ```  
 
 ## 版本发布日志
+**v1.6.0**  
+* 20240729   
+1. 添加mthread::TaskRetState<T>类，上个版本的mthread::TaskState现在等于mthread::TaskRetState<void>；
+2. mthread::ThreadPool::addTask现在返回mthread::TaskRetState<T>，支持获取任务的返回值；
+3. mmath::align修复对非2的幂计算错误的问题；
+4. 添加mtype::StdBeginEndChecker<T>结构体，用于检查类型T是否具有类似于STL容器的begin()和end()接口；
+5. mio::print现在支持所有C++11中的正式STL容器的打印了，并修复了打印不支持类型时的编译错误；
+6. 修复QNX的GCC4.7.3编译器的无法编译通过的问题。
+
 **v1.5.1**  
 * 20240704  
 1. 修改mstr::toOrdinal的实现方式以适配QNX项目；  

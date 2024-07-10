@@ -4,14 +4,20 @@
 #define IO_HPP_MINEUTILS
 
 #include<array>
+#include<deque>
 #include<exception>
+#include<forward_list>
 #include<iostream>
 #include<list>
 #include<map>
 #include<mutex>
+#include<queue>
 #include<set>
+#include<stack>
 #include<stdio.h>
 #include<string>
+#include<unordered_map>
+#include<unordered_set>
 #include<vector>
 
 #ifdef __GNUC__ 
@@ -49,13 +55,14 @@ namespace mineutils
     {
         /*--------------------------------------------用户接口--------------------------------------------*/
 
-        /*  实现类似Python的print打印功能
+        /*  实现类似Python的print打印功能，基于std::cout
             -可以接受任意数量、任意类型的参数
             -可以正常打印任意支持std::cout<<的内置数据类型
-            -可以正常打印任意在同一个namespace内重载了std::cout<<的自定义类型
-            -拓展了std::vector、std::tuple等常用STL容器及OpenCV、NCNN的部分数据类型的打印
-            -字符和字符串类型只能正确打印char和st::string类型，wchar_t、char16_t等宽字符型无法正确打印
-            -不支持的类型将会打印<类型名: 地址>
+            -可以正常打印正确重载了operator<<的自定义类型
+            -拓展了STL容器的打印
+            -拓展了OpenCV、NCNN的部分数据类型的打印(需要导入cv.hpp及ncnn.hpp模块)
+            -注意wchar_t、char16_t等宽字符型无法正确打印(宽字符型本身不支持std::cout)
+            -未支持的类型将会打印<类型名: 地址>
             -在不混用print函数和std::cout时，线程安全  */
         template<class T, class... Args>
         void print(const T& arg, const Args&... args);
@@ -77,6 +84,29 @@ namespace mineutils
         template<class T, size_t N>
         void _print(const std::array<T, N>& arr);
 
+        template<class T, class...Ts>
+        void _print(const std::stack<T, Ts...>& st);
+
+        void _print(const std::string& str);
+
+        template<class KeyT, class VT, class... Ts>
+        void _print(const std::map<KeyT, VT, Ts...>& m);
+
+        template<class KeyT, class VT, class... Ts>
+        void _print(const std::multimap<KeyT, VT, Ts...>& m);
+
+        template<class KeyT, class VT, class... Ts>
+        void _print(const std::unordered_map<KeyT, VT, Ts...>& m);
+
+        template<class KeyT, class VT, class... Ts>
+        void _print(const std::unordered_multimap<KeyT, VT, Ts...>& m);
+
+        template<class T, class... Ts>
+        void _print(const std::forward_list<T, Ts...>& l);
+
+        template<class T, class...Ts>
+        void _print(const std::priority_queue<T, Ts...>& qe);
+
         template<class T1, class T2>
         void _print(const std::pair<T1, T2>& pa);
 
@@ -89,27 +119,16 @@ namespace mineutils
         template<size_t Idx, class... Ts>
         void _printTuple(const std::tuple<Ts...>& tp, const int& size_tp, std::false_type bool_tag);
 
-        template<class T1, class T2, class... Ts>
-        void _print(const std::map<T1, T2, Ts...>& m);
+        template<template<class KeyT, class VT, class... Ts> class CTer, class KeyT, class VT, class... Ts>
+        void _printMap(const CTer<KeyT, VT, Ts...>& m);
 
-        template<class T, class... Ts>
-        void _print(const std::list<T, Ts...>& l);
+        template<template<class U, class... Us> class CTer, class T, class... Ts, typename std::enable_if<mtype::StdBeginEndChecker<const CTer<T, Ts...>>::value, int>::type = 0>
+        void _print(const CTer<T, Ts...>& cter);
 
-        template<class T, class... Ts>
-        void _print(const std::set<T, Ts...>& st);
-
-        template<class T, class... Ts>
-        void _print(const std::vector<T, Ts...>& vec);
-
-        template<template<class C, class... Cs> class CTer, class T, class... Ts>
-        void _print_stdcter(const CTer<T, Ts...>& cter);
-
-        void _print(const std::string& str);
-        
-        template<class T, typename std::enable_if<std::is_same<decltype(std::cout << std::declval<T>()), std::ostream&>::value, int>::type = 0>
+        template<class T, typename std::enable_if<mtype::StdCoutChecker<const T>::value, int>::type = 0>
         void _print(const T& arg);
 
-        template<class T, typename std::enable_if<!std::is_same<decltype(std::cout << std::declval<T>()), std::ostream&>::value, int>::type = 0>
+        template<class T, typename std::enable_if<!mtype::StdCoutChecker<const T>::value, int>::type = 0>
         void _print(const T& arg);
 
         template<class T, int N>
@@ -171,6 +190,45 @@ namespace mineutils
             std::cout << "}";
         }
 
+        template<class T, class...Ts>
+        void _print(const std::stack<T, Ts...>& st)
+        {
+            auto tmp_st = st;
+            std::cout << "{";
+            int size = tmp_st.size();
+            if (size > 0)
+            {
+                for (int i = 0; i < size - 1; ++i)
+                {
+                    mio::_print(tmp_st.top());
+                    tmp_st.pop();
+                    std::cout << " ";
+                }
+                mio::_print(tmp_st.top());
+            }
+            std::cout << "}";
+        }
+
+        template<class T, class...Ts>
+        void _print(const std::priority_queue<T, Ts...>& qe)
+        {
+            auto tmp_qe = qe;
+            std::cout << "{";
+            int size = tmp_qe.size();
+            if (size > 0)
+            {
+                for (int i = 0; i < size - 1; ++i)
+                {
+                    mio::_print(tmp_qe.top());
+                    tmp_qe.pop();
+                    std::cout << " ";
+                }
+                mio::_print(tmp_qe.top());
+            }
+            std::cout << "}";
+        }
+
+
         //为print函数添加对std::pair类型的支持
         template<class T1, class T2>
         inline void _print(const std::pair<T1, T2>& pa)
@@ -189,7 +247,7 @@ namespace mineutils
             constexpr int size_tp = std::tuple_size<std::tuple<Ts...>>::value;
             if (Idx == 0)
                 std::cout << "{";
-            mio::_printTuple<Idx, Ts...>(tp, size_tp, std::integral_constant<bool, Idx < size_tp>());
+            mio::_printTuple<Idx, Ts...>(tp, size_tp, std::integral_constant<bool, (Idx < size_tp) >());
         }
 
         template<size_t Idx, class... Ts>
@@ -215,66 +273,83 @@ namespace mineutils
             std::cout << "}";
         }
 
-        //为print函数添加对std::map类型的支持
-        template<class T1, class T2, class... Ts>
-        inline void _print(const std::map<T1, T2, Ts...>& m)
+        template<template<class KeyT, class VT, class... Ts> class CTer, class KeyT, class VT, class... Ts>
+        inline void _printMap(const CTer<KeyT, VT, Ts...>& m)
         {
             std::cout << "{";
             int size = m.size();
             if (size > 0)
             {
-                auto bg = m.begin();
+                auto it = m.begin();
                 for (int i = 0; i < size - 1; ++i)
                 {
-                    mio::_print((*bg).first);
-                    std::cout << ": ";
-                    mio::_print((*bg).second);
+                    mio::_print((*it).first);
+                    std::cout << ":";
+                    mio::_print((*it).second);
                     std::cout << ", ";
-                    ++bg;
+                    ++it;
                 }
-                mio::_print((*bg).first);
-                std::cout << ": ";
-                mio::_print((*bg).second);
+                mio::_print((*it).first);
+                std::cout << ":";
+                mio::_print((*it).second);
             }
             std::cout << "}";
         }
 
-        //为print函数添加对std::list类型的支持
-        template<class T, class... Ts>
-        inline void _print(const std::list<T, Ts...>& l)
+        //为print函数添加对std::map类型的支持
+        template<class KeyT, class VT, class... Ts>
+        inline void _print(const std::map<KeyT, VT, Ts...>& m)
         {
-            mio::_print_stdcter(l);
+            mio::_printMap(m);
         }
 
-        //为print函数添加对std::set类型的支持
-        template<class T, class... Ts>
-        inline void _print(const std::set<T, Ts...>& st)
+        //为print函数添加对std::multimap类型的支持
+        template<class KeyT, class VT, class... Ts>
+        inline void _print(const std::multimap<KeyT, VT, Ts...>& m)
         {
-            mio::_print_stdcter(st);
+            mio::_printMap(m);
         }
 
-        //为print函数添加对std::vector类型的支持
-        template<class T, class... Ts>
-        inline void _print(const std::vector<T, Ts...>& vec)
+
+        //为print函数添加对std::unordered_map类型的支持
+        template<class KeyT, class VT, class... Ts>
+        inline void _print(const std::unordered_map<KeyT, VT, Ts...>& m)
         {
-            mio::_print_stdcter(vec);
+            mio::_printMap(m);
         }
 
-        template<template<class C, class... Cs> class CTer, class T, class... Ts>
-        inline void _print_stdcter(const CTer<T, Ts...>& cter)   //虽然用了双层模板，但单层也可以达成目的
+        //为print函数添加对std::unordered_multimap类型的支持
+        template<class KeyT, class VT, class... Ts>
+        inline void _print(const std::unordered_multimap<KeyT, VT, Ts...>& m)
+        {
+            mio::_printMap(m);
+        }
+
+        template<class T, class... Ts>
+        void _print(const std::forward_list<T, Ts...>& l)
         {
             std::cout << "{";
-            int size = cter.size();
-            if (size > 0)
+            for (auto it = l.begin(); it != l.end(); )
             {
-                auto bg = cter.begin();
-                for (int i = 0; i < size - 1; ++i)
-                {
-                    mio::_print(*bg);
+                mio::_print(*it);
+                it++;
+                if (it != l.end())
                     std::cout << " ";
-                    ++bg;
-                }
-                mio::_print(*bg);
+            }
+            std::cout << "}";
+        }
+
+        //添加对STL大部分标准容器的支持
+        template<template<class U, class... Us> class CTer, class T, class... Ts, typename std::enable_if<mtype::StdBeginEndChecker<const CTer<T, Ts...>>::value, int>::type>
+        inline void _print(const CTer<T, Ts...>& cter)   //虽然用了双层模板，但单层也可以达成目的
+        {
+            std::cout << "{";
+            for (auto it = cter.begin(); it != cter.end(); )
+            {
+                mio::_print(*it);
+                it++;
+                if (it != cter.end())
+                    std::cout << " ";
             }
             std::cout << "}";
         }
@@ -287,7 +362,7 @@ namespace mineutils
         }
 
         //为print函数拓展其他支持std::cout<<的类型
-        template<class T, typename std::enable_if<std::is_same<decltype(std::cout << std::declval<T>()), std::ostream&>::value, int>::type>
+        template<class T, typename std::enable_if<mtype::StdCoutChecker<const T>::value, int>::type>
         inline void _print(const T& arg)
         {
             //std::cout << "test: "<< mtype::isInTypes<T, const char*>() << "\n";
@@ -300,7 +375,7 @@ namespace mineutils
         }
 
         //为print函数拓展其他不支持std::cout<<的类型
-        template<class T, typename std::enable_if<!std::is_same<decltype(std::cout << std::declval<T>()), std::ostream&>::value, int>::type>
+        template<class T, typename std::enable_if<!mtype::StdCoutChecker<const T>::value, int>::type>
         inline void _print(const T& arg)
         {
 #ifdef __GNUC__

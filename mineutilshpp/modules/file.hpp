@@ -7,7 +7,6 @@
 #include<iostream>
 #include<list>
 #include<map>
-#include<regex>
 #include<string>
 #include<vector>
 
@@ -314,13 +313,13 @@ namespace mineutils
             size_t pos1 = line.find(']', pos0 + 1);
             if (pos1 >= note_pos)
                 return false;
-            if (pos1 - pos0 <= 1)
+            if (std::make_signed<size_t>::type(pos1 - pos0) <= 1)
                 return false;
 
             size_t sec_pos0 = line.find_first_not_of(" ", pos0 + 1, 1);
             size_t sec_pos1 = line.find_last_not_of(" ", pos1 - 1, 1);
 
-            if (sec_pos1 - sec_pos0 >= 0)
+            if (std::make_signed<size_t>::type(sec_pos1 - sec_pos0) >= 0)
             {
                 std::string value = line.substr(sec_pos0, sec_pos1 - sec_pos0 + 1);
                 section_info.pos = sec_pos0;
@@ -357,7 +356,7 @@ namespace mineutils
             size_t v_pos0 = line.find_first_not_of(" ", sep_pos + 1, 1);
             size_t v_pos1 = line.find_last_not_of(" ", note_pos - 1, 1);
 
-            if (v_pos1 - v_pos0 >= 0)
+            if (std::make_signed<size_t>::type(v_pos1 - v_pos0) >= 0)
             {
                 std::string value = line.substr(v_pos0, v_pos1 - v_pos0 + 1);
                 key_info.value_pos = v_pos0;
@@ -372,7 +371,7 @@ namespace mineutils
         {
             file_.close();
             file_.open(file_path_, std::ios::binary | std::ios::trunc | std::ios::out);
-            int i = 0;
+            unsigned int i = 0;
             for (auto& content: this->content_list_)
             {
                 if (i < this->content_list_.size() - 1)

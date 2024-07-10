@@ -32,8 +32,8 @@ namespace mineutils
             ns = 3
         };
 
-        //获取当前时间点(mtime::time_point)
-        mtime::TimePoint now();
+        //获取当前时间点
+        TimePoint now();
 
         //将“时间段(mtime::Duration)”类型转化为以秒为单位的数字
         long long s(const mtime::Duration& t);
@@ -59,7 +59,7 @@ namespace mineutils
         //进程休眠(纳秒)
         void nsleep(long long t);
 
-        //设置后所有TimeCounter系列类的功能将被跳过
+        //只有开启时TimeCounter系列类的统计功能才生效，默认为开启状态
         void setGlobalTimeCounterOn(bool glob_timecounter_on);
 
 
@@ -69,7 +69,8 @@ namespace mineutils
         public:
             MeanTimeCounter() {}
             /*  构造MeanTimeCounter类
-                @param target_count_times: 统计次数，MeanTimeCounter::printMeanTimeCost会在每次达到目标次数时会输出平均消耗时间   */
+                @param target_count_times: 统计次数，MeanTimeCounter::printMeanTimeCost会在每次达到目标次数时会输出平均消耗时间   
+                @param time_counter_on: 计时功能开关，为false会跳过计时功能   */
             explicit MeanTimeCounter(int target_count_times, bool time_counter_on = true);
 
                 //本轮统计开始，应在目标统计代码段前调用，与段后addEnd成对出现 
@@ -108,7 +109,7 @@ namespace mineutils
         };
 
 
-        //用于分别统计多个代码段的在一定循环次数的平均消耗时间，线程不安全
+        //用于分别统计多个代码段的在一定循环次数的平均消耗时间，非线程安全
         //调用addStart和addEnd会带来少量时间损耗(在rv1126上约为12微秒)
         class MultiMeanTimeCounter
         {
@@ -164,7 +165,7 @@ namespace mineutils
             /*  构造LocalTimeCounter类
                 @param codeblock_tag: 要计时的代码块标识符
                 @param time_unit: 计时单位，强枚举类型mtime::Unit的成员，默认为ms
-                @param time_counter_on: 是否开启计时功能，默认为true   */
+                @param time_counter_on: 计时功能开关，为false会跳过计时功能   */
             LocalTimeCounter(const std::string& codeblock_tag, mtime::Unit time_unit = mtime::Unit::ms, bool time_counter_on = true);
 
             /*  构造LocalTimeCounter类
@@ -204,10 +205,13 @@ namespace mineutils
 
 
 
+
+
+
         /*--------------------------------------------内部实现--------------------------------------------*/
 
         //获取当前时间点(mtime::time_point)
-        inline mtime::TimePoint now()
+        inline TimePoint now()
         {
             return std::chrono::high_resolution_clock::now();
         }
