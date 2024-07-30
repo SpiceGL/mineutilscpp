@@ -16,10 +16,10 @@
 
 namespace mineutils
 {
+    /*--------------------------------------------用户接口--------------------------------------------*/
+
     namespace mfile
     {
-        /*--------------------------------------------用户接口--------------------------------------------*/
-
         //读写ini文件
         class IniFile
         {
@@ -90,14 +90,16 @@ namespace mineutils
             std::map<std::string, SectionInfo> section_map_;
             std::map<std::string, std::map<std::string, KeyInfo>> key_map_;
         };
+    }
 
 
 
 
 
+    /*--------------------------------------------内部实现--------------------------------------------*/
 
-        /*--------------------------------------------内部实现--------------------------------------------*/
-
+    namespace mfile
+    {
         inline IniFile::~IniFile()
         {
             this->close();
@@ -116,7 +118,7 @@ namespace mineutils
                 ios::trunc：　  //如果文件存在，把文件长度设为0   */
             if (this->file_.is_open())
             {
-                printfW("File opened. Close the old file and open the new file.\n");
+                mprintfW("File opened. Close the old file and open the new file.\n");
                 this->file_.close();
             }
 
@@ -125,7 +127,7 @@ namespace mineutils
             if (!this->file_.is_open())
             {
                 //printf("!Warning! %s: Failed to open %s! Please check if the file exists.\n", __FUNCTION__, path.c_str());
-                std::cout << msgN("Failed to open {}! Please check if the file exists.\n", path);
+                std::cout << mmsgN("Failed to open {}! Please check if the file exists.\n", path);
                 return -1;
             }
             else
@@ -158,7 +160,7 @@ namespace mineutils
                         now_section = line.substr(section_info.pos, section_info.len);
                         if (this->section_map_.find(now_section) != this->section_map_.end())
                         {
-                            printfW("Duplicate section:%s at line:%d!\n", now_section.c_str(), line_id+1);
+                            mprintfW("Duplicate section:%s at line:%d!\n", now_section.c_str(), line_id+1);
                             continue;
                         }
                         section_info.line = --this->content_list_.end();
@@ -177,7 +179,7 @@ namespace mineutils
                         
                         if (this->key_map_.find(now_section) != this->key_map_.end() && this->key_map_[now_section].find(key) != this->key_map_[now_section].end())
                         {
-                            printfW("Duplicate key:%s in section:%s at line:%d!\n", key.c_str(), now_section.c_str(), line_id+1);
+                            mprintfW("Duplicate key:%s in section:%s at line:%d!\n", key.c_str(), now_section.c_str(), line_id+1);
                             continue;
                         }                       
                         key_info.line = --this->content_list_.end();
@@ -206,17 +208,17 @@ namespace mineutils
         {
             if (!this->file_.is_open())
             {
-                printfE("File not opened!\n");
+                mprintfE("File not opened!\n");
                 return "";
             }
             if (this->key_map_.find(section) == this->key_map_.end())
             {
-                printfW("The section:%s is not exist! Please check it.\n", section.c_str());
+                mprintfW("The section:%s is not exist! Please check it.\n", section.c_str());
                 return "";
             }
             if (this->key_map_[section].find(key) == this->key_map_[section].end())
             {
-                printfW("The key:%s is not exist! Please check it.\n", key.c_str());
+                mprintfW("The key:%s is not exist! Please check it.\n", key.c_str());
                 return "";
             }
             KeyInfo& key_info = this->key_map_[section][key];
@@ -234,7 +236,7 @@ namespace mineutils
         {
             if (!this->file_.is_open())
             {
-                printfE("File not opened!\n");
+                mprintfE("File not opened!\n");
                 return;
             }
             rwstatus_ = 'w';

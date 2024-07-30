@@ -16,10 +16,10 @@
 
 namespace mineutils
 {
+    /*--------------------------------------------用户接口--------------------------------------------*/
+
     namespace mstr
     {
-        /*--------------------------------------------用户接口--------------------------------------------*/
-
         enum class Color
         {
             black = 0,
@@ -41,7 +41,7 @@ namespace mineutils
 
         //将数字转换为序数词，1st、2nd等，只接受正整数
         std::string toOrdinal(int number);
-      
+
         //将输入直接转换为字符串
         template<class T, typename std::enable_if<mtype::StdCoutChecker<T>::value, int>::type = 0>
         std::string toStr(const T& arg);
@@ -83,15 +83,17 @@ namespace mineutils
 
         //按字符串中的空白符（包括空格、多空格、\n、\t等）分割字符串，若输入空字符串或全空格符串则返回空vector(类Python规则)
         std::vector<std::string> split(std::string s);
+    }
 
 
 
 
 
 
+    /*--------------------------------------------内部实现--------------------------------------------*/
 
-        /*--------------------------------------------内部实现--------------------------------------------*/
-
+    namespace mstr
+    {
         inline std::atomic<bool>& _getColoStrOn()
         {
             static std::atomic<bool> ColorStr_On(false);

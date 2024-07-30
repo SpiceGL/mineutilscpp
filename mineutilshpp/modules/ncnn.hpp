@@ -18,10 +18,10 @@
 
 namespace mineutils
 {
+    /*--------------------------------------------用户接口--------------------------------------------*/
+
     namespace mext
     {
-        /*--------------------------------------------用户接口--------------------------------------------*/
-
         //从路径加载ncnn的net，正常返回0，出错返回其他值
         int loadNcnn(ncnn::Net& out_net, const std::string& param_path, const std::string& bin_path);
 
@@ -38,27 +38,29 @@ namespace mineutils
 
         //打印一组ncnn的Mat，只支持CHW排列的三位ncnn::Mat
         void printMats(const std::vector<ncnn::Mat>& mats);
+    }
 
 
 
 
 
 
+    /*--------------------------------------------内部实现--------------------------------------------*/
 
-        /*--------------------------------------------内部实现--------------------------------------------*/
-
+    namespace mext
+    {
         //从路径加载ncnn的net，正常返回0，出错返回其他值
         inline int loadNcnn(ncnn::Net& out_net, const std::string& param_path, const std::string& bin_path)
         {
             //ncnn::Net net;
             if (out_net.load_param(param_path.c_str()))
             {
-                printfW("Load param file %s failed!\n", param_path.c_str());
+                mprintfW("Load param file %s failed!\n", param_path.c_str());
                 return -1;
             }
             if (out_net.load_model(bin_path.c_str()))
             {
-                std::cout << printfW("Load bin file %s failed!\n", bin_path.c_str());
+                mprintfW("Load bin file %s failed!\n", bin_path.c_str());
                 return -1;
             }
             return 0;

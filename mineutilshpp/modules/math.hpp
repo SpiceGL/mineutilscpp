@@ -14,10 +14,9 @@
 
 namespace mineutils
 {
+    /*--------------------------------------------用户接口--------------------------------------------*/
     namespace mmath
     {
-        /*--------------------------------------------用户接口--------------------------------------------*/
-
         /*  将输入的Python风格索引值(负数索引)转换为非负数索引，如果超出索引范围则返回-1
             @param idx：Python风格idx(包含负数索引)
             @param len：合法range长度
@@ -40,19 +39,21 @@ namespace mineutils
         //将x按a值向上对齐，注意a不要超出x取值上下限绝对值
         int align(int x, unsigned int a);
 
-
         template<class T>
         class BaseBox
         {
         public:
+            template<typename std::enable_if<std::is_integral<T>::value || std::is_floating_point<T>::value, int>::type = 0>
             BaseBox();
+            template<typename std::enable_if<std::is_integral<T>::value || std::is_floating_point<T>::value, int>::type = 0>
             BaseBox(T v0, T v1, T v2, T v3);
+            template<typename std::enable_if<std::is_integral<T>::value || std::is_floating_point<T>::value, int>::type = 0>
             BaseBox(const BaseBox<T>& box);
             virtual ~BaseBox() {}
             T& operator[](int idx);
             T operator[](int idx) const;
 
-            static bool belongToIntSeries();
+            MINE_DEPRECATED("Deprecated. Please replace with \"std::is_integral<T>::value\"") static bool belongToIntSeries();
         protected:
             T data_[4];
         };
@@ -85,8 +86,8 @@ namespace mineutils
             LTRBBox<T>& operator=(const LTRBBox<T>& ltrb);
 
             //将坐标转化为像素坐标
-            template<class PT = int>
-            LTRBBox<PT> toPixel() const;
+            template<class PixT = int, typename std::enable_if<std::is_integral<PixT>::value || std::is_floating_point<PixT>::value, int>::type = 0>
+            LTRBBox<PixT> toPixel() const;
             //若自身数据为整数类型，则按像素运算，否则按连续数值运算
             XYWHBox<T> toXYWH() const;
             //若自身数据为整数类型，则按像素运算，否则按连续数值运算
@@ -112,8 +113,8 @@ namespace mineutils
             XYWHBox<T>& operator=(const XYWHBox<T>& xywh);
 
             //将坐标转化为像素坐标
-            template<class PT = int>
-            XYWHBox<PT> toPixel() const;
+            template<class PixT = int, typename std::enable_if<std::is_integral<PixT>::value || std::is_floating_point<PixT>::value, int>::type = 0>
+            XYWHBox<PixT> toPixel() const;
             //若自身数据为整数类型，则按像素运算，否则按连续数值运算
             LTRBBox<T> toLTRB() const;
             //若自身数据为整数类型，则按像素运算，否则按连续数值运算
@@ -141,8 +142,8 @@ namespace mineutils
             LTWHBox<T>& operator=(const LTWHBox<T>& ltwh);
 
             /*将坐标转化为像素坐标，向下取整*/
-            template<class PT = int>
-            LTWHBox<PT> toPixel() const;
+            template<class PixT = int, typename std::enable_if<std::is_integral<PixT>::value || std::is_floating_point<PixT>::value, int>::type = 0>
+            LTWHBox<PixT> toPixel() const;
             //若自身数据为整数类型，则按像素运算，否则按连续数值运算
             LTRBBox<T> toLTRB() const;
             //若自身数据为整数类型，则按像素运算，否则按连续数值运算
@@ -159,14 +160,16 @@ namespace mineutils
         using XYWHf = XYWHBox<float>;
         using LTWH = LTWHBox<int>;
         using LTWHf = LTWHBox<float>;
+    }
 
 
 
 
 
+    /*--------------------------------------------内部实现--------------------------------------------*/
 
-        /*--------------------------------------------内部实现--------------------------------------------*/
-
+    namespace mmath
+    {
         /*  将输入的Python风格索引值(负数索引)转换为非负数索引，如果超出索引范围则返回-1
             @param idx：Python风格idx(包含负数索引)
             @param len：合法range长度
@@ -180,7 +183,7 @@ namespace mineutils
                 normal_idx = idx + len;
             else
             {
-                std::cout << msgW("idx={} out of index range!\n", idx);
+                std::cout << mmsgW("idx={} out of index range!\n", idx);
                 return -1;
             }
             return normal_idx;
@@ -219,7 +222,7 @@ namespace mineutils
                 dst_start = idx + len, dst_end = idx + len + 1;
             else
             {
-                printfW("idx:%d out of index range:%d!\n", idx, len);
+                mprintfW("idx:%d out of index range:%d!\n", idx, len);
                 return { -1, -1 };
             }
             return { dst_start, dst_end };
@@ -235,25 +238,27 @@ namespace mineutils
             else return x;
         }
 
+
         template<class T>
+        template<typename std::enable_if<std::is_integral<T>::value || std::is_floating_point<T>::value, int>::type>
         inline BaseBox<T>::BaseBox()
-        { 
-            static_assert(std::is_integral<T>::value || std::is_floating_point<T>::value, "Class T is not integral or floating_point!"); 
+        {
+
         }
 
         template<class T>
+        template<typename std::enable_if<std::is_integral<T>::value || std::is_floating_point<T>::value, int>::type>
         inline BaseBox<T>::BaseBox(T v0, T v1, T v2, T v3)
         {
-            static_assert(std::is_integral<T>::value || std::is_floating_point<T>::value, "Class T is not integral or floating_point!");
             data_[0] = v0;
             data_[1] = v1;
             data_[2] = v2;
             data_[3] = v3;
         }
         template<class T>
+        template<typename std::enable_if<std::is_integral<T>::value || std::is_floating_point<T>::value, int>::type>
         inline BaseBox<T>::BaseBox(const BaseBox<T>& box)
         {
-            static_assert(std::is_integral<T>::value || std::is_floating_point<T>::value, "Class T is not integral or floating_point!");
             this->data_[0] = box.data_[0];
             this->data_[1] = box.data_[1];
             this->data_[2] = box.data_[2];
@@ -275,11 +280,7 @@ namespace mineutils
         template<class T>
         bool BaseBox<T>::belongToIntSeries()
         {
-            /*if (isInTypes<T, char, unsigned char, short, unsigned short,
-                int, unsigned int, long, unsigned long, long long, unsigned long long>())*/
-            if (std::is_integral<T>::value)
-                return true;
-            else return false;
+            return std::is_integral<T>::value;
         }
 
 
@@ -294,16 +295,16 @@ namespace mineutils
         }
 
         //将坐标转化为像素坐标
-        template<class T> template<class PT>
-        inline LTRBBox<PT> LTRBBox<T>::toPixel() const
+        template<class T> template<class PixT, typename std::enable_if<std::is_integral<PixT>::value || std::is_floating_point<PixT>::value, int>::type>
+        inline LTRBBox<PixT> LTRBBox<T>::toPixel() const
         {
-            return { PT(floor(left)), PT(floor(top)), PT(floor(right)), PT(floor(bottom)) };
+            return { PixT(floor(left)), PixT(floor(top)), PixT(floor(right)), PixT(floor(bottom)) };
         }
 
         template<class T>
         inline XYWHBox<T> LTRBBox<T>::toXYWH() const
         {
-            if (BaseBox<T>::belongToIntSeries())
+            if (std::is_integral<T>::value)
             {
 
                 T _w = this->right - this->left + 1;
@@ -327,7 +328,7 @@ namespace mineutils
         {
             T _w = this->right - this->left;
             T _h = this->bottom - this->top;
-            if (BaseBox<T>::belongToIntSeries())
+            if (std::is_integral<T>::value)
             {
                 _w += 1;
                 _h += 1;
@@ -347,16 +348,16 @@ namespace mineutils
         }
 
         //将坐标转化为像素坐标
-        template<class T> template<class PT>
-        inline XYWHBox<PT> XYWHBox<T>::toPixel() const
+        template<class T> template<class PixT, typename std::enable_if<std::is_integral<PixT>::value || std::is_floating_point<PixT>::value, int>::type>
+        inline XYWHBox<PixT> XYWHBox<T>::toPixel() const
         {
-            return { PT(floor(x)), PT(floor(y)), PT(floor(w)), PT(floor(h)) };
+            return { PixT(floor(x)), PixT(floor(y)), PixT(floor(w)), PixT(floor(h)) };
         }
 
         template<class T>
         inline LTRBBox<T> XYWHBox<T>::toLTRB() const
         {
-            if (BaseBox<T>::belongToIntSeries())
+            if (std::is_integral<T>::value)
             {
                 T _l = this->x - std::ceil(double(this->w - 1) / 2);
                 T _t = this->y - std::ceil(double(this->h - 1) / 2);
@@ -377,7 +378,7 @@ namespace mineutils
         template<class T>
         inline LTWHBox<T> XYWHBox<T>::toLTWH() const
         {
-            if (BaseBox<T>::belongToIntSeries())
+            if (std::is_integral<T>::value)
             {
                 T _l = this->x - std::ceil(double(this->w - 1) / 2);
                 T _t = this->y - std::ceil(double(this->h - 1) / 2);
@@ -401,11 +402,11 @@ namespace mineutils
             return *this;
         }
 
-            /*将坐标转化为像素坐标，向下取整*/
-        template<class T> template<class PT>
-        LTWHBox<PT>  LTWHBox<T>::toPixel() const
+        /*将坐标转化为像素坐标，向下取整*/
+        template<class T> template<class PixT, typename std::enable_if<std::is_integral<PixT>::value || std::is_floating_point<PixT>::value, int>::type>
+        LTWHBox<PixT>  LTWHBox<T>::toPixel() const
         {
-            return { PT(floor(l)), PT(floor(t)), PT(floor(w)), PT(floor(h)) };
+            return { PixT(floor(l)), PixT(floor(t)), PixT(floor(w)), PixT(floor(h)) };
         }
 
         template<class T>
@@ -413,7 +414,7 @@ namespace mineutils
         {
             T r = this->left + this->w;
             T b = this->top + this->h;
-            if (BaseBox<T>::belongToIntSeries())
+            if (std::is_integral<T>::value)
             {
                 r -= 1;
                 b -= 1;
@@ -424,7 +425,7 @@ namespace mineutils
         template<class T>
         XYWHBox<T> LTWHBox<T>::toXYWH() const
         {
-            if (BaseBox<T>::belongToIntSeries())
+            if (std::is_integral<T>::value)
             {
                 T _x = this->left + std::ceil(double(this->w - 1) / 2);
                 T _y = this->top + std::ceil(double(this->h - 1) / 2);

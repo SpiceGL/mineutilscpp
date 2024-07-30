@@ -15,11 +15,11 @@
 
 namespace mineutils
 {
+    /*--------------------------------------------用户接口--------------------------------------------*/
+
     //基于<chrono>库的简易计时函数封装
     namespace mtime
     {
-        /*--------------------------------------------用户接口--------------------------------------------*/
-
         using TimePoint = std::chrono::high_resolution_clock::time_point;   //时间点
         using Duration = decltype(TimePoint() - TimePoint());   //时间段
 
@@ -69,11 +69,11 @@ namespace mineutils
         public:
             MeanTimeCounter() {}
             /*  构造MeanTimeCounter类
-                @param target_count_times: 统计次数，MeanTimeCounter::printMeanTimeCost会在每次达到目标次数时会输出平均消耗时间   
+                @param target_count_times: 统计次数，MeanTimeCounter::printMeanTimeCost会在每次达到目标次数时会输出平均消耗时间
                 @param time_counter_on: 计时功能开关，为false会跳过计时功能   */
             explicit MeanTimeCounter(int target_count_times, bool time_counter_on = true);
 
-                //本轮统计开始，应在目标统计代码段前调用，与段后addEnd成对出现 
+            //本轮统计开始，应在目标统计代码段前调用，与段后addEnd成对出现 
             void addStart();
             //本轮统计结束，应在目标统计代码段后调用，与段前addStart成对出现
             void addEnd();
@@ -200,6 +200,7 @@ namespace mineutils
             long long target_time_;
             mtime::Unit time_unit_;
         };
+    }
 
 
 
@@ -208,8 +209,10 @@ namespace mineutils
 
 
 
-        /*--------------------------------------------内部实现--------------------------------------------*/
+    /*--------------------------------------------内部实现--------------------------------------------*/
 
+    namespace mtime
+    {
         //获取当前时间点(mtime::time_point)
         inline TimePoint now()
         {

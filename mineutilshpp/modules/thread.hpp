@@ -19,11 +19,10 @@
 
 namespace mineutils
 {
-    
+    /*--------------------------------------------用户接口--------------------------------------------*/
+
     namespace mthread
     {
-        /*--------------------------------------------用户接口--------------------------------------------*/
-
         //任务结果状态，线程安全
         template<class Ret>
         class TaskRetState
@@ -35,10 +34,12 @@ namespace mineutils
             TaskRetState(TaskRetState<Ret>&& future_state) noexcept;
             TaskRetState& operator=(TaskRetState<Ret>&& future_state) noexcept;
 
+            //判断任务是否为有效状态
+            bool valid();
             //判断任务是否结束，如果任务为无效状态会返回true
-            bool finished();           
+            bool finished();
             //等待任务结束，如果任务为无效状态会立即返回
-            void wait();  
+            void wait();
             //等待并获取任务结果，只可调用一次，如果任务为无效状态会抛出std::runtime_error异常
             Ret get();
 
@@ -61,14 +62,14 @@ namespace mineutils
             ThreadPool(int pool_size, long long wakeup_period_ms = 100);
 
             /*  添加一个任务到线程池中并异步执行，线程安全
-                --addTask(func, arg1, arg2...)  
+                --addTask(func, arg1, arg2...)
                 --addTask(&class::func, &class_obj, arg1, arg2...)
                 @param func: 任务函数，注意在任务完成前保证其生命周期
                 @param args: 任务函数的参数，传递指针时应在任务完成前保证其生命周期，要传递引用应使用std::ref显式指定
-                @return 任务结果，用于查询任务状态、等待任务结束以及获取任务返回值，注意ThreadPool对象析构后任务状态失效，不应再使用   */  
-            template<class Fn, class... Args, class Ret = decltype(std::bind(std::declval<Fn>(), std::forward<Args>(std::declval<Args>())...)() )>
+                @return 任务结果，用于查询任务状态、等待任务结束以及获取任务返回值，注意ThreadPool对象析构后任务状态失效，不应再使用   */
+            template<class Fn, class... Args, class Ret = decltype(std::bind(std::declval<Fn>(), std::forward<Args>(std::declval<Args>())...)())>
             TaskRetState<Ret> addTask(Fn&& func, Args&&... args);
-         
+
             ThreadPool(const ThreadPool& thd_pool) = delete;
             ThreadPool& operator=(const ThreadPool& thd_pool) = delete;
             ~ThreadPool();
@@ -85,20 +86,21 @@ namespace mineutils
             std::mutex task_mtx_;
             std::condition_variable cond_var_;
             std::queue<std::function<void()>> task_queue_;
-            
+
             std::atomic<bool> need_abort_;
-            std::atomic<bool> aborted_;       
+            std::atomic<bool> aborted_;
         };
-    
+    }
 
 
 
 
 
 
+    /*--------------------------------------------内部实现--------------------------------------------*/
 
-        /*--------------------------------------------内部实现--------------------------------------------*/
-
+    namespace mthread
+    {
         template<class Ret>
         inline TaskRetState<Ret>::TaskRetState(std::future<Ret>&& future_state) noexcept
         {
@@ -119,11 +121,17 @@ namespace mineutils
         }
 
         template<class Ret>
+        inline bool TaskRetState<Ret>::valid()
+        {
+            return this->future_state_.valid();
+        }
+
+        template<class Ret>
         inline bool TaskRetState<Ret>::finished()
         {
             if (this->future_state_.valid())
                 return this->future_state_.wait_for(std::chrono::nanoseconds(0)) == std::future_status::ready;
-            printfW("Task has become invalid, which means it may not been executed but finished.\n");
+            mprintfW("Task is invalid, so the function returns value:true!\n");
             return true;
         }
 
@@ -132,7 +140,7 @@ namespace mineutils
         {
             if (this->future_state_.valid())
                 this->future_state_.wait();
-            else printfW("Task has become invalid.\n");
+            else mprintfW("Task is invalid, so the function returns directly!\n");
         }
 
         template<class Ret>
@@ -140,19 +148,19 @@ namespace mineutils
         {
             if (this->future_state_.valid())
                 return this->future_state_.get();
-            else throw std::runtime_error("Error: TaskRetState has become invalid!");
+            else throw std::runtime_error("Error: Task is invalid!");
         }
 
         inline ThreadPool::ThreadPool(int pool_size, long long wakeup_period_ms)
         {
             if (pool_size <= 0)
             {
-                printfW("Invalid param value pool_size:%d, which will be set to 1.\n", pool_size);
+                mprintfW("Invalid param value pool_size:%d, which will be set to 1.\n", pool_size);
                 pool_size = 1;
             }
             if (wakeup_period_ms <= 0)
             {
-                printfW("Invalid param value wakeup_period_ms:%lld, which will be set to 100.\n", wakeup_period_ms);
+                mprintfW("Invalid param value wakeup_period_ms:%lld, which will be set to 100.\n", wakeup_period_ms);
                 wakeup_period_ms = 1;
             }
             this->pool_size_ = pool_size;
@@ -182,7 +190,7 @@ namespace mineutils
         
             this->aborted_ = true;
             this->wakeup_thd_.join();
-            printfN("Destroyed.\n");
+            mprintfN("Destroyed.\n");
         }
 
         template<class Fn, class... Args, class Ret>

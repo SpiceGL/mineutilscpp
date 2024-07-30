@@ -10,9 +10,9 @@
 #include<type_traits>
 
 #define MINEUTILS_MAJOR_VERSION "1"   //主版本号，对应不向下兼容的API或文件改动
-#define MINEUTILS_MINOR_VERSION "6"   //次版本号，对应不影响现有API使用的新功能增加
+#define MINEUTILS_MINOR_VERSION "7"   //次版本号，对应不影响现有API使用的新功能增加
 #define MINEUTILS_PATCH_VERSION "0"   //修订版本号，对应不改变接口的BUG修复或效能优化
-#define MINEUTILS_DATE_VERSION "20240729-release"   //日期版本号，对应文档和注释级别的改动和测试阶段
+#define MINEUTILS_DATE_VERSION "20240815-release"   //日期版本号，对应文档和注释级别的改动和测试阶段
 
 
 #ifdef __GNUC__ 
@@ -26,25 +26,25 @@
 #define MINE_DEPRECATED(msg)
 #endif 
 
-#ifdef __QNX__
+#if defined(__GNUC__) && (__GNUC__ < 5 && __GNUC_MINOR__ < 8)  //for qnx660
 #define MINE_THREAD_LOCAL
 #else 
 #define MINE_THREAD_LOCAL thread_local
-#endif // __QNX__
+#endif 
 
 
 namespace mineutils
 {
+    /*--------------------------------------------用户接口--------------------------------------------*/
+
     namespace mbase
     {
-        /*--------------------------------------------用户接口--------------------------------------------*/
-
         //获取mineutils库的版本
         std::string getVersion();
 
         //打印mineutils库的版本
         int printVersion(const std::string& project_name);
-
+    }
 
 
 
@@ -57,8 +57,10 @@ namespace mineutils
         
 
 
-        /*--------------------------------------------内部实现--------------------------------------------*/
-         
+    /*--------------------------------------------内部实现--------------------------------------------*/
+
+    namespace mbase
+    {
         class CaseTag0
         {
         public:

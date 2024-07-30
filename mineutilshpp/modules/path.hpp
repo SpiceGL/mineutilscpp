@@ -25,11 +25,11 @@
 
 namespace mineutils
 {
+    /*--------------------------------------------用户接口--------------------------------------------*/
+
     //输入的路径应为合法格式
     namespace mpath
     {
-        /*--------------------------------------------用户接口--------------------------------------------*/
-
         //将windows路径中的\\变为标准的/分隔符，并将路径标准化
         std::string normPath(const std::string& path);
 
@@ -82,6 +82,7 @@ namespace mineutils
 
         //遍历目录下的所有文件，出错时返回空vector
         std::vector<std::string> walk(const std::string& path, bool return_path = true);
+    }
 
 
 
@@ -92,9 +93,10 @@ namespace mineutils
 
 
 
+    /*--------------------------------------------内部实现--------------------------------------------*/
 
-        /*--------------------------------------------内部实现--------------------------------------------*/
-
+    namespace mpath
+    {
         //将windows路径中的\\变为标准的/分隔符，并将路径标准化
         inline std::string normPath(const std::string& path)
         {
@@ -257,7 +259,7 @@ namespace mineutils
 
             if (!mpath::isDir(pth))
             {
-                std::cout << msgW("The input path is not a folder or does not exist. Please check it!\n");
+                std::cout << mmsgW("The input path is not a folder or does not exist. Please check it!\n");
                 return {};
             }
             if ((hFile = _findfirst(p.append("/*").c_str(), &fileinfo)) != std::string::npos)
@@ -312,7 +314,7 @@ namespace mineutils
 
             if (!mpath::isDir(pth))
             {
-                std::cout << msgW("The input path is not a folder or does not exist. Please check it!\n");
+                std::cout << mmsgW("The input path is not a folder or does not exist. Please check it!\n");
                 return {};
             }
             pDir = opendir(pth.c_str());
@@ -400,7 +402,7 @@ namespace mineutils
 
             if (!mpath::isDir(pth))
             {
-                std::cout << msgW("The input path is not a folder or does not exist. Please check it!\n");
+                std::cout << mmsgW("The input path is not a folder or does not exist. Please check it!\n");
                 return {};
             }
             std::vector<std::string> listdir_res = mpath::listDir(pth, true);

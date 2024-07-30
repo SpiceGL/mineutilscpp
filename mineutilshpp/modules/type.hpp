@@ -12,10 +12,10 @@
 
 namespace mineutils
 {
+    /*--------------------------------------------用户接口--------------------------------------------*/
+
     namespace mtype
     {
-        /*--------------------------------------------用户接口--------------------------------------------*/
-
         /*  用于判断类型是不是相同类型
             -忽略引用&修饰
             -比较非指针类型时忽略const修饰
@@ -36,7 +36,7 @@ namespace mineutils
             - T的begin()返回的迭代器支持++操作符，且前缀的++操作符返回迭代器的引用，后缀的++操作符返回迭代器的拷贝
             用法：StdContainerLikeChecker<T>::value   */
         template<typename T>
-        struct StdBeginEndChecker 
+        struct StdBeginEndChecker
         {
         private:
             //之所以用U而不是T，是因为为T的话，模板类型就被类的模板类型确定了，函数调用不再具有SFINAE特性
@@ -95,15 +95,17 @@ namespace mineutils
         public:
             static constexpr bool value = decltype(check<DecayT>(0))::value;
         };
+    }
 
 
 
 
 
 
+    /*--------------------------------------------内部实现--------------------------------------------*/
 
-        /*--------------------------------------------内部实现--------------------------------------------*/
-
+    namespace mtype
+    {
         template<class T>
         constexpr bool StdBeginEndChecker<T>::value;
 

@@ -23,10 +23,10 @@
 
 namespace mineutils
 {
+    /*--------------------------------------------用户接口--------------------------------------------*/
+
     namespace mext
     {
-        /*--------------------------------------------用户接口--------------------------------------------*/
-
         //快速设置窗口属性，返回为窗口的名字
         inline std::string setWindowCV(const std::string& win_name, cv::Size size = { -1, -1 },
             std::pair<int, int> position = { -1, -1 }, int flag = cv::WINDOW_FREERATIO);
@@ -96,6 +96,7 @@ namespace mineutils
             @param c_range：channel值或range，支持Python风格range   */
         template<class Tx = std::pair<int, int>, class Ty = std::pair<int, int>, class Tc = std::pair<int, int>>
         void printMat(const cv::Mat& img, Tx x_range = { 0, INT_MAX }, Ty y_range = { 0, INT_MAX }, Tc c_range = { 0, INT_MAX });
+    }
 
 
 
@@ -103,9 +104,10 @@ namespace mineutils
 
 
 
+    /*--------------------------------------------内部实现--------------------------------------------*/
 
-        /*--------------------------------------------内部实现--------------------------------------------*/
-
+    namespace mext
+    {
         /*
         #cv2.VideoWriter_fourcc('X', '2', '6', '4'), 该参数是较新的MPEG-4编码,产生的文件较小,文件扩展名应为.mp4
         #cv2.VideoWriter_fourcc('P', 'I', 'M', 'I'), 该参数是较旧的MPEG-1编码,文件名后缀为.avi
@@ -153,7 +155,7 @@ namespace mineutils
             auto cap = cv::VideoCapture(video_path);
             if (not cap.isOpened())
             {
-                printfW("Open video failed, skiped!\n");
+                mprintfW("Open video failed, skiped!\n");
                 return;
             }
             mext::setWindowCV(win_name, size, position, flag);
@@ -164,7 +166,7 @@ namespace mineutils
                 if (not ret)
                 {
                     cv::destroyWindow(win_name);
-                    printfN("Video end.\n");
+                    mprintfN("Video end.\n");
                     break;
                 }
                 cv::imshow(win_name, frame);
@@ -172,7 +174,7 @@ namespace mineutils
                 if (k == 27)
                 {
                     cv::destroyWindow(win_name);
-                    printfN("Received stop signal, stoped the video.\n");
+                    mprintfN("Received stop signal, stoped the video.\n");
                     break;
                 }
             }

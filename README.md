@@ -1,11 +1,12 @@
 # mineutilscpp
-一些C++的便利功能封装，用于方便自己编程，代码基于C++11标准，文本使用UTF8-SIG编码。   
-所有功能都放在命名空间mineutils下，同时根据所属模块分布在次级的命名空间，如mineutils::mstr、mineutils::mtime下；基于第三方库的功能统一在次级的命名空间mineutils::mext下。
-所有函数接口都保证自身线程安全，类接口不保证线程安全。
+* 一些C++的便利功能封装，用于方便自己编程，代码基于C++11标准，文本使用UTF8-SIG编码。   
++ 所有功能都放在命名空间mineutils下，同时根据所属模块分布在次级的命名空间，如mineutils::mstr、mineutils::mtime下；基于第三方库的功能统一在次级的命名空间mineutils::mext下。
+所有函数接口都保证自身线程安全，类接口不保证线程安全。  
+- 更新遵循大版本号删改接口，中版本号添加新功能接口，小版本号修复和优化的原则，保证大版本内的向下兼容性。   
 
 ## 版本信息
-当前库版本：1.6.0   
-文档注释修改日期：20240729   
+当前库版本：1.7.0   
+文档注释修改日期：20240815   
 
 ## 测试平台
 **Windows:**  
@@ -52,6 +53,8 @@ arm-unknown-nto-qnx6.6.0eabi-gcc 4.7.3
 **io.hpp**|  输入输出相关功能，目前包含print函数，可以自由打印STL范围内基本数据类型和容器数据类型等。包含于mineutils::mio。    
 **cv.hpp**|  OpenCV相关便捷功能，如快捷显示、快捷绘制矩形框、打印cv::Mat数据等。包含于mineutils::mext和mineutils::mio。    
 **ncnn.hpp**|  NCNN相关便捷功能，如快捷运行网络、打印ncnn::Mat数据等。包含于mineutils::mext和mineutils::mio。    
+
+**注：** 除了函数和类接口之外，还存在宏定义实现的功能。对象式宏统一大写，以MINE_作为前缀；函数式宏统一小驼峰命名，以m为前缀。
 
 ## 模块功能示例  
 
@@ -370,6 +373,12 @@ int main()
 ```  
 
 ## 版本发布日志
+**v1.7.0**  
+* 20240815   
+1. 统一函数式宏定义使用m开头，对象式宏定义使用MINE_开头，如printfE现在为mprintfE；  
+2. mthread::TaskRetState添加valid()接口；   
+3. 优化mmath::BaseBox及其派生类的模板类型限制方式，标记mmath::BaseBox<T>::belongToIntSeries为废弃。  
+
 **v1.6.0**  
 * 20240729   
 1. 添加mthread::TaskRetState<T>类，上个版本的mthread::TaskState现在等于mthread::TaskRetState<void>；

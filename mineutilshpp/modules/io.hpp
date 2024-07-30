@@ -51,10 +51,10 @@ namespace ncnn
 
 namespace mineutils
 {
+    /*--------------------------------------------用户接口--------------------------------------------*/
+
     namespace mio
     {
-        /*--------------------------------------------用户接口--------------------------------------------*/
-
         /*  实现类似Python的print打印功能，基于std::cout
             -可以接受任意数量、任意类型的参数
             -可以正常打印任意支持std::cout<<的内置数据类型
@@ -66,6 +66,7 @@ namespace mineutils
             -在不混用print函数和std::cout时，线程安全  */
         template<class T, class... Args>
         void print(const T& arg, const Args&... args);
+    }
 
 
 
@@ -73,9 +74,10 @@ namespace mineutils
 
 
 
+    /*--------------------------------------------内部实现--------------------------------------------*/
 
-        /*--------------------------------------------内部实现--------------------------------------------*/
-
+    namespace mio
+    {
         template<class T, class... Args>
         void _recurPrint(const T& arg, const Args&... args);
 
