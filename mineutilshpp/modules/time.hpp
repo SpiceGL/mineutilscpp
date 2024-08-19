@@ -48,28 +48,28 @@ namespace mineutils
         long long ns(const mtime::Duration& t);
 
         //进程休眠(秒)
-        void sleep(long long t);
+        void sleep(unsigned long t);
 
         //进程休眠(毫秒)
-        void msleep(long long t);
+        void msleep(unsigned long t);
 
         //进程休眠(微秒)
-        void usleep(long long t);
+        void usleep(unsigned long t);
 
         //进程休眠(纳秒)
-        void nsleep(long long t);
+        void nsleep(unsigned long t);
 
         //只有开启时TimeCounter系列类的统计功能才生效，默认为开启状态
         void setGlobalTimeCounterOn(bool glob_timecounter_on);
 
 
-        //统计一定循环次数中某一代码段的时间消耗，线程不安全
+        //统计一定循环次数中某一代码段的时间消耗
         class MeanTimeCounter
         {
         public:
             MeanTimeCounter() {}
             /*  构造MeanTimeCounter类
-                @param target_count_times: 统计次数，MeanTimeCounter::printMeanTimeCost会在每次达到目标次数时会输出平均消耗时间
+                @param target_count_times: 每轮统计次数，printMeanTimeCost会在每次达到目标次数时会输出平均消耗时间。小于1的值会被置为1
                 @param time_counter_on: 计时功能开关，为false会跳过计时功能   */
             explicit MeanTimeCounter(int target_count_times, bool time_counter_on = true);
 
@@ -116,7 +116,7 @@ namespace mineutils
         public:
             MultiMeanTimeCounter() {}
             /*  构造MultiMeanTimeCounter类
-                @param target_count_times: 目标统计次数
+                @param target_count_times: 每轮统计次数，小于1的值会被置为1
                 @param time_counter_on: 计时功能开关，为false会跳过计时功能   */
             explicit MultiMeanTimeCounter(int target_count_times, bool time_counter_on = true);
 
@@ -190,7 +190,7 @@ namespace mineutils
         class LocalTimeController
         {
         public:
-            LocalTimeController(long long target_time, mtime::Unit time_unit = mtime::Unit::ms);
+            LocalTimeController(unsigned long target_time, mtime::Unit time_unit = mtime::Unit::ms);
             LocalTimeController(const LocalTimeController& _temp) = delete;
             LocalTimeController& operator=(const LocalTimeController& _temp) = delete;
             ~LocalTimeController();
@@ -256,25 +256,25 @@ namespace mineutils
         }
 
         //进程休眠(秒)
-        inline void sleep(long long t)
+        inline void sleep(unsigned long t)
         {
             std::this_thread::sleep_for(std::chrono::seconds(t));
         }
 
         //进程休眠(毫秒)
-        inline void msleep(long long t)
+        inline void msleep(unsigned long t)
         {
             std::this_thread::sleep_for(std::chrono::milliseconds(t));
         }
 
         //进程休眠(微秒)
-        inline void usleep(long long t)
+        inline void usleep(unsigned long t)
         {
             std::this_thread::sleep_for(std::chrono::microseconds(t));
         }
 
         //进程休眠(纳秒)
-        inline void nsleep(long long t)
+        inline void nsleep(unsigned long t)
         {
             std::this_thread::sleep_for(std::chrono::nanoseconds(t));
         }
@@ -296,7 +296,7 @@ namespace mineutils
 
         inline MeanTimeCounter::MeanTimeCounter(int target_count_times, bool time_counter_on)
         {
-            target_count_times_ = target_count_times;
+            target_count_times_ = target_count_times >= 1 ? target_count_times : 1;
             time_counter_on_ = time_counter_on;
         }
 
@@ -393,7 +393,7 @@ namespace mineutils
 
         inline MultiMeanTimeCounter::MultiMeanTimeCounter(int target_count_times, bool time_counter_on)
         {
-            target_count_times_ = target_count_times;
+            target_count_times_ = target_count_times >= 1 ? target_count_times : 1;
             time_counter_on_ = time_counter_on;
         }
 
@@ -494,7 +494,7 @@ namespace mineutils
             }
         }
 
-        inline LocalTimeController::LocalTimeController(long long target_time, mtime::Unit time_unit)
+        inline LocalTimeController::LocalTimeController(unsigned long target_time, mtime::Unit time_unit)
         {
             start_t_ = mtime::now();
             target_time_ = target_time;

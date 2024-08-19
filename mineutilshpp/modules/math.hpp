@@ -17,27 +17,27 @@ namespace mineutils
     /*--------------------------------------------用户接口--------------------------------------------*/
     namespace mmath
     {
-        /*  将输入的Python风格索引值(负数索引)转换为非负数索引，如果超出索引范围则返回-1
+        /*  将输入的Python风格索引值(负数索引)转换为非负数索引，如果出错则返回-1
             @param idx：Python风格idx(包含负数索引)
-            @param len：合法range长度
+            @param len：合法range长度，必须为正数
             @return 非负数索引值  */
         int normIdx(int idx, int len);
 
 
-        /*  将Python风格的range(负数以及超出实际范围的range)转换为实际range(左闭右开)
+        /*  将Python风格的range(负数以及超出实际范围的range)转换为实际range(左闭右开)，如果出错则返回{-1, -1}
             @param range：Python风格range
-            @param len：合法range长度
+            @param len：合法range长度，必须为正数
             @return 实际range   */
         std::pair<int, int> normRange(std::pair<int, int> range, int len);
 
-        /*  将Python风格的索引值(负数以及超出实际范围的idx转换为对应的range(左闭右开)，如果idx超出索引范围则返回{-1， -1}
+        /*  将Python风格的索引值(负数以及超出实际范围的idx转换为对应的range(左闭右开)，如果出错则返回{-1, -1}
             @param idx：Python风格idx
-            @param len：合法range长度
+            @param len：合法range长度，必须为正数
             @return 实际range   */
         std::pair<int, int> normRange(int idx, int len);
 
-        //将x按a值向上对齐，注意a不要超出x取值上下限绝对值
-        int align(int x, unsigned int a);
+        //将x按a值向上对齐，注意a必须为正数才能获得正确结果
+        int align(int x, int a);
 
         template<class T>
         class BaseBox
@@ -170,12 +170,13 @@ namespace mineutils
 
     namespace mmath
     {
-        /*  将输入的Python风格索引值(负数索引)转换为非负数索引，如果超出索引范围则返回-1
-            @param idx：Python风格idx(包含负数索引)
-            @param len：合法range长度
-            @return 非负数索引值  */
         inline int normIdx(int idx, int len)
         {
+            if (len <= 0)
+            {
+                mprintfE("Wrong value of len:%d\n!", len);
+                return -1;
+            }
             int normal_idx;
             if (idx >= 0 and idx < len)
                 normal_idx = idx;
@@ -183,19 +184,19 @@ namespace mineutils
                 normal_idx = idx + len;
             else
             {
-                std::cout << mmsgW("idx={} out of index range!\n", idx);
+                mprintfW("idx:%d out of index range:%d!\n", idx, len);
                 return -1;
             }
             return normal_idx;
         }
 
-
-        /*  将Python风格的range(负数以及超出实际范围的range)转换为实际range(左闭右开)
-            @param range：Python风格range
-            @param len：合法range长度
-            @return 实际range   */
         inline std::pair<int, int> normRange(std::pair<int, int> range, int len)
         {
+            if (len <= 0)
+            {
+                mprintfE("Wrong value of len:%d\n!", len);
+                return { -1, -1 };
+            }
             int dst_start, dst_end;
             int x1 = range.first, x2 = range.second;
 
@@ -209,12 +210,13 @@ namespace mineutils
             return { dst_start, dst_end };
         }
 
-        /*  将Python风格的索引值(负数以及超出实际范围的idx转换为对应的range(左闭右开)，如果idx超出索引范围则返回{-1， -1}
-            @param idx：Python风格idx
-            @param len：合法range长度
-            @return 实际range   */
         inline std::pair<int, int> normRange(int idx, int len)
         {
+            if (len <= 0)
+            {
+                mprintfE("Wrong value of len:%d\n!", len);
+                return { -1, -1 };
+            }
             int dst_start, dst_end;
             if (idx >= 0 and idx < len)
                 dst_start = idx, dst_end = idx + 1;
@@ -228,9 +230,11 @@ namespace mineutils
             return { dst_start, dst_end };
         }
 
-        inline int align(int x, unsigned int a)
+        inline int align(int x, int a)
         {
-            int rem = x % (int)a;
+            if (a <= 0)
+                return x;
+            int rem = x % a;
             if (rem > 0)
                 return a - rem + x;
             else if (rem < 0)

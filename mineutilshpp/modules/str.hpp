@@ -40,7 +40,8 @@ namespace mineutils
         void setColorStrOn(bool ColorStr_on);
 
         //将数字转换为序数词，1st、2nd等，只接受正整数
-        std::string toOrdinal(int number);
+        template<class T, typename std::enable_if<std::is_integral<T>::value, int>::type = 0>
+        std::string toOrdinal(T number);
 
         //将输入直接转换为字符串
         template<class T, typename std::enable_if<mtype::StdCoutChecker<T>::value, int>::type = 0>
@@ -144,11 +145,12 @@ namespace mineutils
         }
 
         //将数字转换为序数词，1st、2nd等，只接受正整数，否则会返回空字符串
-        inline std::string toOrdinal(int number)
+        template<class T, typename std::enable_if<std::is_integral<T>::value, int>::type>
+        inline std::string toOrdinal(T number)
         {
             if(number <= 0)
             { 
-                printf("!!!Error!!! \"%s\"[%s](line %d): Param number:%d must be positive integer!\n", MINE_FUNCSIG, __FILE__, __LINE__, number);
+                printf("!Warning! \"%s\"[%s](line %d): Param number:%d must be positive integer!\n", MINE_FUNCSIG, __FILE__, __LINE__, number);
                 return "";
             }
             if (number == 1)

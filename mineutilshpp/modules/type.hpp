@@ -95,6 +95,7 @@ namespace mineutils
         public:
             static constexpr bool value = decltype(check<DecayT>(0))::value;
         };
+
     }
 
 
