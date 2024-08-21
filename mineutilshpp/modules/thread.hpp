@@ -66,7 +66,7 @@ namespace mineutils
                 --addTask(&class::func, &class_obj, arg1, arg2...)
                 @param func: 任务函数，注意在任务完成前保证参数的生命周期
                 @param args: 任务函数的参数，要传递引用应使用std::ref显式指定，即使有默认值的参数也要提供
-                @return 任务结果，用于查询任务状态、等待任务结束以及获取任务返回值，注意ThreadPool对象析构后任务状态失效   */
+                @return 任务结果状态，用于查询任务状态、等待任务结束以及获取任务返回值，注意ThreadPool对象析构后任务状态失效   */
             template<class Fn, class... Args, class Ret = decltype(std::bind(std::declval<Fn>(), std::forward<Args>(std::declval<Args>())...)())>
             TaskRetState<Ret> addTask(Fn&& func, Args&&... args);
 

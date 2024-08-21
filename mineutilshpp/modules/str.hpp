@@ -166,8 +166,8 @@ namespace mineutils
         inline std::string toStr(const T& arg)
         {
             MINE_THREAD_LOCAL std::ostringstream str_buf;
-            str_buf.clear();
             str_buf.str("");
+            str_buf.clear();
             str_buf << arg;
             return str_buf.str();
         }
@@ -186,7 +186,8 @@ namespace mineutils
             char int_padding, char flt_padding)
         {
             //static_assert(std::is_floating_point<FT>::value, "Class FT must be floating_point!");
-            MINE_THREAD_LOCAL std::ostringstream buffer;
+            thread_local std::ostringstream buffer;
+            buffer.str("");
             buffer.clear();
             buffer << std::setprecision(flt_precision) << f;
             std::string s = buffer.str();
@@ -309,7 +310,7 @@ namespace mineutils
             }
 
             MINE_THREAD_LOCAL std::stringstream ss;
-
+            ss.str("");
             ss.clear();
             ss << s;
             std::vector<std::string> strs;

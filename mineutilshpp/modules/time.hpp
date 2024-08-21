@@ -328,7 +328,7 @@ namespace mineutils
             {
                 if (!(addend_times_ == addstart_times_))
                 {
-                    printf("!Warning!: MeanTimeCounter::%s: Function \'addStart(%s)\' and function \'addEnd(%s)\' should be called the same number of times before function \'%s\'!\n", __func__, codeblock_tag.c_str(), codeblock_tag.c_str(), __func__);
+                    printf("!Warning!: MeanTimeCounter::%s: Function \'addStart()\' and function \'addEnd()\' should be called the same number of times before function \'%s(%s)\'!\n", __func__, __func__, codeblock_tag.c_str());
                     return -1;
                 }
                 if (finish())

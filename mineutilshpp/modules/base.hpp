@@ -1,4 +1,6 @@
-﻿//mineutils库的版本信息及完整实现需要的基本工具
+﻿/*  mineutils库的版本信息及完整实现需要的基本工具
+ *  项目名称: mineutilscpp
+ *  GitHub 地址: https://github.com/SpiceGL/mineutilscpp    */
 #pragma once
 #ifndef BASE_HPP_MINEUTILS
 #define BASE_HPP_MINEUTILS
@@ -11,8 +13,8 @@
 
 #define MINEUTILS_MAJOR_VERSION "1"   //主版本号，对应不向下兼容的API或文件改动
 #define MINEUTILS_MINOR_VERSION "7"   //次版本号，对应不影响现有API使用的新功能增加
-#define MINEUTILS_PATCH_VERSION "1"   //修订版本号，对应不改变接口的BUG修复或效能优化
-#define MINEUTILS_DATE_VERSION "20240819-release"   //日期版本号，对应文档和注释级别的改动和测试阶段
+#define MINEUTILS_PATCH_VERSION "2"   //修订版本号，对应不改变接口的BUG修复或效能优化
+#define MINEUTILS_DATE_VERSION "20240906-release"   //日期版本号，对应文档和注释级别的改动和测试阶段
 
 
 #ifdef __GNUC__ 
