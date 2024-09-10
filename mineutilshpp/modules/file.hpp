@@ -43,11 +43,11 @@ namespace mineutils
             std::string getValue(const std::string& key);
 
             //设置和添加key-value条目
-            template<class T>
+            template<class T, typename std::enable_if<mtype::StdCoutChecker<T>::value, int>::type = 0>
             void setValue(const std::string& section, const std::string& key, const T& value);
 
             //设置和添加无section的key-value条目
-            template<class T>
+            template<class T, typename std::enable_if<mtype::StdCoutChecker<T>::value, int>::type = 0>
             void setValue(const std::string& key, const T& value);
 
 
@@ -122,12 +122,11 @@ namespace mineutils
                 this->file_.close();
             }
 
-                
             this->file_.open(path, std::ios::binary | std::ios::in);
             if (!this->file_.is_open())
             {
                 //printf("!Warning! %s: Failed to open %s! Please check if the file exists.\n", __FUNCTION__, path.c_str());
-                std::cout << mmsgN("Failed to open {}! Please check if the file exists.\n", path);
+                mprintfE("Failed to open %s! Please check if the file exists.\n", path.c_str());
                 return -1;
             }
             else
@@ -153,7 +152,8 @@ namespace mineutils
                         line = mstr::split(line, "\r")[0];
                     }
                     this->content_list_.emplace_back(line);
-
+                    if (line.empty())
+                        continue;
                     SectionInfo section_info;
                     if (this->searchSection(line, section_info))
                     {
@@ -186,6 +186,12 @@ namespace mineutils
                         this->key_map_[now_section][key] = key_info;
                         continue;
                     }
+                }
+                while (true)
+                {
+                    if (this->content_list_.back().empty())
+                        this->content_list_.pop_back();
+                    else break;
                 }
                 return 0;
             }
@@ -231,7 +237,7 @@ namespace mineutils
             return this->getValue("", key);
         }
 
-        template<class T>
+        template<class T, typename std::enable_if<mtype::StdCoutChecker<T>::value, int>::type>
         inline void IniFile::setValue(const std::string& section, const std::string& key, const T& value)
         {
             if (!this->file_.is_open())
@@ -245,10 +251,10 @@ namespace mineutils
                 if (section.empty())
                 {
                     std::string value_str = mstr::toStr(value);
-                    this->content_list_.emplace_front(key + this->sep_ + value_str);
-                    this->section_map_[section].last = this->content_list_.begin();
+                    this->content_list_.emplace_back(key + this->sep_ + value_str);
+                    this->section_map_[section].last = --this->content_list_.end();
 
-                    this->key_map_[section][key].line = this->content_list_.begin();
+                    this->key_map_[section][key].line = --this->content_list_.end();
                     this->key_map_[section][key].key_pos = 0;
                     this->key_map_[section][key].key_len = key.size();
                     this->key_map_[section][key].value_pos = key.size() + 1;
@@ -270,7 +276,9 @@ namespace mineutils
                 if (this->key_map_[section].find(key) == this->key_map_[section].end())
                 {
                     std::string value_str = mstr::toStr(value);
+                    auto bak = this->section_map_[section].last;
                     this->key_map_[section][key].line = this->content_list_.emplace(++this->section_map_[section].last, key + this->sep_ + value_str);
+                    this->section_map_[section].last = ++bak;
                     this->key_map_[section][key].key_pos = 0;
                     this->key_map_[section][key].key_len = key.size();
                     this->key_map_[section][key].value_pos = key.size() + 1;
@@ -285,7 +293,7 @@ namespace mineutils
             }
         }
 
-        template<class T>
+        template<class T, typename std::enable_if<mtype::StdCoutChecker<T>::value, int>::type>
         inline void IniFile::setValue(const std::string& key, const T& value)
         {
             this->setValue("", key, value);
@@ -309,19 +317,19 @@ namespace mineutils
                     note_pos = tmp_pos;
             }
 
-            size_t pos0 = line.find('[');
-            if (pos0 >= note_pos)
+            size_t pos0 = line.find_first_not_of(' ');
+            if (pos0 >= note_pos || line[pos0] != '[')
                 return false;
-            size_t pos1 = line.find(']', pos0 + 1);
-            if (pos1 >= note_pos)
+            size_t pos1 = line.find_last_not_of(' ', note_pos - 1);
+            if (pos1 >= note_pos || line[pos1] != ']')
                 return false;
-            if (std::make_signed<size_t>::type(pos1 - pos0) <= 1)
+            if (pos1 <= pos0 + 1)
                 return false;
 
-            size_t sec_pos0 = line.find_first_not_of(" ", pos0 + 1, 1);
-            size_t sec_pos1 = line.find_last_not_of(" ", pos1 - 1, 1);
+            size_t sec_pos0 = line.find_first_not_of(" ", pos0 + 1);
+            size_t sec_pos1 = line.find_last_not_of(" ", pos1 - 1);
 
-            if (std::make_signed<size_t>::type(sec_pos1 - sec_pos0) >= 0)
+            if (sec_pos1 >= sec_pos0)
             {
                 std::string value = line.substr(sec_pos0, sec_pos1 - sec_pos0 + 1);
                 section_info.pos = sec_pos0;
@@ -355,10 +363,10 @@ namespace mineutils
             }
             else return false;
 
-            size_t v_pos0 = line.find_first_not_of(" ", sep_pos + 1, 1);
-            size_t v_pos1 = line.find_last_not_of(" ", note_pos - 1, 1);
+            size_t v_pos0 = line.find_first_not_of(" ", sep_pos + 1);
+            size_t v_pos1 = line.find_last_not_of(" ", note_pos - 1);
 
-            if (std::make_signed<size_t>::type(v_pos1 - v_pos0) >= 0)
+            if (v_pos1 >= v_pos0)
             {
                 std::string value = line.substr(v_pos0, v_pos1 - v_pos0 + 1);
                 key_info.value_pos = v_pos0;

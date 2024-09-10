@@ -5,13 +5,14 @@
 - 更新遵循大版本号删改接口，中版本号添加新功能接口，小版本号修复和优化的原则，保证大版本内的向下兼容性。   
 
 ## 版本信息
-当前库版本：1.7.2   
-文档注释修改日期：20240906   
+当前库版本：1.8.0   
+文档注释修改日期：20240926     
 
 ## 测试平台
 **Windows:**  
 VS2019  
 **Linux:**  
+x86_64-linux-gnu-gcc 9.4.0   
 arm-linux-gnueabihf-gcc 8.3.0    
 **QNX660:**    
 arm-unknown-nto-qnx6.6.0eabi-gcc 4.7.3  
@@ -43,14 +44,14 @@ arm-unknown-nto-qnx6.6.0eabi-gcc 4.7.3
 **\_\_cvutils\_\_.h** | 基于C/C++标准库和OpenCV库实现的mineutils库部分功能。
 **\_\_mineutils\_\_.h** | mineutils库的全部功能，目前依赖OpenCV和NCNN。
 **base.hpp** | mineutils库的版本信息及完整实现需要的基本工具。包含于mineutils::mbase。  
-**str.hpp**| std::string字符串的便捷操作，如字符串填充内容、彩色字符串等。包含于mineutils::mstr。    
+**str.hpp**| std::string字符串的便捷操作，如转换为字符串、分割字符串等。包含于mineutils::mstr。    
 **time.hpp**| 时间相关的便捷操作，如计时、休眠等。包含于mineutils::mtime。    
-**type.hpp**| 类型相关操作，如判断类型异同等。包含于mineutils::mtype。    
+**type.hpp**| 类型相关操作，提供可用于模板推导的类型检查功能。包含于mineutils::mtype。    
 **log.hpp**| 运行日志相关操作，目前包含生成统一格式的运行信息等。包含于mineutils::mlog。    
 **file.hpp**| 文件操作，目前包含ini文件的读写等。包含于mineutils::mfile。    
 **path.hpp**| 路径相关操作，如exists、listDir、join、makeDirs等便捷功能。包含于mineutils::mpath。    
 **math.hpp**| 数学相关的操作，目前包含索引标准化、矩形框操作等。包含mineutils::mmath。    
-**io.hpp**|  输入输出相关功能，目前包含print函数，可以自由打印STL范围内基本数据类型和容器数据类型等。包含于mineutils::mio。    
+**io.hpp**|  输入输出相关功能，目前包含print函数，可以自由打印STL容器和正确重载了operator=的类型。包含于mineutils::mio。    
 **cv.hpp**|  OpenCV相关便捷功能，如快捷显示、快捷绘制矩形框、打印cv::Mat数据等。包含于mineutils::mext和mineutils::mio。    
 **ncnn.hpp**|  NCNN相关便捷功能，如快捷运行网络、打印ncnn::Mat数据等。包含于mineutils::mext和mineutils::mio。    
 
@@ -109,33 +110,25 @@ int main()
 ```
 ...
 
-template<class T>
-void func1(T d)
+template<class T, template<class T, typename std::enable_if<mtype::InTypesChecker<T, int, char, long long>::value, int>::type = 0>>
+void func1(T d)   //限制T必须为int、char、long long中的一个类型
 {
-    if (mtype::isInTypes<T, int, char, float>())
-    {
-        ...  // do something1
-    }   // x进入该分支
-    else
-    {
-        ...  // do something2
-    }   // y进入该分支
+    do something...
+}
+
+template<class...>
+void func1(...)
+{
+    do something...
 }
 
 int main()
 {
-    //判断参数是否属于后续类型
-    const int x = 1;
+    //根据参数类型选择合适的重载
+    int x = 1;
     double y = 1.5;
-    func1(x);  
-    func1(y);  
-
-    //判断参数是否为同一类型
-    int a = 0;
-    const int& b = a;
-    char c = '0';
-    bool res3 = mtype::isSameType(a, b);   //true
-    bool res4 = mtype::isSameType(a, c);   //false
+    func1(x);   //进入第一个重载
+    func1(y);   //进入第二个重载
     
     ...
 }
@@ -146,11 +139,6 @@ int main()
 
 int main()
 {
-    //输出红色字体
-    mstr::setColorStrOn(true);   //全局开启彩色字体显示
-    std::string s1 = "hello world!"
-    std::cout << mstr::color(s1, mstr::Color::red) << std::endl;
-    
     //填充数字
     std::string s2 = mstr::zfillInt(5, 3, '0');   //返回"005"
     
@@ -170,9 +158,9 @@ int main()
 
 int main()
 {
-    //创建警告或错误信息，根据mstr::setColorStrOn的开启状况决定是否返回带颜色的提示符
-    std::string strw = mlog::messageW("{}: Be careful!", "main");   //返回"!Warning! main: Be careful!"
-    std::string stre = mlog::messageE("{}: Dangerous!", "main");   //返回"!!!Error!!! main: Dangerous!"
+    //创建警告或错误信息
+    std::string strw = mmsg("{}: Be careful!");   //返回"!Warning! "fileXX"[funcXX](line XX): Be careful!"
+    mprintfE("Dangerous!");   //打印"!!!Error!!! "fileXX"[funcXX](line XX): Dangerous!"
     
     ...
 }
@@ -373,6 +361,17 @@ int main()
 ```  
 
 ## 版本发布日志
+**v1.8.0**  
+* 20240926   
+1. 修复mpath::splitName无法分离后缀名的bug；    
+2. 添加mpath::makeFile函数用于创建文件；  
+3. 优化mpath整体逻辑以减少性能消耗；  
+4. 修复mfile::IniFile在保存新加入的key-value对时，写入顺序与加入顺序不一致的问题；    
+5. mfile::setValue模板中添加对value的类型限制；  
+6. mtype添加ConstructibleFromEachChecker、FuncChecker和StdBindChecker等结构体，用于模板检查；   
+7. mtype废弃函数isSameType、isInTypes，添加结构体SameTypesChecker、InTypesChecker；  
+8. mbase添加mtypename宏，用于获取类型名称字符串。  
+
 **v1.7.2**  
 * 20240906   
 1. 修复std的stream系列的clear()未清空缓存导致的mstr内部分函数的异常。   

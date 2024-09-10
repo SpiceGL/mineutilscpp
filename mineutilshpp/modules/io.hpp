@@ -391,7 +391,7 @@ namespace mineutils
         template<class T, int N>
         inline void _print(const T(&arr)[N])
         {
-            if (mtype::isInTypes<T, char>())
+            if (mtype::InTypesChecker<T, char>::value)
                 //std::cout << "\"" << arr << "\"";
                 std::cout << arr;
             else

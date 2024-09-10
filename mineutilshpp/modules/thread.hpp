@@ -61,13 +61,14 @@ namespace mineutils
                 @param wakeup_period_ms: 定时唤醒工作线程执行任务的周期，单位毫秒，不小于1   */
             ThreadPool(int pool_size, long long wakeup_period_ms = 100);
 
-            /*  添加一个任务到线程池中并异步执行，线程安全
+            /*  添加一个任务到线程池中并异步执行，该接口线程安全
                 --addTask(func, arg1, arg2...)
+                --addTask(&class::func, class_obj, arg1, arg2...)
                 --addTask(&class::func, &class_obj, arg1, arg2...)
-                @param func: 任务函数，注意在任务完成前保证参数的生命周期
-                @param args: 任务函数的参数，要传递引用应使用std::ref显式指定，即使有默认值的参数也要提供
+                @param func: 任务函数。注意在任务完成前函数的生命周期
+                @param args: 任务函数的参数，要传递引用应使用std::ref显式指定，即使有默认值的参数也要提供。注意在任务完成前参数的生命周期
                 @return 任务结果状态，用于查询任务状态、等待任务结束以及获取任务返回值，注意ThreadPool对象析构后任务状态失效   */
-            template<class Fn, class... Args, class Ret = decltype(std::bind(std::declval<Fn>(), std::forward<Args>(std::declval<Args>())...)())>
+            template<class Fn, class... Args, class Ret = typename mtype::StdBindChecker<Fn, Args...>::ReturnType>
             TaskRetState<Ret> addTask(Fn&& func, Args&&... args);
 
             ThreadPool(const ThreadPool& thd_pool) = delete;

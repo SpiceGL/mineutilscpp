@@ -12,17 +12,23 @@
 #include<type_traits>
 
 #define MINEUTILS_MAJOR_VERSION "1"   //主版本号，对应不向下兼容的API或文件改动
-#define MINEUTILS_MINOR_VERSION "7"   //次版本号，对应不影响现有API使用的新功能增加
-#define MINEUTILS_PATCH_VERSION "2"   //修订版本号，对应不改变接口的BUG修复或效能优化
-#define MINEUTILS_DATE_VERSION "20240906-release"   //日期版本号，对应文档和注释级别的改动和测试阶段
-
+#define MINEUTILS_MINOR_VERSION "8"   //次版本号，对应不影响现有API使用的新功能增加
+#define MINEUTILS_PATCH_VERSION "0"   //修订版本号，对应不改变接口的BUG修复或效能优化
+#define MINEUTILS_DATE_VERSION "20240926-release"   //日期版本号，对应文档和注释级别的改动和测试阶段
+#ifdef __GNUC__ 
+#include<cxxabi.h>
+#else
+#include<typeinfo>
+#endif
 
 #ifdef __GNUC__ 
 #define MINE_FUNCSIG __PRETTY_FUNCTION__
 #define MINE_DEPRECATED(msg) __attribute__((deprecated(msg)))
+#define mtypename(type) abi::__cxa_demangle(typeid(type).name(), nullptr, nullptr, nullptr)
 #elif defined(_MSC_VER)
 #define MINE_FUNCSIG __FUNCSIG__
 #define MINE_DEPRECATED(msg) __declspec(deprecated(msg))
+#define mtypename(type) typeid(type).name()
 #else
 #define MINE_FUNCSIG __func__
 #define MINE_DEPRECATED(msg)

@@ -56,6 +56,9 @@ namespace mineutils
             MINE_DEPRECATED("Deprecated. Please replace with \"std::is_integral<T>::value\"") static bool belongToIntSeries();
         protected:
             T data_[4];
+
+            template<class U>
+            friend std::ostream& operator<<(std::ostream& _cout, const BaseBox<U>& bbox);
         };
 
         template<class T>
@@ -449,9 +452,9 @@ namespace mineutils
         template<class T>
         inline std::ostream& operator<<(std::ostream& _cout, const BaseBox<T>& bbox)
         {
-            std::cout << "[" << bbox[0] << " " << bbox[1] << " "
+            _cout << "[" << bbox[0] << " " << bbox[1] << " "
                 << bbox[2] << " " << bbox[3] << "]";
-            return std::cout;
+            return _cout;
         }
     }
 }

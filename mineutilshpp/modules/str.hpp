@@ -44,7 +44,7 @@ namespace mineutils
         std::string toOrdinal(T number);
 
         //将输入直接转换为字符串
-        template<class T, typename std::enable_if<mtype::StdCoutChecker<T>::value, int>::type = 0>
+        template<class T, typename std::enable_if<mtype::StdCoutChecker<const T&>::value, int>::type = 0>
         std::string toStr(const T& arg);
 
         /*  类似Python字符串的zfill函数，将整型的数字转换为字符串并在前面添加字符
@@ -65,8 +65,8 @@ namespace mineutils
             char int_padding = ' ', char flt_padding = '0');
 
         //实现类似于python的f-string功能，将字符串中的"{}"替换为后续的参数
-        template<class... Ts>
-        std::string fstr(std::string s, const Ts& ...args);
+        template<class... Args, typename std::enable_if<mtype::StdCoutEachChecker<const Args&...>::value, int>::type = 0>
+        std::string fstr(std::string s, const Args& ...args);
 
         /*  实现正向查找sep对字符串分割的功能，以vector形式返回。分割空字符串会返回包含一个空字符串的vector(类Python规则)
             @param s：待分割的字符串
@@ -85,6 +85,8 @@ namespace mineutils
         //按字符串中的空白符（包括空格、多空格、\n、\t等）分割字符串，若输入空字符串或全空格符串则返回空vector(类Python规则)
         std::vector<std::string> split(std::string s);
     }
+
+
 
 
 
@@ -162,7 +164,7 @@ namespace mineutils
             else return mstr::toStr(number) + "th";
         }
 
-        template<class T, typename std::enable_if<mtype::StdCoutChecker<T>::value, int>::type>
+        template<class T, typename std::enable_if<mtype::StdCoutChecker<const T&>::value, int>::type>
         inline std::string toStr(const T& arg)
         {
             MINE_THREAD_LOCAL std::ostringstream str_buf;
@@ -186,7 +188,7 @@ namespace mineutils
             char int_padding, char flt_padding)
         {
             //static_assert(std::is_floating_point<FT>::value, "Class FT must be floating_point!");
-            thread_local std::ostringstream buffer;
+            MINE_THREAD_LOCAL std::ostringstream buffer;
             buffer.str("");
             buffer.clear();
             buffer << std::setprecision(flt_precision) << f;
@@ -221,8 +223,8 @@ namespace mineutils
         }
 
         //fstr函数的相关
-        template<class T, class... Ts>
-        inline std::string _fstr(std::string& s, size_t pos_offset, const T& arg, const Ts&... args)
+        template<class Arg, class... Args>
+        inline std::string _fstr(std::string& s, size_t pos_offset, const Arg& arg, const Args&... args)
         {
             size_t pos = s.find("{}", pos_offset);
             if (pos != std::string::npos)
@@ -235,8 +237,8 @@ namespace mineutils
             else return s;            
         }
 
-        template<class... Ts>
-        inline std::string fstr(std::string s, const Ts& ...args)
+        template<class... Args, typename std::enable_if<mtype::StdCoutEachChecker<const Args&...>::value, int>::type>
+        inline std::string fstr(std::string s, const Args& ...args)
         {
             s.reserve(s.size() + 64);
             return mstr::_fstr(s, 0, args...);
