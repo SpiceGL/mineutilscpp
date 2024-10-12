@@ -5,8 +5,8 @@
 - 更新遵循大版本号删改接口，中版本号添加新功能接口，小版本号修复和优化的原则，保证大版本内的向下兼容性。   
 
 ## 版本信息
-当前库版本：1.8.0   
-文档注释修改日期：20240926     
+当前库版本：1.9.0   
+文档注释修改日期：20241012     
 
 ## 测试平台
 **Windows:**  
@@ -51,7 +51,7 @@ arm-unknown-nto-qnx6.6.0eabi-gcc 4.7.3
 **file.hpp**| 文件操作，目前包含ini文件的读写等。包含于mineutils::mfile。    
 **path.hpp**| 路径相关操作，如exists、listDir、join、makeDirs等便捷功能。包含于mineutils::mpath。    
 **math.hpp**| 数学相关的操作，目前包含索引标准化、矩形框操作等。包含mineutils::mmath。    
-**io.hpp**|  输入输出相关功能，目前包含print函数，可以自由打印STL容器和正确重载了operator=的类型。包含于mineutils::mio。    
+**io.hpp**|  输入输出相关功能，目前包含print函数和main函数参数解析工具。包含于mineutils::mio。    
 **cv.hpp**|  OpenCV相关便捷功能，如快捷显示、快捷绘制矩形框、打印cv::Mat数据等。包含于mineutils::mext和mineutils::mio。    
 **ncnn.hpp**|  NCNN相关便捷功能，如快捷运行网络、打印ncnn::Mat数据等。包含于mineutils::mext和mineutils::mio。    
 
@@ -361,11 +361,19 @@ int main()
 ```  
 
 ## 版本发布日志
+**v1.9.0**  
+* 20241012
+1. mio添加ArgumentParser类，用于解析main函数参数； 
+2. mio::print添加对std::initializer_list的支持，并修复部分函数确实inline的问题；     
+3. mpath模块性能优化；  
+4. 部分代码风格统一。 
+
+
 **v1.8.0**  
 * 20240926   
 1. 修复mpath::splitName无法分离后缀名的bug；    
 2. 添加mpath::makeFile函数用于创建文件；  
-3. 优化mpath整体逻辑以减少性能消耗；  
+3. 优化mpath整体逻辑以减少性能开销；  
 4. 修复mfile::IniFile在保存新加入的key-value对时，写入顺序与加入顺序不一致的问题；    
 5. mfile::setValue模板中添加对value的类型限制；  
 6. mtype添加ConstructibleFromEachChecker、FuncChecker和StdBindChecker等结构体，用于模板检查；   

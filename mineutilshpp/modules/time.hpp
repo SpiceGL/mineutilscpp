@@ -289,77 +289,77 @@ namespace mineutils
         //设置后所有TimeCounter系列类的功能将被跳过
         inline void setGlobalTimeCounterOn(bool glob_timecounter_on)
         {
-            bool& timecounter_on = _getTimeCounterOn();
+            bool& timecounter_on = mtime::_getTimeCounterOn();
             timecounter_on = glob_timecounter_on;
         }
 
 
         inline MeanTimeCounter::MeanTimeCounter(int target_count_times, bool time_counter_on)
         {
-            target_count_times_ = target_count_times >= 1 ? target_count_times : 1;
-            time_counter_on_ = time_counter_on;
+            this->target_count_times_ = target_count_times >= 1 ? target_count_times : 1;
+            this->time_counter_on_ = time_counter_on;
         }
 
         //本轮统计开始，应在目标统计代码段前调用，与段后addEnd成对出现 
         inline void MeanTimeCounter::addStart()
         {
-            if (_getTimeCounterOn() && time_counter_on_)
+            if (mtime::_getTimeCounterOn() && this->time_counter_on_)
             {
-                start_t_ = mtime::now();
-                addstart_times_ += 1;
+                this->start_t_ = mtime::now();
+                this->addstart_times_ += 1;
             }
         }
 
         //本轮统计结束，应在目标统计代码段后调用，与段前addStart成对出现
         inline void MeanTimeCounter::addEnd()
         {
-            if (_getTimeCounterOn() && time_counter_on_)
+            if (mtime::_getTimeCounterOn() && this->time_counter_on_)
             {
-                end_t_ = mtime::now();
-                time_cost_ += (end_t_ - start_t_);
-                addend_times_ += 1;
-                now_statistical_times_ += 1;
+                this->end_t_ = mtime::now();
+                this->time_cost_ += (this->end_t_ - this->start_t_);
+                this->addend_times_ += 1;
+                this->now_statistical_times_ += 1;
             }
         }
 
         inline long long MeanTimeCounter::printMeanTimeCost(const std::string& codeblock_tag, mtime::Unit time_unit)
         {
-            if (_getTimeCounterOn() && time_counter_on_)
+            if (mtime::_getTimeCounterOn() && this->time_counter_on_)
             {
-                if (!(addend_times_ == addstart_times_))
+                if (!(this->addend_times_ == this->addstart_times_))
                 {
                     printf("!Warning!: MeanTimeCounter::%s: Function \'addStart()\' and function \'addEnd()\' should be called the same number of times before function \'%s(%s)\'!\n", __func__, __func__, codeblock_tag.c_str());
                     return -1;
                 }
-                if (finish())
+                if (this->finish())
                 {
                     long long mean_time_cost;
                     if (time_unit == mtime::Unit::s)
                     {
-                        mean_time_cost = mtime::s(time_cost_) / now_statistical_times_;
-                        printf("%s mean cost time %llds in %d counts\n", codeblock_tag.c_str(), mean_time_cost, now_statistical_times_);
+                        mean_time_cost = mtime::s(this->time_cost_) / this->now_statistical_times_;
+                        printf("%s mean cost time %llds in %d counts\n", codeblock_tag.c_str(), mean_time_cost, this->now_statistical_times_);
                     }
                     else if (time_unit == mtime::Unit::ms)
                     {
-                        mean_time_cost = mtime::ms(time_cost_) / now_statistical_times_;
-                        printf("%s mean cost time %lldms in %d counts\n", codeblock_tag.c_str(), mean_time_cost, now_statistical_times_);
+                        mean_time_cost = mtime::ms(this->time_cost_) / this->now_statistical_times_;
+                        printf("%s mean cost time %lldms in %d counts\n", codeblock_tag.c_str(), mean_time_cost, this->now_statistical_times_);
                     }
                     else if (time_unit == mtime::Unit::us)
                     {
-                        mean_time_cost = mtime::us(time_cost_) / now_statistical_times_;
-                        printf("%s mean cost time %lldus in %d counts\n", codeblock_tag.c_str(), mean_time_cost, now_statistical_times_);
+                        mean_time_cost = mtime::us(this->time_cost_) / this->now_statistical_times_;
+                        printf("%s mean cost time %lldus in %d counts\n", codeblock_tag.c_str(), mean_time_cost, this->now_statistical_times_);
                     }
                     else if (time_unit == mtime::Unit::ns)
                     {
-                        mean_time_cost = mtime::ns(time_cost_) / now_statistical_times_;
-                        printf("%s mean cost time %lldns in %d counts\n", codeblock_tag.c_str(), mean_time_cost, now_statistical_times_);
+                        mean_time_cost = mtime::ns(this->time_cost_) / this->now_statistical_times_;
+                        printf("%s mean cost time %lldns in %d counts\n", codeblock_tag.c_str(), mean_time_cost, this->now_statistical_times_);
                     }
                     else
                     {
-                        mean_time_cost = mtime::ms(time_cost_) / now_statistical_times_;
-                        printf("%s mean cost time %lldms in %d counts\n", codeblock_tag.c_str(), mean_time_cost, now_statistical_times_);
+                        mean_time_cost = mtime::ms(this->time_cost_) / this->now_statistical_times_;
+                        printf("%s mean cost time %lldms in %d counts\n", codeblock_tag.c_str(), mean_time_cost, this->now_statistical_times_);
                     }
-                    restart();
+                    this->restart();
                     return mean_time_cost;
                 }
                 else return -1;
@@ -369,14 +369,14 @@ namespace mineutils
 
         inline long long MeanTimeCounter::printMeanTimeCost(const std::string& print_head, const std::string& codeblock_tag, mtime::Unit time_unit)
         {
-            if (_getTimeCounterOn() && time_counter_on_)
-                return printMeanTimeCost("\"" + print_head + "\": " + codeblock_tag, time_unit);
+            if (mtime::_getTimeCounterOn() && this->time_counter_on_)
+                return this->printMeanTimeCost("\"" + print_head + "\": " + codeblock_tag, time_unit);
             return -1;
         }
 
         inline bool MeanTimeCounter::finish()
         {
-            if (now_statistical_times_ >= target_count_times_)
+            if (this->now_statistical_times_ >= this->target_count_times_)
                 return true;
             else return false;
         }
@@ -384,77 +384,77 @@ namespace mineutils
         //完成目标统计次数并打印统计结果后，重置内部统计计数
         inline void MeanTimeCounter::restart()
         {
-            now_statistical_times_ = 0;
-            addstart_times_ = 0;
-            addend_times_ = 0;
-            time_cost_ = mtime::Duration(0);
+            this->now_statistical_times_ = 0;
+            this->addstart_times_ = 0;
+            this->addend_times_ = 0;
+            this->time_cost_ = mtime::Duration(0);
         }
 
 
         inline MultiMeanTimeCounter::MultiMeanTimeCounter(int target_count_times, bool time_counter_on)
         {
-            target_count_times_ = target_count_times >= 1 ? target_count_times : 1;
-            time_counter_on_ = time_counter_on;
+            this->target_count_times_ = target_count_times >= 1 ? target_count_times : 1;
+            this->time_counter_on_ = time_counter_on;
         }
 
         inline void MultiMeanTimeCounter::addStart(const std::string& codeblock_tag)
         {
-            if (_getTimeCounterOn() && time_counter_on_)
+            if (mtime::_getTimeCounterOn() && this->time_counter_on_)
             {
-                if (time_counter_.end() == time_counter_.find(codeblock_tag))
+                if (this->time_counter_.end() == this->time_counter_.find(codeblock_tag))
                 {
-                    time_counter_[codeblock_tag] = MeanTimeCounter(target_count_times_);
-                    keys_.push_back(codeblock_tag);
+                    this->time_counter_[codeblock_tag] = MeanTimeCounter(this->target_count_times_);
+                    this->keys_.push_back(codeblock_tag);
                 }
-                time_counter_[codeblock_tag].addStart();
+                this->time_counter_[codeblock_tag].addStart();
             }
         }
 
         inline void MultiMeanTimeCounter::addEnd(const std::string& codeblock_tag)
         {
-            if (_getTimeCounterOn() && time_counter_on_)
+            if (mtime::_getTimeCounterOn() && this->time_counter_on_)
             {
-                if (time_counter_.end() == time_counter_.find(codeblock_tag))
+                if (this->time_counter_.end() == this->time_counter_.find(codeblock_tag))
                 {
                     printf("!!!Error!!! MultiMeanTimeCounter::%s: Please call \"addStart(%s)\" before \"addEnd(%s)\"!\n", __func__, codeblock_tag.c_str(), codeblock_tag.c_str());
                     return;
                 }
-                time_counter_[codeblock_tag].addEnd();
+                this->time_counter_[codeblock_tag].addEnd();
             }
         }
 
         inline long long MultiMeanTimeCounter::printMeanTimeCost(const std::string& codeblock_tag, mtime::Unit time_unit)
         {
-            if (_getTimeCounterOn() && time_counter_on_)
-                return time_counter_[codeblock_tag].printMeanTimeCost(codeblock_tag, time_unit);
+            if (mtime::_getTimeCounterOn() && this->time_counter_on_)
+                return this->time_counter_[codeblock_tag].printMeanTimeCost(codeblock_tag, time_unit);
             return -1;
         }
 
         inline long long MultiMeanTimeCounter::printMeanTimeCost(const std::string& print_head, const std::string& codeblock_tag, mtime::Unit time_unit)
         {
-            if (_getTimeCounterOn() && time_counter_on_)
-                return time_counter_[codeblock_tag].printMeanTimeCost(print_head, codeblock_tag, time_unit);
+            if (mtime::_getTimeCounterOn() && this->time_counter_on_)
+                return this->time_counter_[codeblock_tag].printMeanTimeCost(print_head, codeblock_tag, time_unit);
             return -1;
         }
 
         inline void MultiMeanTimeCounter::printAllMeanTimeCost(mtime::Unit time_unit)
         {
-            if (_getTimeCounterOn() && time_counter_on_)
+            if (mtime::_getTimeCounterOn() && this->time_counter_on_)
             {
-                for (const std::string& codeblock_tag : keys_)
+                for (const std::string& codeblock_tag : this->keys_)
                 {
-                    time_counter_[codeblock_tag].printMeanTimeCost(codeblock_tag, time_unit);
+                    this->time_counter_[codeblock_tag].printMeanTimeCost(codeblock_tag, time_unit);
                 }
             }
         }
 
         inline void MultiMeanTimeCounter::printAllMeanTimeCost(const std::string& print_head, mtime::Unit time_unit)
         {
-            if (_getTimeCounterOn() && time_counter_on_)
+            if (mtime::_getTimeCounterOn() && this->time_counter_on_)
             {
-                for (const std::string& codeblock_tag : keys_)
+                for (const std::string& codeblock_tag : this->keys_)
                 {
-                    time_counter_[codeblock_tag].printMeanTimeCost(print_head, codeblock_tag, time_unit);
+                    this->time_counter_[codeblock_tag].printMeanTimeCost(print_head, codeblock_tag, time_unit);
                 }
             }
         }
@@ -462,69 +462,69 @@ namespace mineutils
 
         inline LocalTimeCounter::LocalTimeCounter(const std::string& codeblock_tag, mtime::Unit time_unit, bool time_counter_on)
         {
-            start_t_ = mtime::now();
-            codeblock_tag_ = codeblock_tag;
-            time_unit_ = time_unit;
-            time_counter_on_ = time_counter_on;
+            this->start_t_ = mtime::now();
+            this->codeblock_tag_ = codeblock_tag;
+            this->time_unit_ = time_unit;
+            this->time_counter_on_ = time_counter_on;
         }
 
         inline LocalTimeCounter::LocalTimeCounter(const std::string& print_head, const std::string& codeblock_tag, mtime::Unit time_unit, bool time_counter_on)
         {
-            start_t_ = mtime::now();
-            codeblock_tag_ = "\"" + print_head + "\": " + codeblock_tag;
-            time_unit_ = time_unit;
-            time_counter_on_ = time_counter_on;
+            this->start_t_ = mtime::now();
+            this->codeblock_tag_ = "\"" + print_head + "\": " + codeblock_tag;
+            this->time_unit_ = time_unit;
+            this->time_counter_on_ = time_counter_on;
         }
 
         inline LocalTimeCounter::~LocalTimeCounter()
         {
-            if (_getTimeCounterOn() && time_counter_on_)
+            if (mtime::_getTimeCounterOn() && this->time_counter_on_)
             {
-                end_t_ = mtime::now();
-                if (time_unit_ == mtime::Unit::s)
-                    printf("%s cost time %llds\n", codeblock_tag_.c_str(), mtime::s(end_t_ - start_t_));
-                else if (time_unit_ == mtime::Unit::ms)
-                    printf("%s cost time %lldms\n", codeblock_tag_.c_str(), mtime::ms(end_t_ - start_t_));
-                else if (time_unit_ == mtime::Unit::us)
-                    printf("%s cost time %lldus\n", codeblock_tag_.c_str(), mtime::us(end_t_ - start_t_));
-                else if (time_unit_ == mtime::Unit::ns)
-                    printf("%s cost time %lldns\n", codeblock_tag_.c_str(), mtime::ns(end_t_ - start_t_));
+                this->end_t_ = mtime::now();
+                if (this->time_unit_ == mtime::Unit::s)
+                    printf("%s cost time %llds\n", this->codeblock_tag_.c_str(), mtime::s(this->end_t_ - this->start_t_));
+                else if (this->time_unit_ == mtime::Unit::ms)
+                    printf("%s cost time %lldms\n", this->codeblock_tag_.c_str(), mtime::ms(this->end_t_ - this->start_t_));
+                else if (this->time_unit_ == mtime::Unit::us)
+                    printf("%s cost time %lldus\n", this->codeblock_tag_.c_str(), mtime::us(this->end_t_ - this->start_t_));
+                else if (this->time_unit_ == mtime::Unit::ns)
+                    printf("%s cost time %lldns\n", this->codeblock_tag_.c_str(), mtime::ns(this->end_t_ - this->start_t_));
                 else
-                    printf("%s cost time %lldms\n", codeblock_tag_.c_str(), mtime::ms(end_t_ - start_t_));
+                    printf("%s cost time %lldms\n", this->codeblock_tag_.c_str(), mtime::ms(this->end_t_ - this->start_t_));
             }
         }
 
         inline LocalTimeController::LocalTimeController(unsigned long target_time, mtime::Unit time_unit)
         {
-            start_t_ = mtime::now();
-            target_time_ = target_time;
-            time_unit_ = time_unit;
+            this->start_t_ = mtime::now();
+            this->target_time_ = target_time;
+            this->time_unit_ = time_unit;
         }
 
         inline LocalTimeController::~LocalTimeController()
         {
-            end_t_ = mtime::now();
-            if (time_unit_ == mtime::Unit::s)
+            this->end_t_ = mtime::now();
+            if (this->time_unit_ == mtime::Unit::s)
             {
-                long long need_sleep = target_time_ - mtime::s(end_t_ - start_t_);
+                long long need_sleep = this->target_time_ - mtime::s(this->end_t_ - this->start_t_);
                 if (need_sleep >= 1)
                     mtime::sleep(need_sleep);
             }
-            else if (time_unit_ == mtime::Unit::ms)
+            else if (this->time_unit_ == mtime::Unit::ms)
             {
-                long long need_sleep = target_time_ - mtime::ms(end_t_ - start_t_);
+                long long need_sleep = this->target_time_ - mtime::ms(this->end_t_ - this->start_t_);
                 if (need_sleep >= 1)
                     mtime::msleep(need_sleep);
             }
-            else if (time_unit_ == mtime::Unit::us)
+            else if (this->time_unit_ == mtime::Unit::us)
             {
-                long long need_sleep = target_time_ - mtime::us(end_t_ - start_t_);
+                long long need_sleep = this->target_time_ - mtime::us(this->end_t_ - this->start_t_);
                 if (need_sleep >= 1)
                     mtime::usleep(need_sleep);
             }
-            else if (time_unit_ == mtime::Unit::ns)
+            else if (this->time_unit_ == mtime::Unit::ns)
             {
-                long long need_sleep = target_time_ - mtime::ns(end_t_ - start_t_);
+                long long need_sleep = this->target_time_ - mtime::ns(this->end_t_ - this->start_t_);
                 if (need_sleep >= 1)
                     mtime::nsleep(need_sleep);
             }

@@ -55,7 +55,6 @@ namespace mineutils
         struct StdCoutEachChecker;
 
 
-
         /*  检查DstT是否可以由T、Ts...类型对象中的每一个单独构造，可用于模板推导
             - 检查规则参照std::is_constructible
             - T、Ts...中的非引用类型，会被作为右值进行检查
@@ -435,12 +434,12 @@ namespace mineutils
             -比较非指针类型时忽略const修饰
             -比较指针或C风格数组类型时忽略作用于对该指针的const修饰   */
         template<class T1, class T2, class ...Types>
-        MINE_DEPRECATED("Deprecated. Please replace with struct \"SameTypesChecker\"(in type.hpp)") constexpr bool isSameType();
+        MINE_DEPRECATED(R"(Deprecated. Please replace with struct "SameTypesChecker"(in type.hpp))") constexpr bool isSameType();
 
 
         //用于判断T是否属于后面的多种类型
         template<class T, class Tother, class... Tothers>
-        MINE_DEPRECATED("Deprecated. Please replace with struct \"SameTypesChecker\"(in type.hpp)") constexpr bool isInTypes();
+        MINE_DEPRECATED(R"(Deprecated. Please replace with struct "SameTypesChecker"(in type.hpp))") constexpr bool isInTypes();
 
         template<class T1, class T2>
         inline constexpr bool _isSameType(std::false_type bool_tag)
@@ -483,7 +482,7 @@ namespace mineutils
 
         //用于判断T是否属于后面的多种类型
         template<class T, class Tother, class... Tothers>
-        inline MINE_DEPRECATED("Deprecated. Please replace with struct \"InTypesChecker\"(in type.hpp)") constexpr bool isInTypes()
+        inline MINE_DEPRECATED(R"(Deprecated. Please replace with struct "InTypesChecker"(in type.hpp))") constexpr bool isInTypes()
         {
             return mtype::_isInTypes<T, Tother, Tothers...>(std::integral_constant<bool, (sizeof...(Tothers) > 0)>());
         }
@@ -493,7 +492,7 @@ namespace mineutils
 #include<vector>
     namespace _mtypecheck
     {
-        inline void testSameTypesChecker()
+        inline void SameTypesCheckerTest()
         {
             bool ret0 = 0;
             ret0 = mtype::SameTypesChecker<int, unsigned int>::value;
@@ -512,7 +511,7 @@ namespace mineutils
             printf("%s SameTypesChecker<int, int, int, int>::value:%d.\n", ret0 == true ? "Passed." : "Failed!", ret0);
         }
 
-        inline void testInTypesChecker()
+        inline void InTypesCheckerTest()
         {
             bool ret0 = 0;
             ret0 = mtype::InTypesChecker<int, unsigned int>::value;
@@ -528,7 +527,7 @@ namespace mineutils
             printf("%s InTypesChecker<int, unsigned int, int, float>::value:%d.\n", ret0 == true ? "Passed." : "Failed!", ret0);
         }
 
-        inline void testStdBeginEndChecker()
+        inline void StdBeginEndCheckerTest()
         {
             bool ret0 = 0;
             ret0 = mtype::StdBeginEndChecker<int>::value;
@@ -541,7 +540,7 @@ namespace mineutils
             printf("%s StdBeginEndChecker<const std::vector<int>>::value:%d.\n", ret0 == true ? "Passed." : "Failed!", ret0);
         }
 
-        inline void testStdCoutChecker()
+        inline void StdCoutCheckerTest()
         {
             bool ret0 = 0;
             ret0 = mtype::StdCoutChecker<int>::value;
@@ -563,7 +562,7 @@ namespace mineutils
             printf("%s StdCoutEachChecker<int, std::vector<int>, char>::value:%d.\n", ret0 == false ? "Passed." : "Failed!", ret0);
         }
 
-        inline void testConstructibleFromEachChecker()
+        inline void ConstructibleFromEachCheckerTest()
         {
             bool ret0 = 0;
             ret0 = mtype::ConstructibleFromEachChecker<void, char>::value;
@@ -617,7 +616,7 @@ namespace mineutils
             }
         };
 
-        inline void testFuncChecker()
+        inline void FuncCheckerTest()
         {
             bool ret0 = 0;
             int num_args = 0;
@@ -628,29 +627,29 @@ namespace mineutils
             using type0 = mtype::FuncChecker<decltype(_myFunc1)>::ReturnType;
             num_args = mtype::FuncChecker<decltype(_myFunc1)>::num_args;
             printf("%s FuncChecker<decltype(_myFunc1)>::value:%d\n", ret0 == true ? "Passed." : "Failed!", ret0);
-            printf("User Check! FuncChecker<decltype(_myFunc1)>::RetType:%s, num_args:%d.\n", mtypename(type0), num_args);
+            printf("User Check! FuncChecker<decltype(_myFunc1)>::RetType(int):%s, num_args(2):%d.\n", mtypename(type0), num_args);
 
             ret0 = mtype::FuncChecker<decltype(&_MyClass1::func1)>::value;
             using type1 = mtype::FuncChecker<decltype(&_MyClass1::func1)>::ReturnType;
             num_args = mtype::FuncChecker<decltype(&_MyClass1::func1)>::num_args;
             printf("%s FuncChecker<decltype(&_MyClass1::func1)>::value:%d.\n", ret0 == true ? "Passed." : "Failed!", ret0);
-            printf("User Check! FuncChecker<decltype(&_MyClass1::func1)>::ReturnType:%s, num_args:%d.\n", mtypename(type1), num_args);
+            printf("User Check! FuncChecker<decltype(&_MyClass1::func1)>::ReturnType(int):%s, num_args(1):%d.\n", mtypename(type1), num_args);
 
             ret0 = mtype::FuncChecker<decltype(&_MyClass1::func3)>::value;
             using type1 = mtype::FuncChecker<decltype(&_MyClass1::func3)>::ReturnType;
             num_args = mtype::FuncChecker<decltype(&_MyClass1::func3)>::num_args;
             printf("%s FuncChecker<decltype(&_MyClass1::func3)>::value:%d.\n", ret0 == true ? "Passed." : "Failed!", ret0);
-            printf("User Check! FuncChecker<decltype(&_MyClass1::func3)>::ReturnType:%s, num_args:%d.\n", mtypename(type1), num_args);
+            printf("User Check! FuncChecker<decltype(&_MyClass1::func3)>::ReturnType(int):%s, num_args(1):%d.\n", mtypename(type1), num_args);
 
             auto lambda1 = [](int a, int b) {return a + b; };
             ret0 = mtype::FuncChecker<decltype(lambda1)>::value;
             using type2 = mtype::FuncChecker<decltype(lambda1)>::ReturnType;
             num_args = mtype::FuncChecker<decltype(lambda1)>::num_args;
             printf("%s FuncChecker<decltype(lambda1)>::value:%d.\n", ret0 == true ? "Passed." : "Failed!", ret0);
-            printf("User Check! FuncChecker<decltype(&_MyClass1::func1)>::ReturnType:%s, num_args:%d.\n", mtypename(type2), num_args);
+            printf("User Check! FuncChecker<decltype(&_MyClass1::func1)>::ReturnType(int):%s, num_args(2):%d.\n", mtypename(type2), num_args);
         }
 
-        inline void testStdBindChecker()
+        inline void StdBindCheckerTest()
         {
             bool ret0 = 0;
             ret0 = mtype::StdBindChecker<int, int>::value;
@@ -659,7 +658,7 @@ namespace mineutils
             ret0 = mtype::StdBindChecker<decltype(_myFunc1), int, float>::value;
             using type0 = mtype::StdBindChecker<decltype(_myFunc1), int, float>::ReturnType;
             printf("%s StdBindChecker<decltype(_myFunc1), int, float>::value:%d\n", ret0 == true ? "Passed." : "Failed!", ret0);
-            printf("User Check! StdBindChecker<decltype(_myFunc1), int, float>::ReturnType:%s.\n", mtypename(type0));
+            printf("User Check! StdBindChecker<decltype(_myFunc1), int, float>::ReturnType(int):%s.\n", mtypename(type0));
 
             ret0 = mtype::StdBindChecker<decltype(_myFunc1), int>::value;
             printf("%s StdBindChecker<decltype(_myFunc1), int>::value:%d\n", ret0 == false ? "Passed." : "Failed!", ret0);
@@ -679,7 +678,7 @@ namespace mineutils
             ret0 = mtype::StdBindChecker<decltype(&_MyClass1::func2), const _MyClass1*, int>::value;
             using type1 = mtype::StdBindChecker<decltype(&_MyClass1::func2), const _MyClass1*, int>::ReturnType;
             printf("%s StdBindChecker<decltype(&_MyClass1::func2), const _MyClass1*, int>::value:%d\n", ret0 == true ? "Passed." : "Failed!", ret0);
-            printf("User Check! StdBindChecker<decltype(&_MyClass1::func2), const _MyClass1*, int>::ReturnType:%s.\n", mtypename(type1));
+            printf("User Check! StdBindChecker<decltype(&_MyClass1::func2), const _MyClass1*, int>::ReturnType(int):%s.\n", mtypename(type1));
 
             ret0 = mtype::StdBindChecker<decltype(&_MyClass1::func2), const _MyClass1&, int>::value;
             printf("%s StdBindChecker<decltype(&_MyClass1::func2), const _MyClass1&, int>::value:%d\n", ret0 == true ? "Passed." : "Failed!", ret0);
@@ -698,13 +697,19 @@ namespace mineutils
         inline void check()
         {
             printf("\n--------------------check mtype start--------------------\n");
-            testSameTypesChecker();
-            testInTypesChecker();
-            testStdBeginEndChecker();
-            testStdCoutChecker();
-            testConstructibleFromEachChecker();
-            testFuncChecker();
-            testStdBindChecker();
+            SameTypesCheckerTest();
+            printf("\n");
+            InTypesCheckerTest();
+            printf("\n");
+            StdBeginEndCheckerTest();
+            printf("\n");
+            StdCoutCheckerTest();
+            printf("\n");
+            ConstructibleFromEachCheckerTest();
+            printf("\n");
+            FuncCheckerTest();
+            printf("\n");
+            StdBindCheckerTest();
             printf("--------------------check mtype end--------------------\n\n");
         }
     }

@@ -10,6 +10,7 @@
 #include<string>
 #include<vector>
 
+#include"base.hpp"
 #include"str.hpp"
 #include"log.hpp"
 
@@ -24,7 +25,7 @@ namespace mineutils
         class IniFile
         {
         public:
-            IniFile() { }
+            IniFile() = default;
 
             /*  打开ini文件，不存在的文件无法打开
                 @param path: 文件路径
@@ -50,19 +51,19 @@ namespace mineutils
             template<class T, typename std::enable_if<mtype::StdCoutChecker<T>::value, int>::type = 0>
             void setValue(const std::string& key, const T& value);
 
+            IniFile(const IniFile& file) = delete;
+            IniFile(IniFile&& file) = delete;
+            IniFile& operator=(const IniFile& file) = delete;
+            IniFile& operator=(IniFile&& file) = delete;
+            ~IniFile();
 
             //已废弃
-            inline void MINE_DEPRECATED("Function \"IniFile::setNoteSigns\" has been deprecated, please set note_signs when calling function \"IniFile::open\"!")
-                setNoteSigns(std::vector<std::string> note_signs = { "#", ";" });
-            IniFile(const IniFile& file) = delete;
-            IniFile& operator=(const IniFile& file) = delete;
-            ~IniFile();
-        private:
+            inline void MINE_DEPRECATED(R"(Deprecated. Please set note_signs when calling function "IniFile::open"!)") setNoteSigns(std::vector<std::string> note_signs = { "#", ";" });
 
+        private:
             struct SectionInfo
             {
                 std::list<std::string>::iterator line;
-
                 std::list<std::string>::iterator last;
                 size_t pos;
                 size_t len;

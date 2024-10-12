@@ -42,60 +42,59 @@ namespace mineutils
             std::pair<int, int> position = { -1, -1 }, int flag = cv::WINDOW_FREERATIO);
 
         /*  为图像添加文字
-            @param img：cv::Mat图像
-            @param label：文字内容
-            @param position：文字左下角坐标
-            @param text_color：文字颜色
-            @param word_type：文字类型，用opencv的HersheyFonts枚举类型表示
-            @param word_scale：文字尺寸
-            @param text_thickness：文字粗细
-            @param have_bg：是否为文字添加背景
-            @param bg_color：文字背景的颜色，have_bg为true时生效   */
-        void putLabelCV(cv::Mat& img, const std::string& label, cv::Point position, cv::Scalar text_color = { 255,255,255 },
+            @param dst: cv::Mat图像
+            @param label: 文字内容
+            @param position: 文字左下角坐标
+            @param text_color: 文字颜色
+            @param word_type: 文字类型，用opencv的HersheyFonts枚举类型表示
+            @param word_scale: 文字尺寸
+            @param text_thickness: 文字粗细
+            @param have_bg: 是否为文字添加背景
+            @param bg_color: 文字背景的颜色，have_bg为true时生效   */
+        void putLabelCV(cv::Mat& dst, const std::string& label, cv::Point position, cv::Scalar text_color = { 255,255,255 },
             int word_type = cv::FONT_HERSHEY_SIMPLEX, float word_scale = 1, int text_thickness = 2,
             bool have_bg = true, cv::Scalar bg_color = { 255, 0, 0 });
 
         /*  在图像上绘制检测框及标签
-            @param img：cv::Mat图像
-            @param ltrb：检测框坐标{left, top, right, botton}
-            @param label：文字内容
-            @param bbox_color：检测框颜色
-            @param text_color：文字颜色
-            @param word_type：文字类型，用opencv的HersheyFonts枚举类型表示
-            @param word_scale：文字尺寸
-            @param bbox_thickness：检测框粗细
-            @param text_thickness：文字粗细   */
-        void putBoxCV(cv::Mat& img, const mmath::LTRB& ltrb, const std::string& label = "",
+            @param dst: cv::Mat图像
+            @param ltrb: 检测框坐标{left, top, right, botton}
+            @param label: 文字内容
+            @param bbox_color: 检测框颜色
+            @param text_color: 文字颜色
+            @param word_type: 文字类型，用opencv的HersheyFonts枚举类型表示
+            @param word_scale: 文字尺寸
+            @param bbox_thickness: 检测框粗细
+            @param text_thickness: 文字粗细   */
+        void putBoxCV(cv::Mat& dst, const mmath::LTRB& ltrb, const std::string& label = "",
             cv::Scalar bbox_color = { 0,255,0 }, cv::Scalar text_color = { 255,255,255 },
             int word_type = cv::FONT_HERSHEY_SIMPLEX, float word_scale = 1,
             int bbox_thickness = 3, int text_thickness = 2);
 
         /*  在图像上绘制检测框及标签
-            @param img：cv::Mat图像
-            @param xywh：检测框坐标{center_x, center_y, width, height}
-            @param label：文字内容
-            @param bbox_color：检测框颜色
-            @param text_color：文字颜色
-            @param word_type：文字类型，用opencv的HersheyFonts枚举类型表示
-            @param word_scale：文字尺寸
-            @param bbox_thickness：检测框粗细
-            @param text_thickness：文字粗细   */
-        void putBoxCV(cv::Mat& img, mmath::XYWH xywh, const std::string& label = "",
+            @param dst: cv::Mat图像
+            @param xywh: 检测框坐标{center_x, center_y, width, height}
+            @param label: 文字内容
+            @param bbox_color: 检测框颜色
+            @param text_color: 文字颜色
+            @param word_type: 文字类型，用opencv的HersheyFonts枚举类型表示
+            @param word_scale: 文字尺寸
+            @param bbox_thickness: 检测框粗细
+            @param text_thickness: 文字粗细   */
+        void putBoxCV(cv::Mat& dst, mmath::XYWH xywh, const std::string& label = "",
             cv::Scalar bbox_color = { 0,255,0 }, cv::Scalar text_color = { 255,255,255 },
             int word_type = cv::FONT_HERSHEY_SIMPLEX, float word_scale = 1,
             int bbox_thickness = 3, int text_thickness = 2);
 
-        //自定义3个通道的值
+        //自定义前3个通道的值，dst通道数必须大于3，否则可能异常
         template<class T = int>
-        void channelInit(cv::Mat& mat, cv::Point3_<T> channel_value = { 0, 0, 0 });
+        void channelInit(cv::Mat& dst, cv::Point3_<T> channel_value = { 0, 0, 0 });
 
         /*  打印cv::Mat的值，目前只支持2D的Mat
-            @param img：要打印的cv::Mat
-            @param x_range：x坐标值或range，支持Python风格range
-            @param y_range：y坐标值或range，支持Python风格range
-            @param c_range：channel值或range，支持Python风格range   */
-        template<class Tx = std::pair<int, int>, class Ty = std::pair<int, int>, class Tc = std::pair<int, int>>
-        void printMat(const cv::Mat& img, Tx x_range = { 0, INT_MAX }, Ty y_range = { 0, INT_MAX }, Tc c_range = { 0, INT_MAX });
+            @param img: 要打印的cv::Mat
+            @param x_range: x坐标值或range，支持Python风格range
+            @param y_range: y坐标值或range，支持Python风格range
+            @param c_range: channel值或range，支持Python风格range   */
+        void printMat(const cv::Mat& img, std::pair<int, int> x_range = { 0, INT_MAX }, std::pair<int, int> = { 0, INT_MAX }, std::pair<int, int> c_range = { 0, INT_MAX });
     }
 
 
@@ -181,17 +180,7 @@ namespace mineutils
             cap.release();
         }
 
-        /*  为图像添加文字
-            @param img：cv::Mat图像
-            @param label：文字内容
-            @param position：文字左下角坐标
-            @param text_color：文字颜色
-            @param word_type：文字类型，用opencv的HersheyFonts枚举类型表示
-            @param word_scale：文字尺寸
-            @param text_thickness：文字粗细
-            @param have_bg：是否为文字添加背景
-            @param bg_color：文字背景的颜色，have_bg为true时生效   */
-        inline void putLabelCV(cv::Mat& img, const std::string& label, cv::Point position, cv::Scalar text_color, int word_type, float word_scale, int text_thickness, bool have_bg, cv::Scalar bg_color)
+        inline void putLabelCV(cv::Mat& dst, const std::string& label, cv::Point position, cv::Scalar text_color, int word_type, float word_scale, int text_thickness, bool have_bg, cv::Scalar bg_color)
         {
             if (label.size() != 0)
             {
@@ -201,27 +190,17 @@ namespace mineutils
                     int baseline;
                     cv::Size text_size = cv::getTextSize(label, word_type, word_scale, text_thickness, &baseline);
                     cv::Point c2 = { c1.x + text_size.width, c1.y - (int)(text_size.height * 1.2) };
-                    cv::rectangle(img, c1, c2, bg_color, -1);
+                    cv::rectangle(dst, c1, c2, bg_color, -1);
                 }
-                cv::putText(img, label, c1, word_type, word_scale, text_color, text_thickness, cv::LINE_AA);
+                cv::putText(dst, label, c1, word_type, word_scale, text_color, text_thickness, cv::LINE_AA);
             }
         }
 
-        /*  在图像上绘制检测框及标签
-            @param img：cv::Mat图像
-            @param ltrb：检测框坐标{left, top, right, botton}
-            @param label：文字内容
-            @param bbox_color：检测框颜色
-            @param text_color：文字颜色
-            @param word_type：文字类型，用opencv的HersheyFonts枚举类型表示
-            @param word_scale：文字尺寸
-            @param bbox_thickness：检测框粗细
-            @param text_thickness：文字粗细   */
-        inline void putBoxCV(cv::Mat& img, const mmath::LTRB& ltrb, const std::string& label, cv::Scalar bbox_color, cv::Scalar text_color, int word_type, float word_scale, int bbox_thickness, int text_thickness)
+        inline void putBoxCV(cv::Mat& dst, const mmath::LTRB& ltrb, const std::string& label, cv::Scalar bbox_color, cv::Scalar text_color, int word_type, float word_scale, int bbox_thickness, int text_thickness)
         {
             cv::Point c1 = { ltrb.left , ltrb.top };
             cv::Point c2 = { ltrb.right , ltrb.bottom };
-            cv::rectangle(img, c1, c2, bbox_color, bbox_thickness);
+            cv::rectangle(dst, c1, c2, bbox_color, bbox_thickness);
 
             c1.x -= bbox_thickness - 1;
             c1.y -= bbox_thickness - 1;
@@ -231,39 +210,30 @@ namespace mineutils
                 cv::Point label_pos = c1;
                 int* baseline = nullptr;
                 cv::Size text_size = cv::getTextSize(label, word_type, word_scale, text_thickness, baseline);
-                if (label_pos.x + text_size.width > img.cols)
-                    label_pos.x = img.cols - text_size.width;
+                if (label_pos.x + text_size.width > dst.cols)
+                    label_pos.x = dst.cols - text_size.width;
                 if (label_pos.y - text_size.height < 0)
                     label_pos.y = c1.y + text_size.height;
-                mext::putLabelCV(img, label, label_pos, text_color, word_type, word_scale, text_thickness, true, bbox_color);
+                mext::putLabelCV(dst, label, label_pos, text_color, word_type, word_scale, text_thickness, true, bbox_color);
             }
         }
 
-        /*  在图像上绘制检测框及标签
-            @param img：cv::Mat图像
-            @param xywh：检测框坐标{center_x, center_y, width, height}
-            @param label：文字内容
-            @param bbox_color：检测框颜色
-            @param text_color：文字颜色
-            @param word_type：文字类型，用opencv的HersheyFonts枚举类型表示
-            @param word_scale：文字尺寸
-            @param bbox_thickness：检测框粗细
-            @param text_thickness：文字粗细   */
-        inline void putBoxCV(cv::Mat& img, mmath::XYWH xywh, const std::string& label, cv::Scalar bbox_color, cv::Scalar text_color, int word_type, float word_scale, int bbox_thickness, int text_thickness)
+        inline void putBoxCV(cv::Mat& dst, mmath::XYWH xywh, const std::string& label, cv::Scalar bbox_color, cv::Scalar text_color, int word_type, float word_scale, int bbox_thickness, int text_thickness)
         {
-            mext::putBoxCV(img, xywh.toLTRB(), label, bbox_color, text_color, word_type, word_scale, bbox_thickness, text_thickness);
+            mext::putBoxCV(dst, xywh.toLTRB(), label, bbox_color, text_color, word_type, word_scale, bbox_thickness, text_thickness);
         }
 
-        //自定义3个通道的值
-        template<class T = int>
-        inline void channelInit(cv::Mat& mat, cv::Point3_<T> channel_value)
+        template<class T>
+        inline void channelInit(cv::Mat& dst, cv::Point3_<T> channel_value)
         {
+            if (dst.empty())
+                return;
             std::vector<cv::Mat> ma_mb_mc;
-            cv::split(mat, ma_mb_mc);
+            cv::split(dst, ma_mb_mc);
             ma_mb_mc[0] = channel_value.x;
             ma_mb_mc[1] = channel_value.y;
             ma_mb_mc[2] = channel_value.z;
-            cv::merge(ma_mb_mc, mat);
+            cv::merge(ma_mb_mc, dst);
         }
         
         template<class DataT>
@@ -385,13 +355,7 @@ namespace mineutils
             std::cout << "}\n";
         }
 
-        /*  打印cv::Mat的值，目前只支持2D的Mat
-            @param img：要打印的cv::Mat
-            @param x_range：x坐标值或range，支持Python风格range
-            @param y_range：y坐标值或range，支持Python风格range
-            @param c_range：channel值或range，支持Python风格range   */
-        template<class Tx, class Ty, class Tc>
-        inline void printMat(const cv::Mat& img, Tx x_range, Ty y_range, Tc c_range)
+        inline void printMat(const cv::Mat& img, std::pair<int, int> x_range, std::pair<int, int> y_range, std::pair<int, int> c_range)
         {
             /*      C1    C2    C3    C4
             CV_8U    0    8    16    24       uchar

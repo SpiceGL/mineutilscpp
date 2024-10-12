@@ -8,6 +8,7 @@
 #include<iostream>
 #include<string>
 
+#include"base.hpp"
 #include"str.hpp"
 #include"log.hpp"
 
@@ -17,20 +18,20 @@ namespace mineutils
     /*--------------------------------------------用户接口--------------------------------------------*/
     namespace mmath
     {
-        /*  将输入的Python风格索引值(负数索引)转换为非负数索引，如果出错则返回-1
+        /*  将输入的Python风格索引值(负数索引)转换为非负数索引，如果出错则返回0
             @param idx：Python风格idx(包含负数索引)
             @param len：合法range长度，必须为正数
             @return 非负数索引值  */
         int normIdx(int idx, int len);
 
 
-        /*  将Python风格的range(负数以及超出实际范围的range)转换为实际range(左闭右开)，如果出错则返回{-1, -1}
+        /*  将Python风格的range(负数以及超出实际范围的range)转换为实际range(左闭右开)，如果出错则返回{0, 0}
             @param range：Python风格range
             @param len：合法range长度，必须为正数
             @return 实际range   */
         std::pair<int, int> normRange(std::pair<int, int> range, int len);
 
-        /*  将Python风格的索引值(负数以及超出实际范围的idx转换为对应的range(左闭右开)，如果出错则返回{-1, -1}
+        /*  将Python风格的索引值(负数以及超出实际范围的idx转换为对应的range(左闭右开)，如果出错则返回{0, 0}
             @param idx：Python风格idx
             @param len：合法range长度，必须为正数
             @return 实际range   */
@@ -51,7 +52,7 @@ namespace mineutils
             BaseBox(const BaseBox<T>& box);
             virtual ~BaseBox() {}
             T& operator[](int idx);
-            T operator[](int idx) const;
+            const T& operator[](int idx) const;
 
             MINE_DEPRECATED("Deprecated. Please replace with \"std::is_integral<T>::value\"") static bool belongToIntSeries();
         protected:
@@ -177,8 +178,8 @@ namespace mineutils
         {
             if (len <= 0)
             {
-                mprintfE("Wrong value of len:%d\n!", len);
-                return -1;
+                mprintfE("Wrong value of len:%d!\n", len);
+                return 0;
             }
             int normal_idx;
             if (idx >= 0 and idx < len)
@@ -188,7 +189,7 @@ namespace mineutils
             else
             {
                 mprintfW("idx:%d out of index range:%d!\n", idx, len);
-                return -1;
+                return 0;
             }
             return normal_idx;
         }
@@ -197,8 +198,8 @@ namespace mineutils
         {
             if (len <= 0)
             {
-                mprintfE("Wrong value of len:%d\n!", len);
-                return { -1, -1 };
+                mprintfE("Wrong value of len:%d!\n", len);
+                return { 0, 0 };
             }
             int dst_start, dst_end;
             int x1 = range.first, x2 = range.second;
@@ -217,8 +218,8 @@ namespace mineutils
         {
             if (len <= 0)
             {
-                mprintfE("Wrong value of len:%d\n!", len);
-                return { -1, -1 };
+                mprintfE("Wrong value of len:%d!\n", len);
+                return { 0, 0 };
             }
             int dst_start, dst_end;
             if (idx >= 0 and idx < len)
@@ -228,7 +229,7 @@ namespace mineutils
             else
             {
                 mprintfW("idx:%d out of index range:%d!\n", idx, len);
-                return { -1, -1 };
+                return { 0, 0 };
             }
             return { dst_start, dst_end };
         }
@@ -279,7 +280,7 @@ namespace mineutils
             return this->data_[idx];
         }
         template<class T>
-        inline T BaseBox<T>::operator[](int idx) const
+        inline const T& BaseBox<T>::operator[](int idx) const
         {
             idx = normIdx(idx, 4);
             return this->data_[idx];

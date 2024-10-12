@@ -7,6 +7,7 @@
 #include<stdio.h>
 #include<string>
 
+#include"base.hpp"
 #include"str.hpp"
 
 //命名空间::类名::函数名
@@ -66,7 +67,7 @@ namespace mineutils
     namespace mlog
     {
         template <class... Ts>
-        inline MINE_DEPRECATED("Deprecated. Please replace with macro definition \"msgW\"(in log.hpp)") 
+        inline MINE_DEPRECATED(R"(Deprecated. Please replace with macro definition "msgW"(in log.hpp))") 
             std::string messageW(const std::string& fstr_content, const Ts... args)
         {
             return mstr::color("!Warning! ", mstr::Color::yellow) + mstr::fstr(fstr_content, args...);
@@ -74,14 +75,14 @@ namespace mineutils
 
 
         template <class... Ts>
-        inline MINE_DEPRECATED("Deprecated. Please replace with macro definition \"msgE\"(in log.hpp)")
+        inline MINE_DEPRECATED(R"(Deprecated. Please replace with macro definition "msgE"(in log.hpp))")
             std::string messageE(const std::string& fstr_content, const Ts... args)
         {
             return mstr::color("!!!Error!!! ", mstr::Color::red) + mstr::fstr(fstr_content, args...);
         }
 
         template <class... Ts>
-        inline MINE_DEPRECATED("Deprecated. Please replace with macro definition \"msgN\"(in log.hpp)") 
+        inline MINE_DEPRECATED(R"(Deprecated. Please replace with macro definition "msgN"(in log.hpp))")
             std::string messageN(mstr::Color str_color, const std::string& fstr_content, const Ts... args)
         {
             return mstr::color(mstr::fstr(fstr_content, args...), str_color);

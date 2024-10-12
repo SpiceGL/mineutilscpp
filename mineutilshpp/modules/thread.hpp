@@ -14,6 +14,7 @@
 #include<thread>
 #include<vector>
 
+#include"base.hpp"
 #include"time.hpp"
 #include"log.hpp"
 
@@ -43,8 +44,8 @@ namespace mineutils
             //等待并获取任务结果，只可调用一次，如果任务为无效状态会抛出std::runtime_error异常
             Ret get();
 
-            TaskRetState(const TaskRetState<Ret>& future_state) = delete;
-            TaskRetState& operator=(const TaskRetState<Ret>& future_state) = delete;
+            TaskRetState(const TaskRetState<Ret>& future_state) = delete;    //不支持拷贝构造
+            TaskRetState& operator=(const TaskRetState<Ret>& future_state) = delete;   //不支持拷贝赋值
         private:
             std::future<Ret> future_state_;
         };
@@ -73,6 +74,8 @@ namespace mineutils
 
             ThreadPool(const ThreadPool& thd_pool) = delete;
             ThreadPool& operator=(const ThreadPool& thd_pool) = delete;
+            ThreadPool(ThreadPool&& thd_pool) = delete;
+            ThreadPool& operator=(ThreadPool&& thd_pool) = delete;
             ~ThreadPool();
 
         private:

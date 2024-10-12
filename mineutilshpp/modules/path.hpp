@@ -19,6 +19,7 @@
 #include<unistd.h>
 #endif
 
+#include"base.hpp"
 #include"str.hpp"
 #include"log.hpp"
 
@@ -30,54 +31,54 @@ namespace mineutils
     //输入的路径应为合法格式
     namespace mpath
     {
-        //将windows路径中的\\变为标准的/分隔符，并将路径标准化
+        //将windows路径中的\\变为标准的/分隔符，并将路径标准化，只能正确处理本身合法的路径
         std::string normPath(std::string path);
 
         //判断路径是否存在
-        bool exists(const std::string& path);
+        bool exists(std::string path);
 
         //从路径字符串获取文件名
-        std::string splitName(const std::string& path, bool suffix = true);
+        std::string splitName(std::string path, bool suffix = true);
 
         //获取输入的后缀名
-        std::string extension(const std::string& path);
+        std::string extension(std::string path);
 
         //判断路径是否为绝对路径
-        bool isAbs(const std::string& path);
+        bool isAbs(std::string path);
 
-        //判断路径是否为真实目录
-        bool isDir(const std::string& path);
+        //判断路径是否为存在的目录
+        bool isDir(std::string path);
 
-        //判断路径是否为真实文件
-        bool isFile(const std::string& path);
+        //判断路径是否为存在的文件
+        bool isFile(std::string path);
 
-        //判断路径是否为真实的图像文件
-        bool isImage(const std::string& path, const std::set<std::string>& img_exts = { "png", "PNG", "jpg", "JPG", "jpeg", "JPEG" });
+        //判断路径是否为存在的图像格式文件
+        bool isImage(std::string path, const std::set<std::string>& img_exts = { "png", "PNG", "jpg", "JPG", "jpeg", "JPEG"});
 
-        //判断路径是否为真实的视频文件
-        bool isVideo(const std::string& path, const std::set<std::string>& video_exts = { "avi", "AVI", "mp4", "MP4", "flv", "FLV" });
+        //判断路径是否为存在的视频格式文件
+        bool isVideo(std::string path, const std::set<std::string>& video_exts = { "avi", "AVI", "mp4", "MP4", "flv", "FLV", "h264", "h265" });
 
         //实现类似python的os.path.join功能
         template<class... Strs, typename std::enable_if<mtype::ConstructibleFromEachChecker<std::string, std::string, const Strs&...>::value, int>::type = 0>
-        std::string join(const std::string& path1, const std::string& path2, const Strs&... paths);
+        std::string join(std::string path1, std::string path2, Strs... paths);
 
         //获取目录下的一级文件和目录
-        std::vector<std::string> listDir(const std::string& path, bool return_path = true, const std::set<std::string>& ignore_names = {});
+        std::vector<std::string> listDir(std::string path, bool return_path = true, const std::set<std::string>& ignore_names = {});
 
         //创建目录，目录及父目录不存在会直接创建，否则什么都不做返回true
-        bool makeDirs(const std::string& path);
+        bool makeDirs(std::string path);
 
         //创建文件，文件及父目录不存在会直接创建，否则什么都不做返回true
-        bool makeFile(const std::string& path);
+        bool makeFile(std::string path);
 
         //返回路径字符串对应的父目录
-        std::string parent(const std::string& path);
+        std::string parent(std::string path);
 
         //删除文件或目录
-        bool remove(const std::string& path);
+        bool remove(std::string path);
 
         //遍历目录下的所有文件，出错时返回空vector
-        std::vector<std::string> walk(const std::string& path, bool return_path = true);
+        std::vector<std::string> walk(std::string path, bool return_path = true);
     }
 
 
@@ -149,9 +150,9 @@ namespace mineutils
             return path;
         }
 
-        inline bool exists(const std::string& path)
+        inline bool exists(std::string path)
         {
-            return mpath::_exists(mpath::normPath(path));
+            return mpath::_exists(mpath::normPath(std::move(path)));
         }
         inline bool _exists(const std::string& path)
         {
@@ -159,9 +160,9 @@ namespace mineutils
             return ::stat(path.c_str(), &buffer) == 0;
         }
 
-        inline std::string splitName(const std::string& path, bool suffix)
+        inline std::string splitName(std::string path, bool suffix)
         {
-            return mpath::_splitName(mpath::normPath(path), suffix);
+            return mpath::_splitName(mpath::normPath(std::move(path)), suffix);
         }
         inline std::string _splitName(const std::string& path, bool suffix)
         {
@@ -171,7 +172,7 @@ namespace mineutils
             else
             {
                 auto start_pos = path.rfind('/') + 1;
-                auto end_pos = path.rfind('.');
+                auto end_pos = path.rfind('.', 1);
                 if (end_pos > start_pos)
                     name = path.substr(start_pos, end_pos - start_pos);
                 else name = path.substr(start_pos);
@@ -179,9 +180,9 @@ namespace mineutils
             return name;
         }
 
-        inline std::string extension(const std::string& path)
+        inline std::string extension(std::string path)
         {
-            return mpath::_extension(mpath::normPath(path));
+            return mpath::_extension(mpath::normPath(std::move(path)));
         }
         inline std::string _extension(const std::string& path)
         {
@@ -195,76 +196,54 @@ namespace mineutils
             return "";
         }
 
-        inline bool isAbs(const std::string& path)
+        inline bool isAbs(std::string path)
         {
-            return mpath::_isAbs(mpath::normPath(path));
+            return mpath::_isAbs(mpath::normPath(std::move(path)));
         }
         inline bool _isAbs(const std::string& path)
         {
-            if (path.find(":/") != std::string::npos)
-                return path.substr(1, 2) == ":/";
-            else return path.substr(0, 1) == "/";
+            return path.find(":/") == 1 || path.substr(0, 1) == "/";
         }
 
-        inline bool isDir(const std::string& path)
+        inline bool isDir(std::string path)
         {
-            return mpath::_isDir(mpath::normPath(path));
+            return mpath::_isDir(mpath::normPath(std::move(path)));
         }
         inline bool _isDir(const std::string& path)
         {
             struct ::stat buffer;
-            if (::stat(path.c_str(), &buffer) == 0)
-            {
-                if (buffer.st_mode & S_IFDIR)
-                    return true;
-            }
-            return false;
+            return ::stat(path.c_str(), &buffer) == 0 && (buffer.st_mode & S_IFDIR);
         }
 
-        inline bool isFile(const std::string& path)
+        inline bool isFile(std::string path)
         {
-            return mpath::_isFile(mpath::normPath(path));
+            return mpath::_isFile(mpath::normPath(std::move(path)));
         }
         inline bool _isFile(const std::string& path)
         {
             struct ::stat buffer;
-            if (::stat(path.c_str(), &buffer) == 0)
-            {
-                if (buffer.st_mode & S_IFREG)
-                    return true;
-            }
-            return false;
+            return ::stat(path.c_str(), &buffer) == 0 && (buffer.st_mode & S_IFREG);
         }
 
-        inline bool isImage(const std::string& path, const std::set<std::string>& img_exts)
+        inline bool isImage(std::string path, const std::set<std::string>& img_exts)
         {
-            return mpath::_isImage(mpath::normPath(path), img_exts);
+            return mpath::_isImage(mpath::normPath(std::move(path)), img_exts);
         }
         inline bool _isImage(const std::string& path, const std::set<std::string>& img_exts)
         {
-            if (!mpath::_isFile(path))
-                return false;
-            std::string ext = mpath::_extension(path);
-            if (img_exts.find(ext) == img_exts.end())
-                return false;
-            else return true;
+            return mpath::_isFile(path) && img_exts.find(mpath::_extension(path)) != img_exts.end();
         }
 
-        inline bool isVideo(const std::string& path, const std::set<std::string>& video_exts)
+        inline bool isVideo(std::string path, const std::set<std::string>& video_exts)
         {
-            return mpath::_isVideo(mpath::normPath(path), video_exts);
+            return mpath::_isVideo(mpath::normPath(std::move(path)), video_exts);
         }
         inline bool _isVideo(const std::string& path, const std::set<std::string>& video_exts)
         {
-            if (!mpath::_isFile(path))
-                return false;
-            std::string ext = mpath::_extension(path);
-            if (video_exts.find(ext) == video_exts.end())
-                return false;
-            else return true;
+            return mpath::_isFile(path) && video_exts.find(mpath::_extension(path)) != video_exts.end();
         }
 
-        inline std::string _joinBranch(std::string& path)
+        inline std::string _joinBranch(const std::string& path)
         {
             return path;
         }
@@ -277,9 +256,9 @@ namespace mineutils
 
         //实现类似python的os.path.join功能
         template<class... Strs, typename std::enable_if<mtype::ConstructibleFromEachChecker<std::string, std::string, const Strs&...>::value, int>::type>
-        inline std::string join(const std::string& path1, const std::string& path2, const Strs&... paths)
+        inline std::string join(std::string path1, std::string path2, Strs... paths)
         {
-            return mpath::_join(mpath::normPath(path1), mpath::normPath(path2), mpath::normPath(paths)...);
+            return mpath::_join(mpath::normPath(std::move(path1)), mpath::normPath(std::move(path2)), mpath::normPath(std::move(paths))...);
         }
         template<class... Strs>
         inline std::string _join(const std::string& path1, const std::string& path2, const Strs&... paths)
@@ -287,9 +266,9 @@ namespace mineutils
             return mpath::_joinBranch(path1, path2, paths...);
         }
 
-        inline std::vector<std::string> listDir(const std::string& path, bool return_path, const std::set<std::string>& ignore_names)
+        inline std::vector<std::string> listDir(std::string path, bool return_path, const std::set<std::string>& ignore_names)
         {
-            return mpath::_listDir(mpath::normPath(path), return_path, ignore_names);
+            return mpath::_listDir(mpath::normPath(std::move(path)), return_path, ignore_names);
         }
 #if defined(_MSC_VER)
         inline std::vector<std::string> _listDir(const std::string& path, bool return_path, const std::set<std::string>& ignore_names)
@@ -354,9 +333,9 @@ namespace mineutils
         }
 
 #endif
-        inline bool makeDirs(const std::string& path)
+        inline bool makeDirs(std::string path)
         {
-            return mpath::_makeDirs(mpath::normPath(path));
+            return mpath::_makeDirs(mpath::normPath(std::move(path)));
         }
 #if defined(_MSC_VER)
         inline bool _makeDirs(const std::string& path)
@@ -395,9 +374,9 @@ namespace mineutils
             return mpath::_isDir(path);
         }
 #endif
-        inline bool makeFile(const std::string& path)
+        inline bool makeFile(std::string path)
         {
-            return mpath::_makeFile(mpath::normPath(path));
+            return mpath::_makeFile(mpath::normPath(std::move(path)));
         }
         inline bool _makeFile(const std::string& path)
         {
@@ -413,9 +392,9 @@ namespace mineutils
             return mpath::_isFile(path);
         }
 
-        inline std::string parent(const std::string& path)
+        inline std::string parent(std::string path)
         {
-            return mpath::_parent(mpath::normPath(path));
+            return mpath::_parent(mpath::normPath(std::move(path)));
         }
         inline std::string _parent(const std::string& path)
         {
@@ -440,9 +419,9 @@ namespace mineutils
 #endif
         }
 
-        inline bool remove(const std::string& path)
+        inline bool remove(std::string path)
         {
-            return mpath::_remove(mpath::normPath(path));
+            return mpath::_remove(mpath::normPath(std::move(path)));
         }
         inline bool _remove(const std::string& path)
         {
@@ -457,9 +436,9 @@ namespace mineutils
             return !mpath::_exists(path);
         }
 
-        inline std::vector<std::string> walk(const std::string& path, bool return_path)
+        inline std::vector<std::string> walk(std::string path, bool return_path)
         {
-            return mpath::_walk(mpath::normPath(path), return_path);
+            return mpath::_walk(mpath::normPath(std::move(path)), return_path);
         }
         inline std::vector<std::string> _walk(const std::string& path, bool return_path)
         {

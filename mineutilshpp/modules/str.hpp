@@ -39,7 +39,7 @@ namespace mineutils
         //部分终端不一定支持彩色字体显示，因此默认关闭彩色字体
         void setColorStrOn(bool ColorStr_on);
 
-        //将数字转换为序数词，1st、2nd等，只接受正整数
+        //将整数转换为序数词，1st、2nd等，只接受正整数
         template<class T, typename std::enable_if<std::is_integral<T>::value, int>::type = 0>
         std::string toOrdinal(T number);
 
@@ -83,7 +83,7 @@ namespace mineutils
         std::vector<std::string> rsplit(std::string s, const std::string& sep, size_t max_split_times = -1);
 
         //按字符串中的空白符（包括空格、多空格、\n、\t等）分割字符串，若输入空字符串或全空格符串则返回空vector(类Python规则)
-        std::vector<std::string> split(std::string s);
+        std::vector<std::string> split(const std::string& s);
     }
 
 
@@ -304,7 +304,7 @@ namespace mineutils
             return strs;
         }
 
-        inline std::vector<std::string> split(std::string s)
+        inline std::vector<std::string> split(const std::string& s)
         {
             if (s.empty())
             {
