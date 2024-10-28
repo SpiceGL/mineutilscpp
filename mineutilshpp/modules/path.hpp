@@ -59,7 +59,7 @@ namespace mineutils
         bool isVideo(std::string path, const std::set<std::string>& video_exts = { "avi", "AVI", "mp4", "MP4", "flv", "FLV", "h264", "h265" });
 
         //实现类似python的os.path.join功能
-        template<class... Strs, typename std::enable_if<mtype::ConstructibleFromEachChecker<std::string, std::string, const Strs&...>::value, int>::type = 0>
+        template<class... Strs, typename std::enable_if<mtype::ConstructibleFromEachChecker<std::string, std::string, Strs...>::value, int>::type = 0>
         std::string join(std::string path1, std::string path2, Strs... paths);
 
         //获取目录下的一级文件和目录
@@ -255,7 +255,7 @@ namespace mineutils
         }
 
         //实现类似python的os.path.join功能
-        template<class... Strs, typename std::enable_if<mtype::ConstructibleFromEachChecker<std::string, std::string, const Strs&...>::value, int>::type>
+        template<class... Strs, typename std::enable_if<mtype::ConstructibleFromEachChecker<std::string, std::string, Strs...>::value, int>::type>
         inline std::string join(std::string path1, std::string path2, Strs... paths)
         {
             return mpath::_join(mpath::normPath(std::move(path1)), mpath::normPath(std::move(path2)), mpath::normPath(std::move(paths))...);

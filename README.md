@@ -1,12 +1,12 @@
 # mineutilscpp
-* 一些C++的便利功能封装，用于方便自己编程，代码基于C++11标准，文本使用UTF8-SIG编码。   
+* 一些C++的便利功能封装，用于方便自己编程和锻炼代码规范意识，代码基于C++11标准，文本使用UTF8-SIG编码。   
 + 所有功能都放在命名空间mineutils下，同时根据所属模块分布在次级的命名空间，如mineutils::mstr、mineutils::mtime下；基于第三方库的功能统一在次级的命名空间mineutils::mext下。
 所有函数接口都保证自身线程安全，类接口不保证线程安全。  
 - 更新遵循大版本号删改接口，中版本号添加新功能接口，小版本号修复和优化的原则，保证大版本内的向下兼容性。   
 
 ## 版本信息
-当前库版本：1.9.0   
-文档注释修改日期：20241012     
+当前库版本：1.10.0   
+文档注释修改日期：20241028     
 
 ## 测试平台
 **Windows:**  
@@ -361,13 +361,23 @@ int main()
 ```  
 
 ## 版本发布日志
+**v1.10.0**  
+* 20241028
+1. mbase添加mlikely和munlikely宏，用于在GCC中使用分支预测优化； 
+2. mtype添加RvalueRefMaker、EachLvalueConstructibleChecker等结构体，用于模板检查和类型处理；  
+3. mtype::StdBindChecker内部添加更严格的类型检查；mthread::addTask添加更严格的参数类型检查；  
+4. MINE_DEPRECATED宏重命名为mdeprecated，保持宏命名风格一致性；mtypename宏废弃，使用mtype::getTypeName函数替换；  
+5. mio::ArgumentParser类稍微修改了printPresetOptions和printParsedOptions成员函数打印的格式；  
+6. mmath::BaseBox及其子类改为struct，以符合其成员变量公开的设定；  
+7. mmath::BaseBox子类的toPixel函数的限制条件更改为仅限整数类型，mmath::及其子类的构造函数添加更优的类型限制；   
+8. 修复在1.9.0版本中mext::printMat的兼容性被破坏的问题，现在mext::printMat有了更准确的类型限制了。  
+
 **v1.9.0**  
 * 20241012
 1. mio添加ArgumentParser类，用于解析main函数参数； 
 2. mio::print添加对std::initializer_list的支持，并修复部分函数确实inline的问题；     
 3. mpath模块性能优化；  
 4. 部分代码风格统一。 
-
 
 **v1.8.0**  
 * 20240926   
@@ -470,8 +480,8 @@ int main()
 
 **v1.0.2**  
 + 20240111
-2. 将库中的Tab制表符全部替换为4个空格；
-3. Readme文档更新测试平台。  
+1. 将库中的Tab制表符全部替换为4个空格；
+2. Readme文档更新测试平台。  
 
 * 20240110
 1. 优化cv.hpp和ncnn.hpp中printMat函数的打印效果。

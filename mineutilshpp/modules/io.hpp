@@ -211,10 +211,10 @@ namespace mineutils
         template<template<class U, class... Us> class CTer, class T, class... Ts, typename std::enable_if<mtype::StdBeginEndChecker<const CTer<T, Ts...>>::value, int>::type = 0>
         void _print(const CTer<T, Ts...>& cter);
 
-        template<class T, typename std::enable_if<mtype::StdCoutChecker<const T>::value, int>::type = 0>
+        template<class T, typename std::enable_if<mtype::StdCoutChecker<const T>::value && !mtype::FuncChecker<const T>::value, int>::type = 0>
         void _print(const T& arg);
 
-        template<class T, typename std::enable_if<!mtype::StdCoutChecker<const T>::value, int>::type = 0>
+        template<class T, typename std::enable_if<!mtype::StdCoutChecker<const T>::value || mtype::FuncChecker<const T>::value,  int>::type = 0>
         void _print(const T& arg);
 
         template<class T, int N>
@@ -458,8 +458,8 @@ namespace mineutils
             std::cout << str;
         }
 
-        //为print函数拓展其他支持std::cout<<的类型
-        template<class T, typename std::enable_if<mtype::StdCoutChecker<const T>::value, int>::type>
+        //为print函数拓展其他支持std::cout<<且不是函数指针的类型
+        template<class T, typename std::enable_if<mtype::StdCoutChecker<const T>::value && !mtype::FuncChecker<const T>::value, int>::type>
         inline void _print(const T& arg)
         {
             //std::cout << "test: "<< mtype::isInTypes<T, const char*>() << "\n";
@@ -471,14 +471,14 @@ namespace mineutils
             std::cout << arg;
         }
 
-        //为print函数拓展其他不支持std::cout<<的类型
-        template<class T, typename std::enable_if<!mtype::StdCoutChecker<const T>::value, int>::type>
+        //为print函数拓展其他不支持std::cout<<或属于函数指针的类型
+        template<class T, typename std::enable_if<!mtype::StdCoutChecker<const T>::value || mtype::FuncChecker<const T>::value, int>::type>
         inline void _print(const T& arg)
         {
 #ifdef __GNUC__
-            std::cout << "<" << abi::__cxa_demangle(typeid(T).name(), nullptr, nullptr, nullptr) << ": " << std::hex << &arg << std::dec << ">";
+            std::cout << "<" << mtypename(T) << ": " << std::hex << &arg << std::dec << ">";
 #else
-            std::cout << "<" << typeid(T).name() << ": 0x" << std::hex << &arg << std::dec << ">";
+            std::cout << "<" << mtypename(T) << ": 0x" << std::hex << &arg << std::dec << ">";
 #endif // __GNUC__
         }
 
@@ -624,7 +624,8 @@ namespace mineutils
 
         inline void ArgumentParser::printPresetOptions()
         {
-            printf("Preset Boolean Options:\n");
+            if (!this->boolopts_preset_.empty())
+                printf("Preset Boolean Options:\n");
             for (auto& boolop : this->boolopts_preset_)
             {
                 std::string flag_part;
@@ -635,7 +636,8 @@ namespace mineutils
                 printf("    %s  %s.\n", flag_part.c_str(), boolop[2].empty() ? "" : ("Description: " + boolop[2]).c_str());
             }
 
-            printf("Preset Value Options:\n");
+            if (!this->valueopts_preset_.empty())
+                printf("Preset Value Options:\n");
             for (auto& valueop : this->valueopts_preset_)
             {
                 std::string flag_part;
@@ -649,7 +651,8 @@ namespace mineutils
 
         inline void ArgumentParser::printParsedOptions()
         {
-            printf("Parsed Boolean Options:\n");
+            if (!this->boolopts_preset_.empty())
+                printf("Parsed Boolean Options:\n");
             for (auto& boolop : this->boolopts_preset_)
             {
                 std::string flag_part;
@@ -661,7 +664,8 @@ namespace mineutils
                 printf("    %s  Parsed boolean value: %s.\n", flag_part.c_str(), this->boolopts_parsed_.find(flag) != this->boolopts_parsed_.end() ? "True" : "False");
             }
 
-            printf("Parsed Value Options:\n");
+            if (!this->valueopts_preset_.empty())
+                printf("Parsed Value Options:\n");
             for (auto& valueop : this->valueopts_preset_)
             {
                 std::string flag_part;

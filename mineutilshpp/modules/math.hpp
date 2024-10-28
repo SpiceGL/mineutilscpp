@@ -7,6 +7,7 @@
 #include<cmath>
 #include<iostream>
 #include<string>
+#include<string.h>
 
 #include"base.hpp"
 #include"str.hpp"
@@ -41,20 +42,20 @@ namespace mineutils
         int align(int x, int a);
 
         template<class T>
-        class BaseBox
+        struct BaseBox
         {
         public:
-            template<typename std::enable_if<std::is_integral<T>::value || std::is_floating_point<T>::value, int>::type = 0>
+            template<class U = T, typename std::enable_if<std::is_same<U, T>::value && (std::is_integral<U>::value || std::is_floating_point<U>::value), int>::type = 0>
             BaseBox();
-            template<typename std::enable_if<std::is_integral<T>::value || std::is_floating_point<T>::value, int>::type = 0>
+            template<class U = T, typename std::enable_if<std::is_same<U, T>::value && (std::is_integral<U>::value || std::is_floating_point<U>::value), int>::type = 0>
             BaseBox(T v0, T v1, T v2, T v3);
-            template<typename std::enable_if<std::is_integral<T>::value || std::is_floating_point<T>::value, int>::type = 0>
+            template<class U = T, typename std::enable_if<std::is_same<U, T>::value && (std::is_integral<U>::value || std::is_floating_point<U>::value), int>::type = 0>
             BaseBox(const BaseBox<T>& box);
             virtual ~BaseBox() {}
             T& operator[](int idx);
             const T& operator[](int idx) const;
 
-            MINE_DEPRECATED("Deprecated. Please replace with \"std::is_integral<T>::value\"") static bool belongToIntSeries();
+            mdeprecated("Deprecated. Please replace with \"std::is_integral<T>::value\"") static bool belongToIntSeries();
         protected:
             T data_[4];
 
@@ -63,15 +64,15 @@ namespace mineutils
         };
 
         template<class T>
-        class XYWHBox;
+        struct LTRBBox;
         template<class T>
-        class LTRBBox;
+        struct XYWHBox;
         template<class T>
-        class LTWHBox;
+        struct LTWHBox;
 
-        /*左上角-右下角：l、t、r、b排列的bbox坐标*/
+        /*左上角-右下角：l、t、r、b排列的bbox坐标，只支持整型和浮点型  */
         template<class T>
-        class LTRBBox :public BaseBox<T>
+        struct LTRBBox :public BaseBox<T>
         {
         public:
             T& left = this->data_[0];
@@ -84,13 +85,16 @@ namespace mineutils
             T& r = right;
             T& b = bottom;
 
+            template<class U = T, typename std::enable_if<std::is_same<U, T>::value && (std::is_integral<U>::value || std::is_floating_point<U>::value), int>::type = 0>
             LTRBBox() :BaseBox<T>() {}
+            template<class U = T, typename std::enable_if<std::is_same<U, T>::value && (std::is_integral<U>::value || std::is_floating_point<U>::value), int>::type = 0>
             LTRBBox(T v0, T v1, T v2, T v3) :BaseBox<T>(v0, v1, v2, v3) {}
+            template<class U = T, typename std::enable_if<std::is_same<U, T>::value && (std::is_integral<U>::value || std::is_floating_point<U>::value), int>::type = 0>
             LTRBBox(const LTRBBox<T>& ltrb) :BaseBox<T>(ltrb) {}
             LTRBBox<T>& operator=(const LTRBBox<T>& ltrb);
 
             //将坐标转化为像素坐标
-            template<class PixT = int, typename std::enable_if<std::is_integral<PixT>::value || std::is_floating_point<PixT>::value, int>::type = 0>
+            template<class PixT = int, typename std::enable_if<std::is_integral<PixT>::value, int>::type = 0>
             LTRBBox<PixT> toPixel() const;
             //若自身数据为整数类型，则按像素运算，否则按连续数值运算
             XYWHBox<T> toXYWH() const;
@@ -98,9 +102,9 @@ namespace mineutils
             LTWHBox<T> toLTWH() const;
         };
 
-        /*中心-宽高：x、y、w、h排列的bbox坐标*/
+        /*中心-宽高：x、y、w、h排列的bbox坐标，只支持整型和浮点型  */
         template<class T>
-        class XYWHBox :public BaseBox<T>
+        struct XYWHBox :public BaseBox<T>
         {
         public:
             T& x = this->data_[0];
@@ -111,13 +115,16 @@ namespace mineutils
             T& width = this->w;
             T& height = this->h;
 
+            template<class U = T, typename std::enable_if<std::is_same<U, T>::value && (std::is_integral<U>::value || std::is_floating_point<U>::value), int>::type = 0>
             XYWHBox() :BaseBox<T>() {}
+            template<class U = T, typename std::enable_if<std::is_same<U, T>::value && (std::is_integral<U>::value || std::is_floating_point<U>::value), int>::type = 0>
             XYWHBox(T v0, T v1, T v2, T v3) :BaseBox<T>(v0, v1, v2, v3) {}
+            template<class U = T, typename std::enable_if<std::is_same<U, T>::value && (std::is_integral<U>::value || std::is_floating_point<U>::value), int>::type = 0>
             XYWHBox(const XYWHBox<T>& xywh) :BaseBox<T>(xywh) {}
             XYWHBox<T>& operator=(const XYWHBox<T>& xywh);
 
             //将坐标转化为像素坐标
-            template<class PixT = int, typename std::enable_if<std::is_integral<PixT>::value || std::is_floating_point<PixT>::value, int>::type = 0>
+            template<class PixT = int, typename std::enable_if<std::is_integral<PixT>::value, int>::type = 0>
             XYWHBox<PixT> toPixel() const;
             //若自身数据为整数类型，则按像素运算，否则按连续数值运算
             LTRBBox<T> toLTRB() const;
@@ -125,9 +132,9 @@ namespace mineutils
             LTWHBox<T> toLTWH() const;
         };
 
-        /*左上角-宽高：l、t、w、h排列的bbox坐标*/
+        /*左上角-宽高：l、t、w、h排列的bbox坐标，只支持整型和浮点型  */
         template<class T>
-        class LTWHBox :public BaseBox<T>
+        struct LTWHBox :public BaseBox<T>
         {
         public:
             T& left = this->data_[0];
@@ -140,13 +147,16 @@ namespace mineutils
             T& w = this->width;
             T& h = this->height;
 
+            template<class U = T, typename std::enable_if<std::is_same<U, T>::value && (std::is_integral<U>::value || std::is_floating_point<U>::value), int>::type = 0>
             LTWHBox() :BaseBox<T>() {}
+            template<class U = T, typename std::enable_if<std::is_same<U, T>::value && (std::is_integral<U>::value || std::is_floating_point<U>::value), int>::type = 0>
             LTWHBox(T v0, T v1, T v2, T v3) :BaseBox<T>(v0, v1, v2, v3) {}
+            template<class U = T, typename std::enable_if<std::is_same<U, T>::value && (std::is_integral<U>::value || std::is_floating_point<U>::value), int>::type = 0>
             LTWHBox(const LTWHBox<T>& ltwh) :BaseBox<T>(ltwh) {}
             LTWHBox<T>& operator=(const LTWHBox<T>& ltwh);
 
             /*将坐标转化为像素坐标，向下取整*/
-            template<class PixT = int, typename std::enable_if<std::is_integral<PixT>::value || std::is_floating_point<PixT>::value, int>::type = 0>
+            template<class PixT = int, typename std::enable_if<std::is_integral<PixT>::value, int>::type = 0>
             LTWHBox<PixT> toPixel() const;
             //若自身数据为整数类型，则按像素运算，否则按连续数值运算
             LTRBBox<T> toLTRB() const;
@@ -248,23 +258,23 @@ namespace mineutils
 
 
         template<class T>
-        template<typename std::enable_if<std::is_integral<T>::value || std::is_floating_point<T>::value, int>::type>
+        template<class U, typename std::enable_if<std::is_same<U, T>::value && (std::is_integral<U>::value || std::is_floating_point<U>::value), int>::type>
         inline BaseBox<T>::BaseBox()
         {
-
+            memset(this->data_, 0, sizeof(T) * 4);
         }
 
         template<class T>
-        template<typename std::enable_if<std::is_integral<T>::value || std::is_floating_point<T>::value, int>::type>
+        template<class U, typename std::enable_if<std::is_same<U, T>::value && (std::is_integral<U>::value || std::is_floating_point<U>::value), int>::type>
         inline BaseBox<T>::BaseBox(T v0, T v1, T v2, T v3)
         {
-            data_[0] = v0;
-            data_[1] = v1;
-            data_[2] = v2;
-            data_[3] = v3;
+            this->data_[0] = v0;
+            this->data_[1] = v1;
+            this->data_[2] = v2;
+            this->data_[3] = v3;
         }
         template<class T>
-        template<typename std::enable_if<std::is_integral<T>::value || std::is_floating_point<T>::value, int>::type>
+        template<class U, typename std::enable_if<std::is_same<U, T>::value && (std::is_integral<U>::value || std::is_floating_point<U>::value), int>::type>
         inline BaseBox<T>::BaseBox(const BaseBox<T>& box)
         {
             this->data_[0] = box.data_[0];
@@ -276,13 +286,13 @@ namespace mineutils
         template<class T>
         inline T& BaseBox<T>::operator[](int idx)
         {
-            idx = normIdx(idx, 4);
+            idx = mmath::normIdx(idx, 4);
             return this->data_[idx];
         }
         template<class T>
         inline const T& BaseBox<T>::operator[](int idx) const
         {
-            idx = normIdx(idx, 4);
+            idx = mmath::normIdx(idx, 4);
             return this->data_[idx];
         }
         template<class T>
@@ -295,15 +305,15 @@ namespace mineutils
         template<class T>
         inline LTRBBox<T>& LTRBBox<T>::operator=(const LTRBBox<T>& ltrb)
         {
-            left = ltrb.left;
-            top = ltrb.top;
-            right = ltrb.right;
-            bottom = ltrb.bottom;
+            this->left = ltrb.left;
+            this->top = ltrb.top;
+            this->right = ltrb.right;
+            this->bottom = ltrb.bottom;
             return *this;
         }
 
         //将坐标转化为像素坐标
-        template<class T> template<class PixT, typename std::enable_if<std::is_integral<PixT>::value || std::is_floating_point<PixT>::value, int>::type>
+        template<class T> template<class PixT, typename std::enable_if<std::is_integral<PixT>::value, int>::type>
         inline LTRBBox<PixT> LTRBBox<T>::toPixel() const
         {
             return { PixT(floor(left)), PixT(floor(top)), PixT(floor(right)), PixT(floor(bottom)) };
@@ -331,6 +341,7 @@ namespace mineutils
             }
         }
 
+
         template<class T>
         inline LTWHBox<T> LTRBBox<T>::toLTWH() const
         {
@@ -348,18 +359,18 @@ namespace mineutils
         template<class T>
         inline XYWHBox<T>& XYWHBox<T>::operator=(const XYWHBox<T>& xywh)
         {
-            x = xywh.x;
-            y = xywh.y;
-            w = xywh.w;
-            h = xywh.h;
+            this->x = xywh.x;
+            this->y = xywh.y;
+            this->w = xywh.w;
+            this->h = xywh.h;
             return *this;
         }
 
         //将坐标转化为像素坐标
-        template<class T> template<class PixT, typename std::enable_if<std::is_integral<PixT>::value || std::is_floating_point<PixT>::value, int>::type>
+        template<class T> template<class PixT, typename std::enable_if<std::is_integral<PixT>::value, int>::type>
         inline XYWHBox<PixT> XYWHBox<T>::toPixel() const
         {
-            return { PixT(floor(x)), PixT(floor(y)), PixT(floor(w)), PixT(floor(h)) };
+            return { PixT(floor(this->x)), PixT(floor(this->y)), PixT(floor(this->w)), PixT(floor(this->h)) };
         }
 
         template<class T>
@@ -403,18 +414,18 @@ namespace mineutils
         template<class T>
         LTWHBox<T>& LTWHBox<T>::operator=(const LTWHBox<T>& ltwh)
         {
-            l = ltwh.l;
-            t = ltwh.t;
-            w = ltwh.w;
-            h = ltwh.h;
+            this->l = ltwh.l;
+            this->t = ltwh.t;
+            this->w = ltwh.w;
+            this->h = ltwh.h;
             return *this;
         }
 
         /*将坐标转化为像素坐标，向下取整*/
-        template<class T> template<class PixT, typename std::enable_if<std::is_integral<PixT>::value || std::is_floating_point<PixT>::value, int>::type>
+        template<class T> template<class PixT, typename std::enable_if<std::is_integral<PixT>::value, int>::type>
         LTWHBox<PixT>  LTWHBox<T>::toPixel() const
         {
-            return { PixT(floor(l)), PixT(floor(t)), PixT(floor(w)), PixT(floor(h)) };
+            return { PixT(floor(this->l)), PixT(floor(this->t)), PixT(floor(this->w)), PixT(floor(this->h)) };
         }
 
         template<class T>

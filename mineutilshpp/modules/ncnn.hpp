@@ -32,8 +32,13 @@ namespace mineutils
         //输入ncnn的net路径，快速运行一次ncnn的net推理
         std::vector<ncnn::Mat> quickRunNcnn(const std::string& param_path, const std::string& model_path, ncnn::Mat& input, const std::string& in_name, const std::vector<std::string>& out_names);
 
-        //打印ncnn的Mat，只支持CHW排列的三位ncnn::Mat
-        void printMat(const ncnn::Mat& m, std::pair<int, int> x_range = { 0, INT_MAX }, std::pair<int, int> y_range = { 0, INT_MAX }, std::pair<int, int> c_range = { 0, INT_MAX });
+        /*  打印ncnn::Mat，只支持CHW排列的三维ncnn::Mat
+            @param m：要打印的ncnn::Mat
+            @param x_range：x坐标值或range，支持Python风格range，类型限制为std::pair<int, int>或int
+            @param y_range：y坐标值或range，支持Python风格range，类型限制为std::pair<int, int>或int
+            @param c_range：channel值或range，支持Python风格range，类型限制为std::pair<int, int>或int   */
+        template<class Tx = std::pair<int, int>, class Ty = std::pair<int, int>, class Tc = std::pair<int, int>, typename std::enable_if<mtype::InTypesChecker<typename std::decay<Tx>::type, std::pair<int, int>, int>::value&& mtype::InTypesChecker<typename std::decay<Tx>::type, std::pair<int, int>, int>::value&& mtype::InTypesChecker<typename std::decay<Tx>::type, std::pair<int, int>, int>::value, int>::type = 0>
+        void printMat(const ncnn::Mat& m, Tx x_range = { 0, INT_MAX }, Ty y_range = { 0, INT_MAX }, Tc c_range = { 0, INT_MAX });
 
         //打印一组ncnn的Mat，只支持CHW排列的三位ncnn::Mat
         void printMats(const std::vector<ncnn::Mat>& mats);
@@ -94,7 +99,8 @@ namespace mineutils
         }
 
         //打印ncnn的Mat，只支持CHW排列的三位ncnn::Mat
-        inline void printMat(const ncnn::Mat& m, std::pair<int, int> x_range, std::pair<int, int> y_range, std::pair<int, int> c_range)
+        template<class Tx, class Ty, class Tc, typename std::enable_if<mtype::InTypesChecker<typename std::decay<Tx>::type, std::pair<int, int>, int>::value&& mtype::InTypesChecker<typename std::decay<Tx>::type, std::pair<int, int>, int>::value&& mtype::InTypesChecker<typename std::decay<Tx>::type, std::pair<int, int>, int>::value, int>::type>
+        inline void printMat(const ncnn::Mat& m, Tx x_range, Ty y_range, Tc c_range)
         {
             using Range = std::pair<int, int>;
             Range x_norm_range = mmath::normRange(x_range, m.w);

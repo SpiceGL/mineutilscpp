@@ -14,7 +14,7 @@
 #include"opencv2/imgproc.hpp"
 #include"opencv2/videoio.hpp"
 
-
+#include"type.hpp"
 #include"str.hpp"
 #include"log.hpp"
 #include"math.hpp"
@@ -76,7 +76,7 @@ namespace mineutils
             @param label: 文字内容
             @param bbox_color: 检测框颜色
             @param text_color: 文字颜色
-            @param word_type: 文字类型，用opencv的HersheyFonts枚举类型表示
+            @param word_type: 文字类型，用opencv的HersheyFonts枚举类型表示XRange
             @param word_scale: 文字尺寸
             @param bbox_thickness: 检测框粗细
             @param text_thickness: 文字粗细   */
@@ -89,12 +89,14 @@ namespace mineutils
         template<class T = int>
         void channelInit(cv::Mat& dst, cv::Point3_<T> channel_value = { 0, 0, 0 });
 
+
         /*  打印cv::Mat的值，目前只支持2D的Mat
-            @param img: 要打印的cv::Mat
-            @param x_range: x坐标值或range，支持Python风格range
-            @param y_range: y坐标值或range，支持Python风格range
-            @param c_range: channel值或range，支持Python风格range   */
-        void printMat(const cv::Mat& img, std::pair<int, int> x_range = { 0, INT_MAX }, std::pair<int, int> = { 0, INT_MAX }, std::pair<int, int> c_range = { 0, INT_MAX });
+            @param img：要打印的cv::Mat
+            @param x_range：x坐标值或range，支持Python风格range，类型限制为std::pair<int, int>或int
+            @param y_range：y坐标值或range，支持Python风格range，类型限制为std::pair<int, int>或int
+            @param c_range：channel值或range，支持Python风格range，类型限制为std::pair<int, int>或int   */
+        template<class Tx = std::pair<int, int>, class Ty = std::pair<int, int>, class Tc = std::pair<int, int>, typename std::enable_if<mtype::InTypesChecker<typename std::decay<Tx>::type, std::pair<int, int>, int>::value&& mtype::InTypesChecker<typename std::decay<Tx>::type, std::pair<int, int>, int>::value&& mtype::InTypesChecker<typename std::decay<Tx>::type, std::pair<int, int>, int>::value, int>::type = 0>
+        void printMat(const cv::Mat& img, Tx x_range = { 0, INT_MAX }, Ty y_range = { 0, INT_MAX }, Tc c_range = { 0, INT_MAX });
     }
 
 
@@ -355,7 +357,8 @@ namespace mineutils
             std::cout << "}\n";
         }
 
-        inline void printMat(const cv::Mat& img, std::pair<int, int> x_range, std::pair<int, int> y_range, std::pair<int, int> c_range)
+        template<class Tx, class Ty, class Tc, typename std::enable_if<mtype::InTypesChecker<typename std::decay<Tx>::type, std::pair<int, int>, int>::value&& mtype::InTypesChecker<typename std::decay<Tx>::type, std::pair<int, int>, int>::value&& mtype::InTypesChecker<typename std::decay<Tx>::type, std::pair<int, int>, int>::value, int>::type>
+        inline void printMat(const cv::Mat& img, Tx x_range, Ty y_range, Tc c_range)
         {
             /*      C1    C2    C3    C4
             CV_8U    0    8    16    24       uchar

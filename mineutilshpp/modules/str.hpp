@@ -105,7 +105,7 @@ namespace mineutils
 
         inline void setColorStrOn(bool ColorStr_on)
         {
-            _getColoStrOn() = ColorStr_on;
+            mstr::_getColoStrOn() = ColorStr_on;
         }
 
 
@@ -124,7 +124,7 @@ namespace mineutils
             36                46              青蓝色
             37                47              白色
             ——————————————————  */
-            if (_getColoStrOn())
+            if (mstr::_getColoStrOn())
             {
                 if (str_color == mstr::Color::black)
                     return "\033[0;30m" + str + "\033[0m";
@@ -176,7 +176,7 @@ namespace mineutils
 
         inline std::string zfillInt(long long n, unsigned int min_len, char padding)
         {
-            std::string s = toStr(n);
+            std::string s = mstr::toStr(n);
             if (s.length() < min_len)
             {
                 s = std::string(min_len - s.length(), padding) + s;

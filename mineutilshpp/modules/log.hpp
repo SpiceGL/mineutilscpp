@@ -66,29 +66,6 @@ namespace mineutils
 
     namespace mlog
     {
-        template <class... Ts>
-        inline MINE_DEPRECATED(R"(Deprecated. Please replace with macro definition "msgW"(in log.hpp))") 
-            std::string messageW(const std::string& fstr_content, const Ts... args)
-        {
-            return mstr::color("!Warning! ", mstr::Color::yellow) + mstr::fstr(fstr_content, args...);
-        }
-
-
-        template <class... Ts>
-        inline MINE_DEPRECATED(R"(Deprecated. Please replace with macro definition "msgE"(in log.hpp))")
-            std::string messageE(const std::string& fstr_content, const Ts... args)
-        {
-            return mstr::color("!!!Error!!! ", mstr::Color::red) + mstr::fstr(fstr_content, args...);
-        }
-
-        template <class... Ts>
-        inline MINE_DEPRECATED(R"(Deprecated. Please replace with macro definition "msgN"(in log.hpp))")
-            std::string messageN(mstr::Color str_color, const std::string& fstr_content, const Ts... args)
-        {
-            return mstr::color(mstr::fstr(fstr_content, args...), str_color);
-        }
-
-
         inline std::string& _getFstrN()
         {
             static std::string warning_message("\"{}\": ");
@@ -162,6 +139,28 @@ namespace mineutils
         inline void _printfE(const char* fmt_chars, const char* funcname, const char* filename, int line, Ts ...args)
         {
             printf((mlog::_getFmtE() + (fmt_chars)).c_str(), funcname, filename, line, args...);
+        }
+
+        template <class... Ts>
+        mdeprecated(R"(Deprecated. Please replace with macro definition "msgW"(in log.hpp))")
+            inline std::string messageW(const std::string& fstr_content, const Ts... args)
+        {
+            return mstr::color("!Warning! ", mstr::Color::yellow) + mstr::fstr(fstr_content, args...);
+        }
+
+
+        template <class... Ts>
+        mdeprecated(R"(Deprecated. Please replace with macro definition "msgE"(in log.hpp))")
+            inline std::string messageE(const std::string& fstr_content, const Ts... args)
+        {
+            return mstr::color("!!!Error!!! ", mstr::Color::red) + mstr::fstr(fstr_content, args...);
+        }
+
+        template <class... Ts>
+        mdeprecated(R"(Deprecated. Please replace with macro definition "msgN"(in log.hpp))")
+            inline std::string messageN(mstr::Color str_color, const std::string& fstr_content, const Ts... args)
+        {
+            return mstr::color(mstr::fstr(fstr_content, args...), str_color);
         }
     }
 }

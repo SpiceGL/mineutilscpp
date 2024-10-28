@@ -34,8 +34,8 @@ namespace mineutils
                 @return 0代表正常，其他代表失败   */
             int open(const std::string& path, const char& key_value_sep = '=', const std::vector<std::string>& note_signs = { "#", ";" });
 
-            //关闭并保存文件
-            void close();
+            //关闭并保存文件，返回0代表正常，其他代表失败
+            int close();
 
             //通过section和key获取value的值
             std::string getValue(const std::string& section, const std::string& key);
@@ -58,7 +58,7 @@ namespace mineutils
             ~IniFile();
 
             //已废弃
-            inline void MINE_DEPRECATED(R"(Deprecated. Please set note_signs when calling function "IniFile::open"!)") setNoteSigns(std::vector<std::string> note_signs = { "#", ";" });
+            mdeprecated(R"(Deprecated. Please set note_signs when calling function "IniFile::open"!)") inline void setNoteSigns(std::vector<std::string> note_signs = { "#", ";" });
 
         private:
             struct SectionInfo
@@ -80,7 +80,7 @@ namespace mineutils
 
             bool searchSection(const std::string& line, SectionInfo& section_info);
             bool searchKey(const std::string& line, KeyInfo& key_info);
-            void saveContent();
+            int saveContent();
 
             std::string file_path_;
             std::fstream file_;
@@ -92,6 +92,10 @@ namespace mineutils
             std::map<std::string, std::map<std::string, KeyInfo>> key_map_;
         };
     }
+
+
+
+
 
 
 
@@ -199,16 +203,20 @@ namespace mineutils
         }
 
         //关闭并保存
-        inline void IniFile::close()
+        inline int IniFile::close()
         {
             if (this->rwstatus_ == 'w')
-                saveContent();
+            {
+                if (this->saveContent() != 0)
+                    return -1;
+            }
             this->content_list_.clear();
             this->section_map_.clear();
             this->key_map_.clear();
             this->file_.close();
             this->rwstatus_ = 'r';
             this->file_.clear();
+            return 0;
         }
 
         inline std::string IniFile::getValue(const std::string& section, const std::string& key)
@@ -246,7 +254,7 @@ namespace mineutils
                 mprintfE("File not opened!\n");
                 return;
             }
-            rwstatus_ = 'w';
+            this->rwstatus_ = 'w';
             if (this->key_map_.find(section) == this->key_map_.end())
             {
                 if (section.empty())
@@ -378,18 +386,24 @@ namespace mineutils
         }
 
 
-        inline void IniFile::saveContent()
+        inline int IniFile::saveContent()
         {
-            file_.close();
-            file_.open(file_path_, std::ios::binary | std::ios::trunc | std::ios::out);
-            unsigned int i = 0;
+            this->file_.close();
+            this->file_.open(file_path_, std::ios::binary | std::ios::trunc | std::ios::out);
+            if (!this->file_.is_open())
+            {
+                mprintfE("Open %s failed!\n", this->file_path_.c_str());
+                return -1;
+            }
+            size_t i = 0;
             for (auto& content: this->content_list_)
             {
                 if (i < this->content_list_.size() - 1)
-                    file_ << content << "\n";
-                else file_ << content;
+                    this->file_ << content << "\n";
+                else this->file_ << content;
                 i++;
             }
+            return 0;
         }
     }
 }
