@@ -390,8 +390,8 @@ namespace mineutils
             template <class Ret, class ObjType, class... Arguments>
             static Ret checkRet(Ret(ObjType::*)(Arguments...) const volatile);
 
-            template <class Functor, class Ret = decltype(mtype::_FunctionCheckerBase::checkRet(&Functor::operator()))>
-            static Ret checkRet(Functor);
+            template <class Functor, class Ret = decltype(mtype::_FunctionCheckerBase::checkRet(&std::remove_reference<Functor>::type::operator()))>
+            static Ret checkRet(Functor&&);
 
             template <class Ret, class... Arguments>
             static std::tuple<Arguments...> checkArguments(Ret(*)(Arguments...));
@@ -408,11 +408,11 @@ namespace mineutils
             template <class Ret, class ObjType, class... Arguments>
             static std::tuple<Arguments...> checkArguments(Ret(ObjType::*)(Arguments...) const volatile);
 
-            template <class Functor, class ArgumentsTuple = decltype(mtype::_FunctionCheckerBase::checkArguments(&Functor::operator()))>
-            static ArgumentsTuple checkArguments(Functor);
+            template <class Functor, class ArgumentsTuple = decltype(mtype::_FunctionCheckerBase::checkArguments(&std::remove_reference<Functor>::type::operator()))>
+            static ArgumentsTuple checkArguments(Functor&&);
 
-            template<class Fn, class Ret = decltype(mtype::_FunctionCheckerBase::checkRet(std::declval<Fn>()))>
-            static std::true_type checkValidity(Fn);
+            template<class Fn, class Ret = decltype(mtype::_FunctionCheckerBase::checkRet(std::declval<typename std::remove_reference<Fn>::type>()))>
+            static std::true_type checkValidity(Fn&&);
 
             template<class...>
             static std::false_type checkValidity(...);
@@ -474,8 +474,8 @@ namespace mineutils
             template<class... Arguments, typename std::enable_if<(sizeof...(Arguments) == 0), int>::type = 0>
             static std::true_type check(int);
       
-            template<class Argument, class... Arguments, typename std::enable_if<!mtype::ConstructibleFromEachChecker<typename std::remove_reference<Argument>::type, typename std::add_lvalue_reference<Argument>::type, typename mtype::RvalueRefMaker<Argument>::Type>::value, int>::type = 0>
-            static std::false_type check(int);
+            template<class Argument, class... Arguments>
+            static std::false_type check(...);
 
         public:
             static constexpr bool value = decltype(mtype::_EachConstructibleByLRvalueChecker<Args...>::template check<Args...>(0))::value;
@@ -488,10 +488,13 @@ namespace mineutils
         struct _StdBindCheckerBase
         {
         public:
-            template<class Func, class... Arguments, typename std::enable_if<!std::is_member_pointer<Func>::value && (mtype::FuncChecker<Func>::num_args == sizeof...(Arguments)) && mtype::_EachConstructibleByLRvalueChecker<Arguments...>::value, int>::type = 0>
+            template<class Func, class... Arguments, class DecayFunc = typename std::remove_reference<Func>::type, typename std::enable_if<!std::is_class<DecayFunc>::value && !std::is_member_pointer<DecayFunc>::value && (mtype::FuncChecker<Func>::num_args == sizeof...(Arguments)) && mtype::_EachConstructibleByLRvalueChecker<Arguments...>::value, int>::type = 0>
             static std::true_type checkConditionsUnsupportSFINAE(int);
 
-            template<class Func, class... Arguments, typename std::enable_if<std::is_member_pointer<Func>::value && (FuncChecker<Func>::num_args + 1 == sizeof...(Arguments)) && mtype::_EachConstructibleByLRvalueChecker<Arguments...>::value, int>::type = 0>
+            template<class Func, class... Arguments, typename std::enable_if<std::is_class<typename std::remove_reference<Func>::type>::value && (mtype::FuncChecker<Func>::num_args == sizeof...(Arguments)) && mtype::_EachConstructibleByLRvalueChecker<Func, Arguments...>::value, int>::type = 0>
+            static std::true_type checkConditionsUnsupportSFINAE(int);
+
+            template<class Func, class... Arguments, typename std::enable_if<std::is_member_pointer<typename std::remove_reference<Func>::type>::value && (FuncChecker<Func>::num_args + 1 == sizeof...(Arguments)) && mtype::_EachConstructibleByLRvalueChecker<Arguments...>::value, int>::type = 0>
             static std::true_type checkConditionsUnsupportSFINAE(int);
 
             template<class ...>
@@ -507,7 +510,6 @@ namespace mineutils
             template<class...>
             static std::false_type checkValue(...);
         };
-
 
         template <bool Checker, class Fn, class... Args>
         struct _StdBindCheckerHelper
@@ -547,7 +549,6 @@ namespace mineutils
         {
 
         };
-
 
 
         /*  用于判断类型是不是相同类型

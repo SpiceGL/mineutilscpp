@@ -1,4 +1,5 @@
 ﻿//所有函数接口都保证自身线程安全，类接口不保证线程安全。
+//https://github.com/SpiceGL/mineutilscpp
 #pragma once
 #ifndef __STDUTILS__H
 #define __STDUTILS__H

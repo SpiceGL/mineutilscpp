@@ -63,12 +63,13 @@ namespace mineutils
             ThreadPool(int pool_size, long long wakeup_period_ms = 100);
 
             /*  添加一个任务到线程池中并异步执行(会拷贝所有输入用于储存)，该接口线程安全，规则涵盖std::bind的要求且更严格
-                @param func: 任务函数。要求其参数类型不能为右值引用，返回类型必须为void或支持使用自身的右值赋值
-                @param args...: 任务函数的参数。需要左值引用传递的参数必须用std::ref或std::cref显式引用，其他参数的去引用类型必须支持使用自身的左值或右值对象进行构造
+                @param func: 任务函数。要求其参数类型不能为右值引用，返回类型必须为void或支持使用自身的右值赋值。如果Fn是一个函数对象(functor)类型，那么它的去引用类型必须支持使用自身的左值和右值对象进行构造
+                @param args...: 任务函数的参数。需要左值引用传递的参数必须用std::ref或std::cref显式引用，其他参数的去引用类型必须支持使用自身的左值和右值对象进行构造
                 @return 任务结果状态，用于查询任务状态、等待任务结束以及获取任务返回值，注意ThreadPool对象析构后任务状态失效     
                 @用法:
-                - addTask(func, arg1, arg2...)
-                - addTask(&class::func, &class_obj, arg1, arg2...)  */
+                - addTask(function or &function, arg1, arg2...)
+                - addTask(&class::function, &class_obj, arg1, arg2...)
+                - addTask(functor, arg1, arg2...)  */
             template<class Fn, class... Args, class Ret = typename mtype::StdBindChecker<Fn, Args...>::ReturnType, typename std::enable_if<std::is_same<Ret, typename mtype::StdBindChecker<Fn, Args...>::ReturnType>::value && (std::is_void<Ret>::value || std::is_move_assignable<typename std::remove_reference<Ret>::type>::value), int>::type = 0>
             TaskRetState<Ret> addTask(Fn&& func, Args&&... args);
 
