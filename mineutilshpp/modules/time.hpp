@@ -48,16 +48,16 @@ namespace mineutils
         long long ns(const mtime::Duration& t);
 
         //进程休眠(秒)
-        void sleep(unsigned long t);
+        void sleep(long long t);
 
         //进程休眠(毫秒)
-        void msleep(unsigned long t);
+        void msleep(long long t);
 
         //进程休眠(微秒)
-        void usleep(unsigned long t);
+        void usleep(long long t);
 
         //进程休眠(纳秒)
-        void nsleep(unsigned long t);
+        void nsleep(long long t);
 
         //只有开启时TimeCounter系列类的统计功能才生效，默认为开启状态
         void setGlobalTimeCounterOn(bool glob_timecounter_on);
@@ -109,10 +109,30 @@ namespace mineutils
         };
 
 
+
         //用于分别统计多个代码段的在一定循环次数的平均消耗时间，非线程安全
         //调用addStart和addEnd会带来少量时间损耗(在rv1126上约为12微秒)
         class MultiMeanTimeCounter
         {
+        private:
+            class LocalObj
+            {
+            public:
+                LocalObj(LocalObj&& tmp) noexcept;
+                ~LocalObj();
+                LocalObj(const LocalObj& tmp) = delete;
+                LocalObj& operator=(LocalObj&& tmp) = delete;
+                LocalObj& operator=(const LocalObj& tmp) = delete;
+
+            private:
+                LocalObj(MultiMeanTimeCounter* self, std::string& codeblock_tag);
+
+                MultiMeanTimeCounter* self_ = nullptr;
+                std::string codeblock_tag_;
+
+                friend MultiMeanTimeCounter;
+            };
+
         public:
             MultiMeanTimeCounter() {}
             /*  构造MultiMeanTimeCounter类
@@ -127,6 +147,12 @@ namespace mineutils
             /*  本轮统计结束，应在目标统计代码段后调用，与段前addStart成对出现
                 @param codeblock_tag: 要统计的代码段的tag   */
             void addEnd(const std::string& codeblock_tag);
+
+            /*  使用RAII方式记录一段代码的耗时
+                - 用法：auto tmp = addLocal("codeblock_tag")
+                @param codeblock_tag: 要统计的代码段的tag
+                @return 一个私有类LocalObj对象，只能用auto推导；在返回时记录开始时间，在被析构时记录结束时间  */
+            LocalObj addLocal(std::string codeblock_tag);
 
             /*  在codeblock_tag代码段达到目标统计次数后输出平均消耗时间，并重新开始统计此段代码
                 @param codeblock_tag: 输出信息中被统计代码段的tag
@@ -151,6 +177,8 @@ namespace mineutils
             void printAllMeanTimeCost(const std::string& print_head, mtime::Unit time_unit = mtime::Unit::ms);
 
         private:
+
+
             int target_count_times_ = 1;
             std::map<std::string, MeanTimeCounter> time_counter_;
             std::vector<std::string> keys_;
@@ -186,11 +214,11 @@ namespace mineutils
             mtime::Unit time_unit_;
         };
 
-        //控制代码段的时间消耗不低于设定时间
+        //控制代码段的时间消耗不低于设定时间，单位越小精度越高
         class LocalTimeController
         {
         public:
-            LocalTimeController(unsigned long target_time, mtime::Unit time_unit = mtime::Unit::ms);
+            LocalTimeController(long long target_time, mtime::Unit time_unit = mtime::Unit::ms);
             LocalTimeController(const LocalTimeController& _temp) = delete;
             LocalTimeController& operator=(const LocalTimeController& _temp) = delete;
             ~LocalTimeController();
@@ -256,25 +284,25 @@ namespace mineutils
         }
 
         //进程休眠(秒)
-        inline void sleep(unsigned long t)
+        inline void sleep(long long t)
         {
             std::this_thread::sleep_for(std::chrono::seconds(t));
         }
 
         //进程休眠(毫秒)
-        inline void msleep(unsigned long t)
+        inline void msleep(long long t)
         {
             std::this_thread::sleep_for(std::chrono::milliseconds(t));
         }
 
         //进程休眠(微秒)
-        inline void usleep(unsigned long t)
+        inline void usleep(long long t)
         {
             std::this_thread::sleep_for(std::chrono::microseconds(t));
         }
 
         //进程休眠(纳秒)
-        inline void nsleep(unsigned long t)
+        inline void nsleep(long long t)
         {
             std::this_thread::sleep_for(std::chrono::nanoseconds(t));
         }
@@ -390,6 +418,26 @@ namespace mineutils
             this->time_cost_ = mtime::Duration(0);
         }
 
+        inline MultiMeanTimeCounter::LocalObj::LocalObj(LocalObj&& tmp) noexcept
+        {
+            this->codeblock_tag_ = std::move(tmp.codeblock_tag_);
+            this->self_ = tmp.self_;
+            tmp.self_ = nullptr;
+        }
+
+        inline MultiMeanTimeCounter::LocalObj::~LocalObj()
+        {
+            if (this->self_)
+                this->self_->addEnd(this->codeblock_tag_);
+        }
+
+        inline MultiMeanTimeCounter::LocalObj::LocalObj(MultiMeanTimeCounter* self, std::string& codeblock_tag)
+        {
+            self->addStart(codeblock_tag);
+            this->self_ = self;
+            this->codeblock_tag_ = std::move(codeblock_tag);
+        }
+
 
         inline MultiMeanTimeCounter::MultiMeanTimeCounter(int target_count_times, bool time_counter_on)
         {
@@ -421,6 +469,12 @@ namespace mineutils
                 }
                 this->time_counter_[codeblock_tag].addEnd();
             }
+        }
+
+        inline MultiMeanTimeCounter::LocalObj MultiMeanTimeCounter::addLocal(std::string codeblock_tag)
+        {
+            LocalObj tmp(this, codeblock_tag);
+            return tmp;
         }
 
         inline long long MultiMeanTimeCounter::printMeanTimeCost(const std::string& codeblock_tag, mtime::Unit time_unit)
@@ -494,7 +548,7 @@ namespace mineutils
             }
         }
 
-        inline LocalTimeController::LocalTimeController(unsigned long target_time, mtime::Unit time_unit)
+        inline LocalTimeController::LocalTimeController(long long target_time, mtime::Unit time_unit)
         {
             this->start_t_ = mtime::now();
             this->target_time_ = target_time;
@@ -507,26 +561,22 @@ namespace mineutils
             if (this->time_unit_ == mtime::Unit::s)
             {
                 long long need_sleep = this->target_time_ - mtime::s(this->end_t_ - this->start_t_);
-                if (need_sleep >= 1)
-                    mtime::sleep(need_sleep);
+                mtime::sleep(need_sleep);
             }
             else if (this->time_unit_ == mtime::Unit::ms)
             {
                 long long need_sleep = this->target_time_ - mtime::ms(this->end_t_ - this->start_t_);
-                if (need_sleep >= 1)
-                    mtime::msleep(need_sleep);
+                mtime::msleep(need_sleep);
             }
             else if (this->time_unit_ == mtime::Unit::us)
             {
                 long long need_sleep = this->target_time_ - mtime::us(this->end_t_ - this->start_t_);
-                if (need_sleep >= 1)
-                    mtime::usleep(need_sleep);
+                mtime::usleep(need_sleep);
             }
             else if (this->time_unit_ == mtime::Unit::ns)
             {
                 long long need_sleep = this->target_time_ - mtime::ns(this->end_t_ - this->start_t_);
-                if (need_sleep >= 1)
-                    mtime::nsleep(need_sleep);
+                mtime::nsleep(need_sleep);
             }
         }
     }

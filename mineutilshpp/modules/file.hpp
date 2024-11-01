@@ -34,7 +34,7 @@ namespace mineutils
                 @return 0代表正常，其他代表失败   */
             int open(const std::string& path, const char& key_value_sep = '=', const std::vector<std::string>& note_signs = { "#", ";" });
 
-            //关闭并保存文件，返回0代表正常，其他代表失败
+            //关闭并保存文件，文件已关闭也能close；返回0代表正常，其他代表失败
             int close();
 
             //通过section和key获取value的值
@@ -43,11 +43,11 @@ namespace mineutils
             //通过key获取value的值，只能获取无section的key-value条目
             std::string getValue(const std::string& key);
 
-            //设置和添加key-value条目
+            //设置和添加key-value条目，value可以是任意正确支持operator<<的类型
             template<class T, typename std::enable_if<mtype::StdCoutChecker<T>::value, int>::type = 0>
             void setValue(const std::string& section, const std::string& key, const T& value);
 
-            //设置和添加无section的key-value条目
+            //设置和添加无section的key-value条目，value可以是任意正确支持operator<<的类型
             template<class T, typename std::enable_if<mtype::StdCoutChecker<T>::value, int>::type = 0>
             void setValue(const std::string& key, const T& value);
 
@@ -205,7 +205,7 @@ namespace mineutils
         //关闭并保存
         inline int IniFile::close()
         {
-            if (this->rwstatus_ == 'w')
+            if (this->rwstatus_ == 'w' && this->file_.is_open())
             {
                 if (this->saveContent() != 0)
                     return -1;
