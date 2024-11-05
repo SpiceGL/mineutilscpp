@@ -62,14 +62,16 @@ namespace mineutils
                 @param wakeup_period_ms: 定时唤醒工作线程执行任务的周期，单位毫秒，不小于1   */
             ThreadPool(int pool_size, long long wakeup_period_ms = 100);
 
-            /*  添加一个任务到线程池中并异步执行(会拷贝所有输入用于储存)，规则涵盖std::bind的要求且更严格；线程安全
-                @param func: 任务函数。要求其参数类型不能为右值引用，返回类型必须为void或支持使用自身的右值赋值。如果Fn是一个函数对象(functor)类型，那么它的去引用类型必须支持使用自身的左值和右值对象进行构造
-                @param args...: 任务函数的参数。需要左值引用传递的参数必须用std::ref或std::cref显式引用，其他参数的去引用类型必须支持使用自身的左值和右值对象进行构造
-                @return 任务结果状态，用于查询任务状态、等待任务结束以及获取任务返回值，注意ThreadPool对象析构后任务状态失效     
-                @用法:
-                - addTask(function or &function, arg1, arg2...)
-                - addTask(&class::function, &class_obj, arg1, arg2...)
-                - addTask(functor, arg1, arg2...)  */
+            /*  添加一个任务到线程池中并异步执行(会拷贝所有输入用于储存)，规则涵盖std::bind的要求且更严格；线程安全     
+                推荐用法:
+                - addTask(function or &function, args...)
+                - addTask(&class::mem_function, &class_obj, args...)
+                - addTask(&class::static_mem_function, args...)
+                - addTask(functor or std::ref(functor), args...)  
+                注意事项：在QNX的gcc4.7.3上，由于C++11特性支持不全，可能出现
+                @param func: 任务函数。要求其参数类型不能为右值引用，返回类型必须为void或支持使用自身的右值赋值；如果Fn是一个函数对象(functor)类型，那么它的去引用类型必须支持使用自身的左值和右值对象进行构造，且不是volatile类型；func如果是成员函数或仿函数，它要保证要调用的函数的cv限定符与对象一致
+                @param args...: 任务函数的参数。需要左值引用传递的参数必须用std::ref或std::cref显式引用否则实际为值传递，其他参数的去引用类型必须支持使用自身的左值和右值对象进行构造
+                @return 任务结果状态，用于查询任务状态、等待任务结束以及获取任务返回值，注意ThreadPool对象析构后任务状态失效  */
             template<class Fn, class... Args, class Ret = typename mtype::StdBindChecker<Fn, Args...>::ReturnType, typename std::enable_if<std::is_same<Ret, typename mtype::StdBindChecker<Fn, Args...>::ReturnType>::value && (std::is_void<Ret>::value || std::is_move_assignable<typename std::remove_reference<Ret>::type>::value), int>::type = 0>
             TaskRetState<Ret> addTask(Fn&& func, Args&&... args);
 

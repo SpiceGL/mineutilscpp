@@ -186,6 +186,9 @@ namespace mineutils
         template<class KeyT, class VT, class... Ts>
         void _print(const std::unordered_multimap<KeyT, VT, Ts...>& m);
 
+        template<template<class KeyT, class VT, class... Ts> class CTer, class KeyT, class VT, class... Ts>
+        void _printMap(const CTer<KeyT, VT, Ts...>& m);
+
         //template<class T, class... Ts>
         //void _print(const std::forward_list<T, Ts...>& l);
 
@@ -205,17 +208,9 @@ namespace mineutils
         template<size_t Idx, class... Ts>
         void _printTuple(const std::tuple<Ts...>& tp, const int& size_tp, std::false_type bool_tag);
 
-        template<template<class KeyT, class VT, class... Ts> class CTer, class KeyT, class VT, class... Ts>
-        void _printMap(const CTer<KeyT, VT, Ts...>& m);
 
         template<template<class U, class... Us> class CTer, class T, class... Ts, typename std::enable_if<mtype::StdBeginEndChecker<const CTer<T, Ts...>>::value, int>::type = 0>
         void _print(const CTer<T, Ts...>& cter);
-
-        template<class T, typename std::enable_if<mtype::StdCoutChecker<const T>::value && !mtype::FuncChecker<const T>::value, int>::type = 0>
-        void _print(const T& arg);
-
-        template<class T, typename std::enable_if<!mtype::StdCoutChecker<const T>::value || mtype::FuncChecker<const T>::value,  int>::type = 0>
-        void _print(const T& arg);
 
         template<class T, int N>
         void _print(const T(&arr)[N]);
@@ -225,6 +220,12 @@ namespace mineutils
         void _print(const cv::MatExpr& img);
 
         void _print(const ncnn::Mat& m);
+
+        template<class T, typename std::enable_if<mtype::StdCoutChecker<const T>::value, int>::type = 0>
+        void _print(const T& arg);
+
+        template<class T, typename std::enable_if<!mtype::StdCoutChecker<const T>::value, int>::type = 0>
+        void _print(const T& arg);
 
 
         inline std::mutex& _getPrintMtx()
@@ -458,29 +459,6 @@ namespace mineutils
             std::cout << str;
         }
 
-        //为print函数拓展其他支持std::cout<<且不是函数指针的类型
-        template<class T, typename std::enable_if<mtype::StdCoutChecker<const T>::value && !mtype::FuncChecker<const T>::value, int>::type>
-        inline void _print(const T& arg)
-        {
-            //std::cout << "test: "<< mtype::isInTypes<T, const char*>() << "\n";
-            //if (mtype::isInTypes<T, char*, const char*>())
-            //    std::cout << "\"" << arg << "\"";
-            //else if (mtype::isInTypes<T, char>())
-            //    std::cout << "\'" << arg << "\'";
-            //else std::cout << arg;
-            std::cout << arg;
-        }
-
-        //为print函数拓展其他不支持std::cout<<或属于函数指针的类型
-        template<class T, typename std::enable_if<!mtype::StdCoutChecker<const T>::value || mtype::FuncChecker<const T>::value, int>::type>
-        inline void _print(const T& arg)
-        {
-#ifdef __GNUC__
-            std::cout << "<" << mtypename(T) << ": " << std::hex << &arg << std::dec << ">";
-#else
-            std::cout << "<" << mtypename(T) << ": 0x" << std::hex << &arg << std::dec << ">";
-#endif // __GNUC__
-        }
 
         //为print函数添加对数组类型的支持
         template<class T, int N>
@@ -500,6 +478,26 @@ namespace mineutils
                 mio::_print(arr[N - 1]);
                 std::cout << "}";
             }
+        }
+
+        //为print函数拓展其他支持std::cout<<且不是函数指针的类型
+        template<class T, typename std::enable_if<mtype::StdCoutChecker<const T>::value, int>::type>
+        inline void _print(const T& arg)
+        {
+            if (std::is_function<typename std::remove_pointer<const T>::type>::value || std::is_member_function_pointer<const T>::value)
+                std::cout << mtype::getTypeName<T>();
+            else std::cout << arg;
+        }
+
+        //为print函数拓展其他不支持std::cout<<或属于函数指针的类型
+        template<class T, typename std::enable_if<!mtype::StdCoutChecker<const T>::value, int>::type>
+        inline void _print(const T& arg)
+        {
+#ifdef __GNUC__
+            std::cout << "<" << mtype::getTypeName<T>() << ": " << std::hex << &arg << std::dec << ">";
+#else
+            std::cout << "<" << mtype::getTypeName<T>() << ": 0x" << std::hex << &arg << std::dec << ">";
+#endif // __GNUC__
         }
 
 
@@ -775,6 +773,7 @@ namespace mineutils
 #ifdef MINEUTILS_TEST_MODULES
     namespace _miocheck
     {
+        void inline func1(int) {}
         inline void printTest()
         {
             std::unordered_multimap<int, float> m1 = { {0, 0.1}, {0, 1.1} };
@@ -786,6 +785,8 @@ namespace mineutils
             std::initializer_list<int> initl({ 1, 2, 3 });
             printf("User check! Expected output: {0:0.1, 0:1.1} {5, 6, 7, 8, 8, 7, 6} {6.1, 5.3, 5.1} {3.3, 2.2, 1.1} {{1.1, 2.2, 3.3}, {1.1, 2.2, 3.3}} {1, 2, 3} {1, 2, 3}\n");
             mio::print("              Actual output:", m1, list1, std::stack<float>({5.1, 5.3, 6.1}), qe2, vecvec, fl, initl);
+            printf("User check! Expected output: void (int) \n");
+            mio::print(func1);
         }
 
 
@@ -811,6 +812,7 @@ namespace mineutils
                 { {"-b1", "--BB1", "bool switch1"}, {"-b2", "", "bool switch2"}, {"", "--BB3", "bool switch3"}, {"-b4", "--BB4", "bool switch4"} },
                 { {"-a1", "--AA1", "value1", "111"}, {"-a2", "--AA2", "value2", "222"}, {"-a3", "--AA3", "value3", "333"}, {"-a4", "--AA4", "value4", ""} });
 
+            static_assert(mtype::StdBindChecker<int, int>::value == false, "assert failed!");
             printf("%s ArgumentParser::init:%d.\n", ret0 == 0 ? "Passed." : "Failed!", ret0);
 
             bool ret1 = parser.getParsedBoolOpt("-b1");
