@@ -97,7 +97,7 @@ namespace mineutils
         class ArgumentParser
         {
         public:
-            ArgumentParser() = default;
+            ArgumentParser();
 
             /*  解析main函数接收的参数
                 @param boolopts_preset: 预设的布尔选项参数，格式为{{"-shortflag", "--longflag", "description"}, ...}，短标志和长标志至少需要给出一个
@@ -221,7 +221,11 @@ namespace mineutils
 
         void _print(const ncnn::Mat& m);
 
-        template<class T, typename std::enable_if<mtype::StdCoutChecker<const T>::value, int>::type = 0>
+        //为print函数添加对函数及函数指针的支持
+        template<class T, typename std::enable_if<mtype::StdCoutChecker<const T>::value && (std::is_function<typename std::remove_pointer<const T>::type>::value || std::is_member_function_pointer<const T>::value), int>::type = 0>
+        void _print(const T& arg);
+
+        template<class T, typename std::enable_if<mtype::StdCoutChecker<const T>::value && !(std::is_function<typename std::remove_pointer<const T>::type>::value || std::is_member_function_pointer<const T>::value), int>::type = 0>
         void _print(const T& arg);
 
         template<class T, typename std::enable_if<!mtype::StdCoutChecker<const T>::value, int>::type = 0>
@@ -480,13 +484,18 @@ namespace mineutils
             }
         }
 
-        //为print函数拓展其他支持std::cout<<且不是函数指针的类型
-        template<class T, typename std::enable_if<mtype::StdCoutChecker<const T>::value, int>::type>
+        //为print函数添加对函数及函数指针的支持
+        template<class T, typename std::enable_if<mtype::StdCoutChecker<const T>::value && (std::is_function<typename std::remove_pointer<const T>::type>::value || std::is_member_function_pointer<const T>::value), int>::type>
         inline void _print(const T& arg)
         {
-            if (std::is_function<typename std::remove_pointer<const T>::type>::value || std::is_member_function_pointer<const T>::value)
-                std::cout << mtype::getTypeName<T>();
-            else std::cout << arg;
+            std::cout << mtype::getTypeName<T>();
+        }
+
+        //为print函数拓展其他支持std::cout<<且不是函数指针的类型
+        template<class T, typename std::enable_if<mtype::StdCoutChecker<const T>::value && !(std::is_function<typename std::remove_pointer<const T>::type>::value || std::is_member_function_pointer<const T>::value), int>::type>
+        inline void _print(const T& arg)
+        {
+            std::cout << arg;
         }
 
         //为print函数拓展其他不支持std::cout<<或属于函数指针的类型
@@ -536,6 +545,12 @@ namespace mineutils
             return this->data_[id];
         }
 
+        inline ArgumentParser::ArgumentParser()
+        {
+            this->max_boolopt_size_ = 0;
+            this->max_valueopt_size_ = 0;
+        }
+
         inline int ArgumentParser::parse(int argc, char* argv[], std::vector<BooleanOption> boolopts_preset, std::vector<ValueOption> valueopts_preset)
         {
             if (!this->checkPresetsAreValid(boolopts_preset, valueopts_preset))
@@ -548,7 +563,6 @@ namespace mineutils
             std::unordered_map<std::string, int*> boolop_keys;   //存放布尔开关的键
             boolop_keys.reserve(this->boolopts_preset_.size() * 2);
 
-            this->max_boolopt_size_ = 0;
             for (auto& boolop : this->boolopts_preset_)
             {
                 boolop_values.push_back(0);
@@ -566,7 +580,6 @@ namespace mineutils
             std::unordered_map<std::string, std::string*> valueop_keys;
             valueop_keys.reserve(this->valueopts_preset_.size() * 2);
 
-            this->max_valueopt_size_ = 0;
             for (auto& valueop : this->valueopts_preset_)
             {
                 valueop_values.push_back(valueop[3]);

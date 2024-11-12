@@ -68,35 +68,35 @@ namespace mineutils
     {
         inline std::string& _getFstrN()
         {
-            static std::string warning_message("\"{}\": ");
+            static std::string warning_message(R"("{}": )");
             return warning_message;
         }
 
         inline std::string& _getFstrW()
         {
-            static std::string warning_message("!Warning! \"{}\"[{}](line {}): ");
+            static std::string warning_message(R"(!Warning! "{}"[{}](line {}): )");
             return warning_message;
         }
         inline std::string& _getFstrE()
         {
-            static std::string error_message("!!!Error!!! \"{}\"[{}](line {}): ");
+            static std::string error_message(R"(!!!Error!!! \{}\[{}](line {}): )");
             return error_message;
         }
 
         inline std::string& _getFmtN()
         {
-            static std::string warning_message("\"%s\": ");
+            static std::string warning_message(R"("%s": )");
             return warning_message;
         }
 
         inline std::string& _getFmtW()
         {
-            static std::string warning_message("!Warning! \"%s\"[%s](line %d): ");
+            static std::string warning_message(R"(!Warning! "%s"[%s](line %d): )");
             return warning_message;
         }
         inline std::string& _getFmtE()
         {
-            static std::string error_message("!!!Error!!! \"%s\"[%s](line %d): ");
+            static std::string error_message(R"(!!!Error!!! "%s"[%s](line %d): )");
             return error_message;
         }
 

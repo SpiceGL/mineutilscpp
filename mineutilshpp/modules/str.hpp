@@ -43,7 +43,7 @@ namespace mineutils
         template<class T, typename std::enable_if<std::is_integral<T>::value, int>::type = 0>
         std::string toOrdinal(T number);
 
-        //将输入直接转换为字符串
+        //将输入直接转换为字符串，要求参数支持std::cout<<操作
         template<class T, typename std::enable_if<mtype::StdCoutChecker<const T&>::value, int>::type = 0>
         std::string toStr(const T& arg);
 

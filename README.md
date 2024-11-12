@@ -8,8 +8,8 @@
 - 更新规则：更新遵循大版本号删改接口，中版本号添加新功能接口，小版本号修复和优化的原则，保证大版本内的向下兼容性。  
 
 ## 版本信息
-当前库版本：1.11.1   
-文档注释修改日期：20241105     
+当前库版本：1.11.2   
+文档注释修改日期：20241112     
 
 ## 测试平台
 **Windows:**  
@@ -364,6 +364,13 @@ int main()
 ```  
 
 ## 版本发布日志
+**v1.11.2**  
+* 20241112  
+1. mthread::ThreadPauser少量性能优化；
+2. mthread::TaskRetState改用std::shared_future来实现，以便多次get；  
+3. mio::print消除打印函数时的警告；  
+4. mio::ArgumentParser少量逻辑优化。   
+
 **v1.11.1**  
 * 20241105  
 1. mtype::StdBindChecker可以更准确地处理具有多个operator()重载的仿函数以及std::ref包装的函数和仿函数了，因此mthread::ThreadPool::addTask得到同样的优化；  

@@ -476,10 +476,7 @@ namespace mineutils
         template <class Fn, class... Args>
         struct _FunctorBindChecker
         {
-            //此处仍然存在风险：在gcc4.7.3这个C++特性支持不完全的编译器上，如果用户自行实现了类似std::reference_wrapper的模板类，即user_reference_wrapper<Func>中Func的cv限定符和实际调用的operator()不匹配产生的编译错误而非SFINAE
-            //template <class Func, class... Arguments, typename std::enable_if<std::is_class<typename std::remove_reference<Func>::type>::value, int>::type = 0, class Ret = decltype(std::declval<Func>()(std::declval<typename std::add_lvalue_reference<Arguments>::type>()...))>
-            //static std::true_type check(int);
-
+            //此处仍然存在风险：在gcc4.7.3这个C++特性支持不完全的编译器上，如果用户自行实现了类似std::reference_wrapper的模板类，即user_reference_wrapper<Func>，其中Func的cv限定符和实际调用的operator()不匹配会产生编译错误而非触发SFINAE
             template <class Func, class... Arguments, typename std::enable_if<std::is_class<typename std::remove_reference<Func>::type>::value, int>::type = 0, class Ret = decltype(std::declval<Func>()(std::declval<typename std::add_lvalue_reference<Arguments>::type>()...))>
             static std::true_type check(int);
 
