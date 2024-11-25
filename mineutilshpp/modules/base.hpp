@@ -13,9 +13,9 @@
 #include<type_traits>
 
 #define MINEUTILS_MAJOR_VERSION "1"   //主版本号，对应不向下兼容的API或文件改动
-#define MINEUTILS_MINOR_VERSION "11"   //次版本号，对应不影响现有API使用的新功能增加
-#define MINEUTILS_PATCH_VERSION "2"   //修订版本号，对应不改变API的BUG修复或效能优化
-#define MINEUTILS_DATE_VERSION "20241112-release"   //日期版本号，对应文档和注释级别的改动和测试阶段
+#define MINEUTILS_MINOR_VERSION "12"   //次版本号，对应不影响现有API使用的新功能增加
+#define MINEUTILS_PATCH_VERSION "0"   //修订版本号，对应不改变API的BUG修复或效能优化
+#define MINEUTILS_DATE_VERSION "20241125-release"   //日期版本号，对应文档和注释级别的改动和测试阶段
 #ifdef __GNUC__ 
 #include<cxxabi.h>
 #endif
@@ -37,10 +37,11 @@
 #define munlikely(condition) (condition)
 #endif 
 
+//在不支持thread_local的编译器中，仅相当于普通变量，没有线程内只有一份实例的作用
 #if defined(__GNUC__) && (__GNUC__ < 5 && __GNUC_MINOR__ < 8)  //for qnx660
-#define MINE_THREAD_LOCAL
+#define MINE_THREAD_LOCAL_IF_HAVE
 #else 
-#define MINE_THREAD_LOCAL thread_local   //在不支持thread_local的编译器中，仅相当于普通变量，没有线程内只有一份实例的作用
+#define MINE_THREAD_LOCAL_IF_HAVE thread_local   
 #endif 
 
 
@@ -72,25 +73,25 @@ namespace mineutils
 
     namespace mbase
     {
+
         inline volatile char* _keepVersionString()
         {
-            static volatile char MINEUTILS_VERSION[64] = "mineutils version: " MINEUTILS_MAJOR_VERSION "." MINEUTILS_MINOR_VERSION "." MINEUTILS_PATCH_VERSION "-" MINEUTILS_DATE_VERSION;
+            static volatile char MINEUTILS_VERSION[64] = "using mineutils version: " MINEUTILS_MAJOR_VERSION "." MINEUTILS_MINOR_VERSION "." MINEUTILS_PATCH_VERSION "-" MINEUTILS_DATE_VERSION;
             return MINEUTILS_VERSION;
         }
         static volatile char* _tmp_keepVersionString = mbase::_keepVersionString();
 
         inline std::string getVersion()
         {
-            std::string MINEUTILS_VERSION = "mineutils-" MINEUTILS_MAJOR_VERSION "." MINEUTILS_MINOR_VERSION "." MINEUTILS_PATCH_VERSION "-" MINEUTILS_DATE_VERSION;
-            return MINEUTILS_VERSION;
+            return "mineutils-" MINEUTILS_MAJOR_VERSION "." MINEUTILS_MINOR_VERSION "." MINEUTILS_PATCH_VERSION "-" MINEUTILS_DATE_VERSION;
         }
 
         inline int printVersion(const std::string& project_name)
         {
-            std::string MINEUTILS_VERSION = mbase::getVersion();
+            const char ver[] = "mineutils-" MINEUTILS_MAJOR_VERSION "." MINEUTILS_MINOR_VERSION "." MINEUTILS_PATCH_VERSION "-" MINEUTILS_DATE_VERSION;
             std::string sep_line;
-            sep_line.resize(MINEUTILS_VERSION.size() + project_name.size() + 7, '-');
-            return printf("%s\n%s using %s\n%s\n", sep_line.c_str(), project_name.c_str(), MINEUTILS_VERSION.c_str(), sep_line.c_str());
+            sep_line.resize(sizeof(ver) + project_name.size() + 6, '-');
+            return printf("%s\n%s using %s\n%s\n", sep_line.c_str(), project_name.c_str(), ver, sep_line.c_str());
         }
 
 
@@ -160,6 +161,8 @@ namespace mineutils
 #endif
 }
 
+//已废弃
+#define MINE_THREAD_LOCAL 
 #define MINE_DEPRECATED mdeprecated  //已废弃
 
 #endif // !BASE_HPP_MINEUTILS

@@ -1,15 +1,15 @@
 # mineutilscpp
 ## 描述
 * 开发目的：C++的便利功能封装，用于方便自己编程和锻炼代码规范意识，文本使用UTF8-SIG编码。   
-+ 开发原则：代码基于C++11标准，优先保证功能实现；在实现功能的基础上，尽量减少接口，减少接口函数的重载；在不增加接口的前提下，尽可能优化性能；尽可能保证模板接口的类型检查能在接口处排除所有不支持的类型。
++ 开发原则：代码基于C++11标准，开发优先级大致为：功能实现 > 类型检查 > 接口简洁 > 性能优化 > 可读性。
 - 命名空间：除宏外所有功能都在mineutils下，同时根据所属模块分布在次级的命名空间，如mineutils::mstr；基于第三方库的功能统一在mineutils::mext下。
 * 命名风格：类命名一律大驼峰；函数命名一律小驼峰；对象式宏统一大写，以MINE_作为前缀；函数式宏统一小驼峰命名，以m为前缀。
 + 线程安全：所有非成员函数接口都保证自身线程安全；成员函数接口除非明确说明。否则不保证线程安全。   
 - 更新规则：更新遵循大版本号删改接口，中版本号添加新功能接口，小版本号修复和优化的原则，保证大版本内的向下兼容性。  
 
 ## 版本信息
-当前库版本：1.11.2   
-文档注释修改日期：20241112     
+当前库版本：1.12.0   
+文档注释修改日期：20241125     
 
 ## 测试平台
 **Windows:**  
@@ -363,7 +363,16 @@ int main()
 }
 ```  
 
-## 版本发布日志
+## 版本更新日志
+**v1.12.0**  
+* 20241125  
+1. mpath下添加isFileMatchExts函数，并将isImage和isVideo函数标记为废弃；
+2. mthread::ThreadPauser添加一个setPausePoint的新重载，并优化逻辑和性能；  
+3. mthread::ThreadPool简化实现，优化性能，添加一个新的构造函数，并将带wakeup_period_ms参数的构造函数标记为废弃；
+4. mio::ArgumentParser少量优化printPresetOptions和printParsedOptions打印的格式； 
+5. mtime::TimePoint将对high_resolution_clock的依赖替换为对steady_clock的依赖；   
+6. 宏定义MINE_THREAD_LOCAL更名为MINE_THREAD_LOCAL_IF_HAVE，原命名废弃。  
+
 **v1.11.2**  
 * 20241112  
 1. mthread::ThreadPauser少量性能优化；

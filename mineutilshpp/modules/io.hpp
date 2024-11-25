@@ -23,31 +23,13 @@
 
 #ifdef __GNUC__ 
 #include<cxxabi.h>
-#else
-#include<typeinfo>
 #endif
+#include<typeinfo>
 
 #include"base.hpp"
 #include"type.hpp"
 #include"math.hpp"
 #include"log.hpp"
-
-
-#ifndef OPENCV_CORE_HPP
-namespace cv
-{
-    class Mat;
-    class MatExpr;
-}
-#endif
-
-#ifndef NCNN_NET_H
-namespace ncnn
-{
-    class Mat;
-}
-#endif // !NCNN_NET_H
-
 
 
 namespace mineutils
@@ -57,14 +39,14 @@ namespace mineutils
     namespace mio
     {
         /*  实现类似Python的print打印功能，基于std::cout
-            -可以接受任意数量、任意类型的参数
-            -可以正常打印任意支持std::cout<<的内置数据类型
-            -可以正常打印正确重载了operator<<的自定义类型
-            -拓展了STL容器的打印
-            -拓展了OpenCV、NCNN的部分数据类型的打印(需要导入cv.hpp及ncnn.hpp模块)
-            -注意wchar_t、char16_t等宽字符型打印会乱码(宽字符型本身不支持std::cout)
-            -未支持的类型将会打印<类型名: 地址>
-            -在不混用print函数和std::cout时，线程安全  */
+            - 可以接受任意数量、任意类型的参数
+            - 可以正常打印任意支持std::cout<<的内置数据类型
+            - 可以正常打印正确重载了operator<<(std::ostream&, const T&)的自定义类型
+            - 拓展了STL容器的打印
+            - 拓展了OpenCV、NCNN的部分数据类型的打印(需要导入cv.hpp及ncnn.hpp模块)
+            - 注意wchar_t、char16_t等宽字符型打印会乱码(宽字符型本身不支持std::cout)
+            - 未支持的类型将会打印<类型名: 地址>
+            - 在不混用print函数和std::cout时，线程安全  */
         template<class T, class... Args>
         void print(const T& arg, const Args&... args);
 
@@ -101,7 +83,7 @@ namespace mineutils
 
             /*  解析main函数接收的参数
                 @param boolopts_preset: 预设的布尔选项参数，格式为{{"-shortflag", "--longflag", "description"}, ...}，短标志和长标志至少需要给出一个
-                @param valueopts_preset: 预设的值选项参数，格式为{{"-shortflag", "--longflag", "description", "default value"}, ...}，短标志和长标志至少需要给出一个
+                @param valueopts_preset: 预设的值选项参数，格式为{{"-shortflag", "--longflag", "description", "default value"}, ...}，短标志和长标志至少需要给出一个，默认值可以为空
                 @return 0代表成功，其他代表失败   */
             int parse(int argc, char* argv[], std::vector<BooleanOption> boolopts_preset, std::vector<ValueOption> valueopts_preset);
 
@@ -111,23 +93,23 @@ namespace mineutils
             //获取解析的参数中指定的值选项flag的值，如果未指定则获得预设的默认值，注意flag必须带有"-"，即"-a"或"--arg"形式
             std::string getParsedValueOpt(const std::string& flag);
 
-            /*  按一定格式打印预设的选项与描述，打印的格式如下：
+            /*  按一定格式打印预设的选项与描述
                 Preset Boolean Options:
-                    -shortflag --longflag  Description: description.
+                    -shortflag  --longflag    DESCRIPTION: description
                     ...
                 Preset Value Options:
-                    -shortflag --longflag  Description: description. Default value: default value.
+                    -shortflag  --longflag    DESCRIPTION: description    DEFAULT VALUE: default value
+                    -shortflag  --longflag    DESCRIPTION: description    REQUIRED
                     ...                                                             */
             void printPresetOptions();
 
             /*  按一定格式打印解析后的选项值
-                Parsed Boolean Options:
-                    -shortflag --longflag  Parsed boolean value: True.
-                    -shortflag --longflag  Parsed boolean value: False.
+                    -shortflag  --longflag    Parsed boolean value: true
+                    -shortflag  --longflag    Parsed boolean value: false
                     ...
                 Parsed Value Options:
-                    -shortflag --longflag  Parsed value: parsed value.
-                    -shortflag --longflag  No value!
+                    -shortflag  --longflag    Parsed value: parsed value
+                    -shortflag  --longflag    No value parsed!
                     ...                                                             */
             void printParsedOptions();
 
@@ -148,12 +130,26 @@ namespace mineutils
         };
     }
 
+}
+
+#ifndef OPENCV_CORE_HPP
+namespace cv
+{
+    class Mat;
+    class MatExpr;
+}
+#endif
+
+#ifndef NCNN_NET_H
+namespace ncnn
+{
+    class Mat;
+}
+#endif // !NCNN_NET_H
 
 
-
-
-
-
+namespace mineutils
+{
     /*--------------------------------------------内部实现--------------------------------------------*/
 
     namespace mio
@@ -642,9 +638,9 @@ namespace mineutils
                 std::string flag_part;
                 if (boolop[0].empty() || boolop[1].empty())
                     flag_part = boolop[0] + boolop[1];
-                else flag_part = boolop[0] + " " + boolop[1];
+                else flag_part = boolop[0] + "  " + boolop[1];
                 flag_part.resize(this->max_boolopt_size_, ' ');
-                printf("    %s  %s.\n", flag_part.c_str(), boolop[2].empty() ? "" : ("Description: " + boolop[2]).c_str());
+                printf("    %s    %s\n", flag_part.c_str(), boolop[2].empty() ? "" : ("DESCRIPTION: " + boolop[2]).c_str());
             }
 
             if (!this->valueopts_preset_.empty())
@@ -652,11 +648,13 @@ namespace mineutils
             for (auto& valueop : this->valueopts_preset_)
             {
                 std::string flag_part;
+                std::string second_part;
                 if (valueop[0].empty() || valueop[1].empty())
                     flag_part = valueop[0] + valueop[1];
-                else flag_part = valueop[0] + " " + valueop[1];
+                else flag_part = valueop[0] + "  " + valueop[1];
                 flag_part.resize(this->max_valueopt_size_, ' ');
-                printf("    %s  %s. %s.\n", flag_part.c_str(), valueop[2].empty() ? "" : ("Description: " + valueop[2]).c_str(), valueop[3].empty() ? "Required" : ("Default value: " + valueop[3]).c_str());
+                //second_part.resize(this->max_valueopt_size_ + 6, ' ');
+                printf("    %s    %s    %s\n", flag_part.c_str(), valueop[2].empty() ? "" : ("DESCRIPTION: " + valueop[2]).c_str(), valueop[3].empty() ? "REQUIRED" : ("DEFAULT VALUE: " + valueop[3]).c_str());
             }
         }
 
@@ -669,10 +667,10 @@ namespace mineutils
                 std::string flag_part;
                 if (boolop[0].empty() || boolop[1].empty())
                     flag_part = boolop[0] + boolop[1];
-                else flag_part = boolop[0] + " " + boolop[1];
+                else flag_part = boolop[0] + "  " + boolop[1];
                 flag_part.resize(this->max_boolopt_size_, ' ');
                 std::string flag = boolop[0].empty() ? boolop[1] : boolop[0];
-                printf("    %s  Parsed boolean value: %s.\n", flag_part.c_str(), this->boolopts_parsed_.find(flag) != this->boolopts_parsed_.end() ? "True" : "False");
+                printf("    %s    Parsed boolean value: %s\n", flag_part.c_str(), this->boolopts_parsed_.find(flag) != this->boolopts_parsed_.end() ? "true" : "false");
             }
 
             if (!this->valueopts_preset_.empty())
@@ -682,10 +680,10 @@ namespace mineutils
                 std::string flag_part;
                 if (valueop[0].empty() || valueop[1].empty())
                     flag_part = valueop[0] + valueop[1];
-                else flag_part = valueop[0] + " " + valueop[1];
+                else flag_part = valueop[0] + "  " + valueop[1];
                 flag_part.resize(this->max_valueopt_size_, ' ');
                 std::string flag = valueop[0].empty() ? valueop[1] : valueop[0];
-                printf("    %s  %s\n", flag_part.c_str(), this->valueopts_parsed_[flag].empty() ? "No value!" : ("Parsed value: " + this->valueopts_parsed_[flag] + ".").c_str());
+                printf("    %s    %s\n", flag_part.c_str(), this->valueopts_parsed_[flag].empty() ? "No value parsed!" : ("Parsed value: " + this->valueopts_parsed_[flag]).c_str());
             }
         }
 

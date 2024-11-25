@@ -58,9 +58,8 @@ namespace mineutils
         {
         public:
             /*  构造ThreadPool对象
-                @param pool_size: 线程池线程数量，不小于1
-                @param wakeup_period_ms: 定时唤醒工作线程执行任务的周期，单位毫秒，不小于1   */
-            ThreadPool(int pool_size, long long wakeup_period_ms = 100);
+                @param pool_size: 线程池线程数量，不小于1  */
+            ThreadPool(int pool_size);
 
             /*  添加一个任务到线程池中并异步执行(会拷贝所有输入用于储存)，规则涵盖std::bind的要求且更严格；线程安全     
                 推荐用法:
@@ -82,20 +81,18 @@ namespace mineutils
             ~ThreadPool();
 
         private:
-            void manager();
             void worker();
 
             int pool_size_;
-            long long wakeup_period_ms_;
-            std::thread wakeup_thd_;
+            std::queue<std::function<void()>> task_queue_;
             std::vector<std::thread> work_thds_;
 
             std::mutex task_mtx_;
             std::condition_variable cond_var_;
-            std::queue<std::function<void()>> task_queue_;
-
             std::atomic<bool> need_abort_;
-            std::atomic<bool> aborted_;
+
+        public:
+            mdeprecated(R"(Deprecated. The parameter "wakeup_period_ms" is no longer used.)") ThreadPool(int pool_size, long long wakeup_period_ms);
         };
 
         //跨线程暂停，使用条件变量实现以代替循环sleep
@@ -107,20 +104,24 @@ namespace mineutils
             //设置暂停点，当调用ThreadPauser::pause的时候就会在此处暂停；线程安全
             void setPausePoint();
 
+            /*  设置暂停点，且输入一个状态量，当调用ThreadPauser::pause的时候就会在此处暂停；线程安全
+                @param pause_point_state: 暂停点状态量，当该暂停点被阻塞时，pause_point_state的值被设为true，未阻塞时值被设为false  */
+            void setPausePoint(std::atomic<bool>& pause_point_state);
+
             //发出暂停信号，在所有暂停点卡住线程；线程安全
             void pause();
 
             //发出继续信号，唤醒所有暂停点；线程安全
             void resume();
 
-            //获取当前是否为paused状态；线程安全
+            //获取当前是否为paused状态，仅代表是否调用了pause函数，不代表暂停点已触发；线程安全
             bool isPaused();
 
             ThreadPauser(const ThreadPauser& tmp) = delete;
             ThreadPauser& operator=(const ThreadPauser& tmp) = delete;
             ThreadPauser(ThreadPauser&& tmp) = delete;
             ThreadPauser& operator=(ThreadPauser&& tmp) = delete;
-
+            ~ThreadPauser();
         private:
             std::mutex mtx_;
             std::condition_variable cond_;
@@ -187,31 +188,23 @@ namespace mineutils
             else throw std::runtime_error("Error: Task is invalid!");
         }
 
-        inline ThreadPool::ThreadPool(int pool_size, long long wakeup_period_ms)
+        inline ThreadPool::ThreadPool(int pool_size)
         {
             if (pool_size <= 0)
             {
                 mprintfW("Invalid param value pool_size:%d, which will be set to 1.\n", pool_size);
                 pool_size = 1;
             }
-            if (wakeup_period_ms <= 0)
-            {
-                mprintfW("Invalid param value wakeup_period_ms:%lld, which will be set to 100.\n", wakeup_period_ms);
-                wakeup_period_ms = 100;
-            }
             this->pool_size_ = pool_size;
-            this->wakeup_period_ms_ = wakeup_period_ms;
             std::queue<std::function<void()>> empty_queue;
             this->task_queue_.swap(empty_queue);
             this->need_abort_ = false;
-            this->aborted_ = false;
 
             this->work_thds_.resize(pool_size);
             for (int i = 0; i < pool_size; ++i)
             {
                 this->work_thds_[i] = std::thread(&ThreadPool::worker, this);
             }
-            this->wakeup_thd_ = std::thread(&ThreadPool::manager, this);    
         }
 
         inline ThreadPool::~ThreadPool()
@@ -222,10 +215,7 @@ namespace mineutils
             {
                 if (thd.joinable())
                     thd.join();
-            }
-        
-            this->aborted_ = true;
-            this->wakeup_thd_.join();
+            } 
             mprintfN("Destroyed.\n");
         }
 
@@ -235,43 +225,25 @@ namespace mineutils
             auto task = std::make_shared<std::packaged_task<Ret()>>(std::bind(std::forward<Fn>(func), std::forward<Args>(args)...));
             TaskRetState<Ret> state(task->get_future());
 
-            std::lock_guard<std::mutex> lk(this->task_mtx_);                     
-            this->task_queue_.emplace([task]() {(*task)(); });
+            {
+                std::lock_guard<std::mutex> lk(this->task_mtx_);
+                this->task_queue_.emplace([task]() {(*task)(); });
+            }
             this->cond_var_.notify_one();
             return state;
         }
 
-        inline void ThreadPool::manager()
-        {
-            while (!this->need_abort_)
-            {
-                {
-                    std::lock_guard<std::mutex> lk(this->task_mtx_);
-                    if (!this->task_queue_.empty())
-                        this->cond_var_.notify_one();
-                }
-                mtime::msleep(this->wakeup_period_ms_);
-            }
-            while (!this->aborted_)
-            {
-                this->cond_var_.notify_all();
-                mtime::msleep(this->wakeup_period_ms_);
-            }
-        }
-
         inline void ThreadPool::worker()
         {
+            std::function<void()> task;
             while (!this->need_abort_)
             {
-                std::function<void()> task;
                 {
                     std::unique_lock<std::mutex> lk(this->task_mtx_);
                     while (!this->need_abort_ && this->task_queue_.empty())
                     {
                         this->cond_var_.wait(lk);
                     }
-                    if (this->need_abort_ || this->task_queue_.empty())
-                        continue;
                     task = this->task_queue_.front();
                     this->task_queue_.pop();
                 }
@@ -282,36 +254,78 @@ namespace mineutils
 
         inline ThreadPauser::ThreadPauser()
         {
-            this->need_pause_ = false;
+            this->need_pause_.store(false);
+        }
+
+        inline ThreadPauser::~ThreadPauser()
+        {
+            this->resume();
         }
 
         inline void ThreadPauser::setPausePoint()
-        {          
-            if (this->need_pause_)
+        {
+            if (this->need_pause_.load(std::memory_order_acquire))
             {
                 std::unique_lock<std::mutex> lk(this->mtx_);
-                if (this->need_pause_)
+                while (this->need_pause_.load(std::memory_order_acquire))
                 {
-                    this->cond_.wait(lk, [this]() {return !this->need_pause_; });
+                    this->cond_.wait(lk);
                 }
             }
         }
 
+        inline void ThreadPauser::setPausePoint(std::atomic<bool>& pause_point_state)
+        {          
+            if (this->need_pause_.load(std::memory_order_acquire))
+            {
+                std::unique_lock<std::mutex> lk(this->mtx_);
+                while (this->need_pause_.load(std::memory_order_acquire))
+                {
+                    pause_point_state.store(true);
+                    this->cond_.wait(lk);  //据说wait内部，先加锁cond_var内部锁，再解锁lk
+                }
+            }
+            pause_point_state.store(false);
+        }
+
         inline void ThreadPauser::pause()
         {
-            this->need_pause_ = true;
+            this->need_pause_.store(true, std::memory_order_release);
         }
 
         inline void ThreadPauser::resume()
         {
-            std::lock_guard<std::mutex> lk(this->mtx_);
-            this->need_pause_ = false;
-            this->cond_.notify_all();
+            {
+                std::lock_guard<std::mutex> lk(this->mtx_);
+                this->need_pause_.store(false, std::memory_order_release);
+            }
+            this->cond_.notify_all();  //据说notify内部，先加锁cond_var内部锁，再通知，因此不用担心cond_var在lk解锁后进入wait前，notify触发而导致错过
         }
 
         inline bool ThreadPauser::isPaused()
         {
-            return this->need_pause_.load();
+            return this->need_pause_.load(std::memory_order_acquire);
+        }
+
+
+        //已废弃
+        inline ThreadPool::ThreadPool(int pool_size, long long wakeup_period_ms)
+        {
+            if (pool_size <= 0)
+            {
+                mprintfW("Invalid param value pool_size:%d, which will be set to 1.\n", pool_size);
+                pool_size = 1;
+            }
+            this->pool_size_ = pool_size;
+            std::queue<std::function<void()>> empty_queue;
+            this->task_queue_.swap(empty_queue);
+            this->need_abort_ = false;
+
+            this->work_thds_.resize(pool_size);
+            for (int i = 0; i < pool_size; ++i)
+            {
+                this->work_thds_[i] = std::thread(&ThreadPool::worker, this);
+            }
         }
     }
 }

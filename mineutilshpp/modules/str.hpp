@@ -167,7 +167,7 @@ namespace mineutils
         template<class T, typename std::enable_if<mtype::StdCoutChecker<const T&>::value, int>::type>
         inline std::string toStr(const T& arg)
         {
-            MINE_THREAD_LOCAL std::ostringstream str_buf;
+            MINE_THREAD_LOCAL_IF_HAVE std::ostringstream str_buf;
             str_buf.str("");
             str_buf.clear();
             str_buf << arg;
@@ -188,7 +188,7 @@ namespace mineutils
             char int_padding, char flt_padding)
         {
             //static_assert(std::is_floating_point<FT>::value, "Class FT must be floating_point!");
-            MINE_THREAD_LOCAL std::ostringstream buffer;
+            MINE_THREAD_LOCAL_IF_HAVE std::ostringstream buffer;
             buffer.str("");
             buffer.clear();
             buffer << std::setprecision(flt_precision) << f;
@@ -311,7 +311,7 @@ namespace mineutils
                 return { };
             }
 
-            MINE_THREAD_LOCAL std::stringstream ss;
+            MINE_THREAD_LOCAL_IF_HAVE std::stringstream ss;
             ss.str("");
             ss.clear();
             ss << s;

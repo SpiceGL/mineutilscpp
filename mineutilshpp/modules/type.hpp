@@ -23,15 +23,17 @@ namespace mineutils
         const char* getTypeName();
 
 
-        /*  将T类型转换为自身的右值类型，用于区别于std::add_rvalue_reference
+        /*  将T类型转换为自身的右值引用类型，用于区别于std::add_rvalue_reference
             用法：RvalueRefMaker<T>::Type  */
         template<class T>
         struct RvalueRefMaker;
+
 
         /*  检查Type1、Type2、Types...是否为相同类型，不忽略const、引用等符号
             用法：SameTypesChecker<Type1, Type2, Types...>::value, 类型为constexpr bool   */
         template<class Type1, class Type2, class ...Types>
         struct SameTypesChecker;
+
 
         /*  检查T是否为Type、Types...中的一个，不忽略const、引用等符号
             用法：InTypesChecker<T, Type, Types...>::value, 类型为constexpr bool   */
@@ -50,7 +52,7 @@ namespace mineutils
 
 
         /*  检查T是否支持std::cout <<，支持模板SFINAE特性
-            - T类型正确重载了operator<<
+            - T类型正确重载了operator<<(std::ostream&, const T&)
             - 对于T类型的对象obj，std::cout << obj的返回值类型为std::ostream&
             - 对T类型查找operator<<的范围为std命名空间、T所在命名空间及其关联命名空间，以及全局命名空间
             用法：StdCoutChecker<T>::value, 类型为constexpr bool   */
@@ -65,6 +67,7 @@ namespace mineutils
             用法：StdCoutEachChecker<T, Ts...>::value, 类型为constexpr bool   */
         template<class T, class... Ts>
         struct StdCoutEachChecker;
+
 
         /*  检查DstT是否可以由T、Ts...类型对象中的每一个单独构造或引用绑定，支持模板SFINAE特性
             - 检查规则参照std::is_constructible<DstT, T>
@@ -144,7 +147,7 @@ namespace mineutils
 #endif
         }
 
-        /*  将T类型强制转换为自身的右值类型
+        /*  将T类型转换为自身的右值引用类型，用于区别于std::add_rvalue_reference
             用法：RvalueRefMaker<T>::Type  */
         template<class T>
         struct RvalueRefMaker
@@ -154,7 +157,7 @@ namespace mineutils
         };
 
 
-        /*  检查Type1、Type2、Types...是否为相同类型
+        /*  检查Type1、Type2、Types...是否为相同类型，不忽略const、引用等符号
             用法：SameTypesChecker<Type1, Type2, Types...>::value, 类型为constexpr bool   */
         template<class Type1, class Type2, class ...Types>
         struct SameTypesChecker
@@ -178,7 +181,7 @@ namespace mineutils
         constexpr bool mtype::SameTypesChecker<Type1, Type2, Types...>::value;
 
 
-        /*  检查T是否为Type、Types...中的一个
+        /*  检查T是否为Type、Types...中的一个，不忽略const、引用等符号
             用法：InTypesChecker<T, Type, Types...>::value, 类型为constexpr bool   */
         template<class T, class Type, class ...Types>
         struct InTypesChecker
@@ -247,7 +250,7 @@ namespace mineutils
 
 
         /*  检查T是否支持std::cout <<，支持模板SFINAE特性
-            - T类型正确重载了operator<<
+            - T类型正确重载了operator<<(std::ostream&, const T&)
             - 对于T类型的对象obj，std::cout << obj的返回值类型为std::ostream&
             - 对T类型查找operator<<的范围为std命名空间、T所在命名空间及其关联命名空间，以及全局命名空间
             用法：StdCoutChecker<T>::value, 类型为constexpr bool   */

@@ -57,26 +57,9 @@ namespace mineutils
             IniFile& operator=(IniFile&& file) = delete;
             ~IniFile();
 
-            //已废弃
-            mdeprecated(R"(Deprecated. Please set note_signs when calling function "IniFile::open"!)") inline void setNoteSigns(std::vector<std::string> note_signs = { "#", ";" });
-
         private:
-            struct SectionInfo
-            {
-                std::list<std::string>::iterator line;
-                std::list<std::string>::iterator last;
-                size_t pos;
-                size_t len;
-            };
-
-            struct KeyInfo
-            {
-                std::list<std::string>::iterator line;
-                size_t key_pos;
-                size_t key_len;
-                size_t value_pos;
-                size_t value_len;
-            };
+            struct SectionInfo;
+            struct KeyInfo;
 
             bool searchSection(const std::string& line, SectionInfo& section_info);
             bool searchKey(const std::string& line, KeyInfo& key_info);
@@ -90,6 +73,10 @@ namespace mineutils
             std::list<std::string> content_list_;
             std::map<std::string, SectionInfo> section_map_;
             std::map<std::string, std::map<std::string, KeyInfo>> key_map_;
+
+        public:
+            //已废弃
+            mdeprecated(R"(Deprecated. Please set note_signs when calling function "IniFile::open"!)") inline void setNoteSigns(std::vector<std::string> note_signs = { "#", ";" });
         };
     }
 
@@ -105,10 +92,22 @@ namespace mineutils
 
     namespace mfile
     {
-        inline IniFile::~IniFile()
+        struct IniFile::SectionInfo
         {
-            this->close();
-        }
+            std::list<std::string>::iterator line;
+            std::list<std::string>::iterator last;
+            size_t pos;
+            size_t len;
+        };
+
+        struct IniFile::KeyInfo
+        {
+            std::list<std::string>::iterator line;
+            size_t key_pos;
+            size_t key_len;
+            size_t value_pos;
+            size_t value_len;
+        };
  
         //打开ini文件
         inline int IniFile::open(const std::string& path, const char& key_value_sep, const std::vector<std::string>& note_signs)
@@ -308,11 +307,9 @@ namespace mineutils
             this->setValue("", key, value);
         }
 
-        /*  已废弃  */
-        inline void IniFile::setNoteSigns(std::vector<std::string> note_signs)
+        inline IniFile::~IniFile()
         {
-            if (!this->file_path_.empty())
-                this->open(this->file_path_, this->sep_, note_signs);
+            this->close();
         }
 
         inline bool IniFile::searchSection(const std::string& line, SectionInfo& section_info)
@@ -404,6 +401,14 @@ namespace mineutils
                 i++;
             }
             return 0;
+        }
+
+
+        //已废弃
+        inline void IniFile::setNoteSigns(std::vector<std::string> note_signs)
+        {
+            if (!this->file_path_.empty())
+                this->open(this->file_path_, this->sep_, note_signs);
         }
     }
 }

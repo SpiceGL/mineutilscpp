@@ -38,7 +38,7 @@ namespace mineutils
         bool exists(std::string path);
 
         //从路径字符串获取文件名
-        std::string splitName(std::string path, bool suffix = true);
+        std::string splitName(std::string path, bool need_extension = true);
 
         //获取输入的后缀名
         std::string extension(std::string path);
@@ -52,11 +52,8 @@ namespace mineutils
         //判断路径是否为存在的文件
         bool isFile(std::string path);
 
-        //判断路径是否为存在的图像格式文件
-        bool isImage(std::string path, const std::set<std::string>& img_exts = { "png", "PNG", "jpg", "JPG", "jpeg", "JPEG"});
-
-        //判断路径是否为存在的视频格式文件
-        bool isVideo(std::string path, const std::set<std::string>& video_exts = { "avi", "AVI", "mp4", "MP4", "flv", "FLV", "h264", "h265" });
+        //判断路径是否为存在的文件且拥有给定的后缀名之一
+        bool isFileMatchExts(std::string path, const std::set<std::string>& file_exts);
 
         //实现类似python的os.path.join功能
         template<class... Strs, typename std::enable_if<mtype::ConstructibleFromEachChecker<std::string, std::string, Strs...>::value, int>::type = 0>
@@ -95,13 +92,12 @@ namespace mineutils
     namespace mpath
     {
         bool _exists(const std::string& path);
-        std::string _splitName(const std::string& path, bool suffix);
+        std::string _splitName(const std::string& path, bool need_extension);
         std::string _extension(const std::string& path);
         bool _isAbs(const std::string& path);
         bool _isDir(const std::string& path);
         bool _isFile(const std::string& path);
-        bool _isImage(const std::string& path, const std::set<std::string>& img_exts);
-        bool _isVideo(const std::string& path, const std::set<std::string>& video_exts);
+        bool _isFileMatchExts(const std::string& path, const std::set<std::string>& file_exts);
         template<class... Strs>
         inline std::string _join(const std::string& path1, const std::string& path2, const Strs&... paths);
         std::vector<std::string> _listDir(const std::string& path, bool return_path, const std::set<std::string>& ignore_names);
@@ -160,14 +156,14 @@ namespace mineutils
             return ::stat(path.c_str(), &buffer) == 0;
         }
 
-        inline std::string splitName(std::string path, bool suffix)
+        inline std::string splitName(std::string path, bool need_extension)
         {
-            return mpath::_splitName(mpath::normPath(std::move(path)), suffix);
+            return mpath::_splitName(mpath::normPath(std::move(path)), need_extension);
         }
-        inline std::string _splitName(const std::string& path, bool suffix)
+        inline std::string _splitName(const std::string& path, bool need_extension)
         {
             std::string name;
-            if (suffix)
+            if (need_extension)
                 name = path.substr(path.rfind('/') + 1);
             else
             {
@@ -224,21 +220,19 @@ namespace mineutils
             struct ::stat buffer;
             return ::stat(path.c_str(), &buffer) == 0 && (buffer.st_mode & S_IFREG);
         }
-
-        inline bool isImage(std::string path, const std::set<std::string>& img_exts)
+        inline bool isFileMatchExts(std::string path, const std::set<std::string>& file_exts)
         {
-            return mpath::_isImage(mpath::normPath(std::move(path)), img_exts);
+            return mpath::_isFileMatchExts(mpath::normPath(std::move(path)), file_exts);
         }
-        inline bool _isImage(const std::string& path, const std::set<std::string>& img_exts)
+        inline bool _isFileMatchExts(const std::string& path, const std::set<std::string>& file_exts)
+        {
+            return mpath::_isFile(path) && file_exts.find(mpath::_extension(path)) != file_exts.end();
+        }
+        mdeprecated(R"(Deprecated. Please replace with function "mpath::isFileMatchExts"(in path.hpp))") inline bool isImage(std::string path, const std::set<std::string>& img_exts = { "png", "PNG", "jpg", "JPG", "jpeg", "JPEG" })
         {
             return mpath::_isFile(path) && img_exts.find(mpath::_extension(path)) != img_exts.end();
         }
-
-        inline bool isVideo(std::string path, const std::set<std::string>& video_exts)
-        {
-            return mpath::_isVideo(mpath::normPath(std::move(path)), video_exts);
-        }
-        inline bool _isVideo(const std::string& path, const std::set<std::string>& video_exts)
+        mdeprecated(R"(Deprecated. Please replace with function "mpath::isFileMatchExts"(in path.hpp))") inline bool isVideo(std::string path, const std::set<std::string>& video_exts = { "avi", "AVI", "mp4", "MP4", "flv", "FLV", "h264", "h265" })
         {
             return mpath::_isFile(path) && video_exts.find(mpath::_extension(path)) != video_exts.end();
         }

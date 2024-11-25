@@ -20,7 +20,7 @@ namespace mineutils
     //基于<chrono>库的简易计时函数封装
     namespace mtime
     {
-        using TimePoint = std::chrono::high_resolution_clock::time_point;   //时间点
+        using TimePoint = std::chrono::steady_clock::time_point;   //时间点
         using Duration = decltype(TimePoint() - TimePoint());   //时间段
 
         //时间单位
@@ -115,23 +115,7 @@ namespace mineutils
         class MultiMeanTimeCounter
         {
         private:
-            class LocalObj
-            {
-            public:
-                LocalObj(LocalObj&& tmp) noexcept;
-                ~LocalObj();
-                LocalObj(const LocalObj& tmp) = delete;
-                LocalObj& operator=(LocalObj&& tmp) = delete;
-                LocalObj& operator=(const LocalObj& tmp) = delete;
-
-            private:
-                LocalObj(MultiMeanTimeCounter* self, std::string& codeblock_tag);
-
-                MultiMeanTimeCounter* self_ = nullptr;
-                std::string codeblock_tag_;
-
-                friend MultiMeanTimeCounter;
-            };
+            class LocalObj;
 
         public:
             MultiMeanTimeCounter() {}
@@ -177,8 +161,6 @@ namespace mineutils
             void printAllMeanTimeCost(const std::string& print_head, mtime::Unit time_unit = mtime::Unit::ms);
 
         private:
-
-
             int target_count_times_ = 1;
             std::map<std::string, MeanTimeCounter> time_counter_;
             std::vector<std::string> keys_;
@@ -244,7 +226,7 @@ namespace mineutils
         //获取当前时间点(mtime::time_point)
         inline TimePoint now()
         {
-            return std::chrono::high_resolution_clock::now();
+            return std::chrono::steady_clock::now();
         }
 
         //inline long long _countTime(const mtime::Duration& t, mtime::Unit unit)
@@ -286,25 +268,29 @@ namespace mineutils
         //进程休眠(秒)
         inline void sleep(long long t)
         {
-            std::this_thread::sleep_for(std::chrono::seconds(t));
+            if (t > 0)
+                std::this_thread::sleep_for(std::chrono::seconds(t));
         }
 
         //进程休眠(毫秒)
         inline void msleep(long long t)
         {
-            std::this_thread::sleep_for(std::chrono::milliseconds(t));
+            if (t > 0)
+                std::this_thread::sleep_for(std::chrono::milliseconds(t));
         }
 
         //进程休眠(微秒)
         inline void usleep(long long t)
         {
-            std::this_thread::sleep_for(std::chrono::microseconds(t));
+            if (t > 0)
+                std::this_thread::sleep_for(std::chrono::microseconds(t));
         }
 
         //进程休眠(纳秒)
         inline void nsleep(long long t)
         {
-            std::this_thread::sleep_for(std::chrono::nanoseconds(t));
+            if (t > 0)
+                std::this_thread::sleep_for(std::chrono::nanoseconds(t));
         }
 
 
@@ -418,25 +404,38 @@ namespace mineutils
             this->time_cost_ = mtime::Duration(0);
         }
 
-        inline MultiMeanTimeCounter::LocalObj::LocalObj(LocalObj&& tmp) noexcept
-        {
-            this->codeblock_tag_ = std::move(tmp.codeblock_tag_);
-            this->self_ = tmp.self_;
-            tmp.self_ = nullptr;
-        }
 
-        inline MultiMeanTimeCounter::LocalObj::~LocalObj()
+        class MultiMeanTimeCounter::LocalObj
         {
-            if (this->self_)
-                this->self_->addEnd(this->codeblock_tag_);
-        }
+        public:
+            LocalObj(LocalObj&& tmp) noexcept
+            {
+                this->codeblock_tag_ = std::move(tmp.codeblock_tag_);
+                this->self_ = tmp.self_;
+                tmp.self_ = nullptr;
+            }
+            ~LocalObj()
+            {
+                if (this->self_)
+                    this->self_->addEnd(this->codeblock_tag_);
+            }
+            LocalObj(const LocalObj& tmp) = delete;
+            LocalObj& operator=(LocalObj&& tmp) = delete;
+            LocalObj& operator=(const LocalObj& tmp) = delete;
 
-        inline MultiMeanTimeCounter::LocalObj::LocalObj(MultiMeanTimeCounter* self, std::string& codeblock_tag)
-        {
-            self->addStart(codeblock_tag);
-            this->self_ = self;
-            this->codeblock_tag_ = std::move(codeblock_tag);
-        }
+        private:
+            LocalObj(MultiMeanTimeCounter* self, std::string& codeblock_tag)
+            {
+                self->addStart(codeblock_tag);
+                this->self_ = self;
+                this->codeblock_tag_ = std::move(codeblock_tag);
+            }
+
+            MultiMeanTimeCounter* self_ = nullptr;
+            std::string codeblock_tag_;
+
+            friend MultiMeanTimeCounter;
+        };
 
 
         inline MultiMeanTimeCounter::MultiMeanTimeCounter(int target_count_times, bool time_counter_on)
@@ -560,22 +559,34 @@ namespace mineutils
             this->end_t_ = mtime::now();
             if (this->time_unit_ == mtime::Unit::s)
             {
-                long long need_sleep = this->target_time_ - mtime::s(this->end_t_ - this->start_t_);
+                long long used_time = mtime::s(this->end_t_ - this->start_t_);
+                if (used_time < 0)
+                    used_time = 0;
+                long long need_sleep = this->target_time_ - used_time;
                 mtime::sleep(need_sleep);
             }
             else if (this->time_unit_ == mtime::Unit::ms)
             {
-                long long need_sleep = this->target_time_ - mtime::ms(this->end_t_ - this->start_t_);
+                long long used_time = mtime::ms(this->end_t_ - this->start_t_);
+                if (used_time < 0)
+                    used_time = 0;
+                long long need_sleep = this->target_time_ - used_time;
                 mtime::msleep(need_sleep);
             }
             else if (this->time_unit_ == mtime::Unit::us)
             {
-                long long need_sleep = this->target_time_ - mtime::us(this->end_t_ - this->start_t_);
+                long long used_time = mtime::us(this->end_t_ - this->start_t_);
+                if (used_time < 0)
+                    used_time = 0;
+                long long need_sleep = this->target_time_ - used_time;
                 mtime::usleep(need_sleep);
             }
             else if (this->time_unit_ == mtime::Unit::ns)
             {
-                long long need_sleep = this->target_time_ - mtime::ns(this->end_t_ - this->start_t_);
+                long long used_time = mtime::ns(this->end_t_ - this->start_t_);
+                if (used_time < 0)
+                    used_time = 0;
+                long long need_sleep = this->target_time_ - used_time;
                 mtime::nsleep(need_sleep);
             }
         }
