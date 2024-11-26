@@ -63,66 +63,19 @@ namespace mineutils
         void setGlobalTimeCounterOn(bool glob_timecounter_on);
 
 
-        //统计一定循环次数中某一代码段的时间消耗
-        class MeanTimeCounter
-        {
-        public:
-            MeanTimeCounter() {}
-            /*  构造MeanTimeCounter类
-                @param target_count_times: 每轮统计次数，printMeanTimeCost会在每次达到目标次数时会输出平均消耗时间。小于1的值会被置为1
-                @param time_counter_on: 计时功能开关，为false会跳过计时功能   */
-            explicit MeanTimeCounter(int target_count_times, bool time_counter_on = true);
-
-            //本轮统计开始，应在目标统计代码段前调用，与段后addEnd成对出现 
-            void addStart();
-            //本轮统计结束，应在目标统计代码段后调用，与段前addStart成对出现
-            void addEnd();
-
-            /*  在达到目标统计次数后输出平均消耗时间，并重新开始统计时间
-                @param codeblock_tag: 输出信息中被统计代码段的tag
-                @param time_unit: 输出信息中时间统计的单位，输入强枚举类型mtime::Unit的成员
-                @return 若达到目标统计次数，则按time_unit返回平均耗时；否则返回-1   */
-            long long printMeanTimeCost(const std::string& codeblock_tag, mtime::Unit time_unit = mtime::Unit::ms);
-
-            /*  在达到目标统计次数后输出平均消耗时间，并重新开始统计时间
-                @param print_head: 输出信息的头部内容，推荐输入调用printMeanTimeCost的函数的名字
-                @param codeblock_tag: 输出信息中被统计代码段的tag
-                @param time_unit: 输出信息中时间统计的单位，输入强枚举类型mtime::Unit的成员
-                @return 若达到目标统计次数，则按time_unit返回平均耗时；否则返回-1   */
-            long long printMeanTimeCost(const std::string& print_head, const std::string& codeblock_tag, mtime::Unit time_unit = mtime::Unit::ms);
-
-        private:
-            //判断是否完成目标统计次数
-            bool finish();
-            //完成目标统计次数并打印统计结果后，重置内部统计计数
-            void restart();
-
-            int now_statistical_times_ = 0;
-            int target_count_times_ = 1;
-            int addstart_times_ = 0;
-            int addend_times_ = 0;
-            bool time_counter_on_ = true;
-
-            mtime::Duration time_cost_ = mtime::Duration(0);
-            mtime::TimePoint start_t_;
-            mtime::TimePoint end_t_;
-        };
-
-
-
-        //用于分别统计多个代码段的在一定循环次数的平均消耗时间，非线程安全
+        //用于统计各个代码段的在一定循环次数的平均消耗时间，非线程安全
         //调用addStart和addEnd会带来少量时间损耗(在rv1126上约为12微秒)
-        class MultiMeanTimeCounter
+        class MeanTimeCounter
         {
         private:
             class LocalObj;
 
         public:
-            MultiMeanTimeCounter() {}
-            /*  构造MultiMeanTimeCounter类
+            MeanTimeCounter() {}
+            /*  构造MeanTimeCounter类
                 @param target_count_times: 每轮统计次数，小于1的值会被置为1
                 @param time_counter_on: 计时功能开关，为false会跳过计时功能   */
-            explicit MultiMeanTimeCounter(int target_count_times, bool time_counter_on = true);
+            explicit MeanTimeCounter(int target_count_times, bool time_counter_on = true);
 
             /*  本轮统计开始，应在目标统计代码段前调用，与段后addEnd成对出现
                 @param codeblock_tag: 要统计的代码段的tag   */
@@ -161,8 +114,10 @@ namespace mineutils
             void printAllMeanTimeCost(const std::string& print_head, mtime::Unit time_unit = mtime::Unit::ms);
 
         private:
+            class SingleCounter;
+
             int target_count_times_ = 1;
-            std::map<std::string, MeanTimeCounter> time_counter_;
+            std::map<std::string, SingleCounter> time_counter_;
             std::vector<std::string> keys_;
             bool time_counter_on_ = true;
         };
@@ -308,37 +263,63 @@ namespace mineutils
         }
 
 
-        inline MeanTimeCounter::MeanTimeCounter(int target_count_times, bool time_counter_on)
+        class MeanTimeCounter::LocalObj
         {
-            this->target_count_times_ = target_count_times >= 1 ? target_count_times : 1;
-            this->time_counter_on_ = time_counter_on;
-        }
+        public:
+            LocalObj(LocalObj&& tmp) noexcept
+            {
+                this->codeblock_tag_ = std::move(tmp.codeblock_tag_);
+                this->self_ = tmp.self_;
+                tmp.self_ = nullptr;
+            }
+            ~LocalObj()
+            {
+                if (this->self_)
+                    this->self_->addEnd(this->codeblock_tag_);
+            }
+            LocalObj(const LocalObj& tmp) = delete;
+            LocalObj& operator=(LocalObj&& tmp) = delete;
+            LocalObj& operator=(const LocalObj& tmp) = delete;
 
-        //本轮统计开始，应在目标统计代码段前调用，与段后addEnd成对出现 
-        inline void MeanTimeCounter::addStart()
+        private:
+            LocalObj(MeanTimeCounter* self, std::string& codeblock_tag)
+            {
+                self->addStart(codeblock_tag);
+                this->self_ = self;
+                this->codeblock_tag_ = std::move(codeblock_tag);
+            }
+
+            MeanTimeCounter* self_ = nullptr;
+            std::string codeblock_tag_;
+
+            friend MeanTimeCounter;
+        };
+
+        class MeanTimeCounter::SingleCounter
         {
-            if (mtime::_getTimeCounterOn() && this->time_counter_on_)
+        public:
+            SingleCounter() = default;
+
+            explicit SingleCounter(int target_count_times)
+            {
+                this->target_count_times_ = target_count_times >= 1 ? target_count_times : 1;
+            }
+
+            void addStart()
             {
                 this->start_t_ = mtime::now();
                 this->addstart_times_ += 1;
             }
-        }
 
-        //本轮统计结束，应在目标统计代码段后调用，与段前addStart成对出现
-        inline void MeanTimeCounter::addEnd()
-        {
-            if (mtime::_getTimeCounterOn() && this->time_counter_on_)
+            void addEnd()
             {
                 this->end_t_ = mtime::now();
                 this->time_cost_ += (this->end_t_ - this->start_t_);
                 this->addend_times_ += 1;
-                this->now_statistical_times_ += 1;
+                this->now_statistical_times_ += 1;                
             }
-        }
 
-        inline long long MeanTimeCounter::printMeanTimeCost(const std::string& codeblock_tag, mtime::Unit time_unit)
-        {
-            if (mtime::_getTimeCounterOn() && this->time_counter_on_)
+            long long printMeanTimeCost(const std::string& codeblock_tag, mtime::Unit time_unit = mtime::Unit::ms)
             {
                 if (!(this->addend_times_ == this->addstart_times_))
                 {
@@ -378,119 +359,92 @@ namespace mineutils
                 }
                 else return -1;
             }
-            return -1;
-        }
 
-        inline long long MeanTimeCounter::printMeanTimeCost(const std::string& print_head, const std::string& codeblock_tag, mtime::Unit time_unit)
-        {
-            if (mtime::_getTimeCounterOn() && this->time_counter_on_)
+            long long printMeanTimeCost(const std::string& print_head, const std::string& codeblock_tag, mtime::Unit time_unit = mtime::Unit::ms)
+            {
                 return this->printMeanTimeCost("\"" + print_head + "\": " + codeblock_tag, time_unit);
-            return -1;
-        }
-
-        inline bool MeanTimeCounter::finish()
-        {
-            if (this->now_statistical_times_ >= this->target_count_times_)
-                return true;
-            else return false;
-        }
-
-        //完成目标统计次数并打印统计结果后，重置内部统计计数
-        inline void MeanTimeCounter::restart()
-        {
-            this->now_statistical_times_ = 0;
-            this->addstart_times_ = 0;
-            this->addend_times_ = 0;
-            this->time_cost_ = mtime::Duration(0);
-        }
-
-
-        class MultiMeanTimeCounter::LocalObj
-        {
-        public:
-            LocalObj(LocalObj&& tmp) noexcept
-            {
-                this->codeblock_tag_ = std::move(tmp.codeblock_tag_);
-                this->self_ = tmp.self_;
-                tmp.self_ = nullptr;
             }
-            ~LocalObj()
-            {
-                if (this->self_)
-                    this->self_->addEnd(this->codeblock_tag_);
-            }
-            LocalObj(const LocalObj& tmp) = delete;
-            LocalObj& operator=(LocalObj&& tmp) = delete;
-            LocalObj& operator=(const LocalObj& tmp) = delete;
 
         private:
-            LocalObj(MultiMeanTimeCounter* self, std::string& codeblock_tag)
+            bool finish()
             {
-                self->addStart(codeblock_tag);
-                this->self_ = self;
-                this->codeblock_tag_ = std::move(codeblock_tag);
+                if (this->now_statistical_times_ >= this->target_count_times_)
+                    return true;
+                else return false;
             }
 
-            MultiMeanTimeCounter* self_ = nullptr;
-            std::string codeblock_tag_;
+            void restart()
+            {
+                this->now_statistical_times_ = 0;
+                this->addstart_times_ = 0;
+                this->addend_times_ = 0;
+                this->time_cost_ = mtime::Duration(0);
+            }
 
-            friend MultiMeanTimeCounter;
+            int now_statistical_times_ = 0;
+            int target_count_times_ = 1;
+            int addstart_times_ = 0;
+            int addend_times_ = 0;
+
+            mtime::Duration time_cost_ = mtime::Duration(0);
+            mtime::TimePoint start_t_;
+            mtime::TimePoint end_t_;
         };
 
 
-        inline MultiMeanTimeCounter::MultiMeanTimeCounter(int target_count_times, bool time_counter_on)
+        inline MeanTimeCounter::MeanTimeCounter(int target_count_times, bool time_counter_on)
         {
             this->target_count_times_ = target_count_times >= 1 ? target_count_times : 1;
             this->time_counter_on_ = time_counter_on;
         }
 
-        inline void MultiMeanTimeCounter::addStart(const std::string& codeblock_tag)
+        inline void MeanTimeCounter::addStart(const std::string& codeblock_tag)
         {
             if (mtime::_getTimeCounterOn() && this->time_counter_on_)
             {
                 if (this->time_counter_.end() == this->time_counter_.find(codeblock_tag))
                 {
-                    this->time_counter_[codeblock_tag] = MeanTimeCounter(this->target_count_times_);
+                    this->time_counter_[codeblock_tag] = MeanTimeCounter::SingleCounter(this->target_count_times_);
                     this->keys_.push_back(codeblock_tag);
                 }
                 this->time_counter_[codeblock_tag].addStart();
             }
         }
 
-        inline void MultiMeanTimeCounter::addEnd(const std::string& codeblock_tag)
+        inline void MeanTimeCounter::addEnd(const std::string& codeblock_tag)
         {
             if (mtime::_getTimeCounterOn() && this->time_counter_on_)
             {
                 if (this->time_counter_.end() == this->time_counter_.find(codeblock_tag))
                 {
-                    printf("!!!Error!!! MultiMeanTimeCounter::%s: Please call \"addStart(%s)\" before \"addEnd(%s)\"!\n", __func__, codeblock_tag.c_str(), codeblock_tag.c_str());
+                    printf("!!!Error!!! MeanTimeCounter::%s: Please call \"addStart(%s)\" before \"addEnd(%s)\"!\n", __func__, codeblock_tag.c_str(), codeblock_tag.c_str());
                     return;
                 }
                 this->time_counter_[codeblock_tag].addEnd();
             }
         }
 
-        inline MultiMeanTimeCounter::LocalObj MultiMeanTimeCounter::addLocal(std::string codeblock_tag)
+        inline MeanTimeCounter::LocalObj MeanTimeCounter::addLocal(std::string codeblock_tag)
         {
             LocalObj tmp(this, codeblock_tag);
             return tmp;
         }
 
-        inline long long MultiMeanTimeCounter::printMeanTimeCost(const std::string& codeblock_tag, mtime::Unit time_unit)
+        inline long long MeanTimeCounter::printMeanTimeCost(const std::string& codeblock_tag, mtime::Unit time_unit)
         {
             if (mtime::_getTimeCounterOn() && this->time_counter_on_)
                 return this->time_counter_[codeblock_tag].printMeanTimeCost(codeblock_tag, time_unit);
             return -1;
         }
 
-        inline long long MultiMeanTimeCounter::printMeanTimeCost(const std::string& print_head, const std::string& codeblock_tag, mtime::Unit time_unit)
+        inline long long MeanTimeCounter::printMeanTimeCost(const std::string& print_head, const std::string& codeblock_tag, mtime::Unit time_unit)
         {
             if (mtime::_getTimeCounterOn() && this->time_counter_on_)
                 return this->time_counter_[codeblock_tag].printMeanTimeCost(print_head, codeblock_tag, time_unit);
             return -1;
         }
 
-        inline void MultiMeanTimeCounter::printAllMeanTimeCost(mtime::Unit time_unit)
+        inline void MeanTimeCounter::printAllMeanTimeCost(mtime::Unit time_unit)
         {
             if (mtime::_getTimeCounterOn() && this->time_counter_on_)
             {
@@ -501,7 +455,7 @@ namespace mineutils
             }
         }
 
-        inline void MultiMeanTimeCounter::printAllMeanTimeCost(const std::string& print_head, mtime::Unit time_unit)
+        inline void MeanTimeCounter::printAllMeanTimeCost(const std::string& print_head, mtime::Unit time_unit)
         {
             if (mtime::_getTimeCounterOn() && this->time_counter_on_)
             {
@@ -511,7 +465,6 @@ namespace mineutils
                 }
             }
         }
-
 
         inline LocalTimeCounter::LocalTimeCounter(const std::string& codeblock_tag, mtime::Unit time_unit, bool time_counter_on)
         {
@@ -590,6 +543,15 @@ namespace mineutils
                 mtime::nsleep(need_sleep);
             }
         }
+
+
+        //已废弃
+        class mdeprecated(R"(Deprecated. Please replace with class "MeanTimeCounter"(in time.hpp) )") MultiMeanTimeCounter : public MeanTimeCounter
+        {
+        public:
+            MultiMeanTimeCounter() :MeanTimeCounter() {}
+            explicit MultiMeanTimeCounter(int target_count_times, bool time_counter_on = true) :MeanTimeCounter(target_count_times, time_counter_on) {}
+        };
     }
 }
 

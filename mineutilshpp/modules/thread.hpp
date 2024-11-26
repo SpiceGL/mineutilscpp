@@ -92,7 +92,8 @@ namespace mineutils
             std::atomic<bool> need_abort_;
 
         public:
-            mdeprecated(R"(Deprecated. The parameter "wakeup_period_ms" is no longer used.)") ThreadPool(int pool_size, long long wakeup_period_ms);
+            //已废弃
+            mdeprecated(R"(Deprecated. The parameter "wakeup_period_ms" is no longer used.)") ThreadPool(int pool_size, long long wakeup_period_ms); 
         };
 
         //跨线程暂停，使用条件变量实现以代替循环sleep
@@ -244,6 +245,8 @@ namespace mineutils
                     {
                         this->cond_var_.wait(lk);
                     }
+                    if (this->need_abort_)
+                        break;
                     task = this->task_queue_.front();
                     this->task_queue_.pop();
                 }

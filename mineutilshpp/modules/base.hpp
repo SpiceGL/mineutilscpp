@@ -13,9 +13,9 @@
 #include<type_traits>
 
 #define MINEUTILS_MAJOR_VERSION "1"   //主版本号，对应不向下兼容的API或文件改动
-#define MINEUTILS_MINOR_VERSION "12"   //次版本号，对应不影响现有API使用的新功能增加
+#define MINEUTILS_MINOR_VERSION "13"   //次版本号，对应不影响现有API使用的新功能增加
 #define MINEUTILS_PATCH_VERSION "0"   //修订版本号，对应不改变API的BUG修复或效能优化
-#define MINEUTILS_DATE_VERSION "20241125-release"   //日期版本号，对应文档和注释级别的改动和测试阶段
+#define MINEUTILS_DATE_VERSION "20241126-release"   //日期版本号，对应文档和注释级别的改动和测试阶段
 #ifdef __GNUC__ 
 #include<cxxabi.h>
 #endif
@@ -73,6 +73,13 @@ namespace mineutils
 
     namespace mbase
     {
+        inline const std::string& _getDeprecatedWarningStr()
+        {
+            static std::string str = "!Warning! [%s](line %d): ";
+            return str;
+        }
+
+#define _mprintfDeprecatedWarning(msg) printf((mbase::_getDeprecatedWarningStr() + msg).c_str(), __FILE__, __LINE__)
 
         inline volatile char* _keepVersionString()
         {
@@ -148,8 +155,8 @@ namespace mineutils
         mdeprecated("Deprecated. Please replace with std::integral_constant<bool, value>()")
             static std::tuple<mbase::CaseTag0&, mbase::CaseTag1&> BOOL_CASE_TAGS = mbase::_creatBoolCaseTags();
 #ifdef _MSC_VER
-        mdeprecated("Deprecated. Please replace with std::false_type") class CaseTag0;
-        mdeprecated("Deprecated. Please replace with std::true_type") class CaseTag1;
+        class mdeprecated("Deprecated. Please replace with std::false_type") CaseTag0;
+        class mdeprecated("Deprecated. Please replace with std::true_type") CaseTag1;
 #endif // _MSC_VER
     }
 
@@ -161,8 +168,8 @@ namespace mineutils
 #endif
 }
 
-//已废弃
-#define MINE_THREAD_LOCAL 
+
+#define MINE_THREAD_LOCAL MINE_THREAD_LOCAL_IF_HAVE  //已废弃
 #define MINE_DEPRECATED mdeprecated  //已废弃
 
 #endif // !BASE_HPP_MINEUTILS

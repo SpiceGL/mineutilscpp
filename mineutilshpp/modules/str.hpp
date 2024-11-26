@@ -65,7 +65,7 @@ namespace mineutils
             char int_padding = ' ', char flt_padding = '0');
 
         //实现类似于python的f-string功能，将字符串中的"{}"替换为后续的参数
-        template<class... Args, typename std::enable_if<mtype::StdCoutEachChecker<const Args&...>::value, int>::type = 0>
+        template<class... Args, typename std::enable_if<mtype::StdCoutEachChecker<int, const Args&...>::value, int>::type = 0>
         std::string fstr(std::string s, const Args& ...args);
 
         /*  实现正向查找sep对字符串分割的功能，以vector形式返回。分割空字符串会返回包含一个空字符串的vector(类Python规则)
@@ -237,7 +237,7 @@ namespace mineutils
             else return s;            
         }
 
-        template<class... Args, typename std::enable_if<mtype::StdCoutEachChecker<const Args&...>::value, int>::type>
+        template<class... Args, typename std::enable_if<mtype::StdCoutEachChecker<int, const Args&...>::value, int>::type>
         inline std::string fstr(std::string s, const Args& ...args)
         {
             s.reserve(s.size() + 64);

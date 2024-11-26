@@ -55,6 +55,7 @@ namespace mineutils
             T& operator[](int idx);
             const T& operator[](int idx) const;
 
+            //已废弃
             mdeprecated(R"(Deprecated. Please replace with "std::is_integral<T>::value")") static bool belongToIntSeries();
         protected:
             T data_[4];

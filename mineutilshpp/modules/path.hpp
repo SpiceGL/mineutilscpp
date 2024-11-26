@@ -228,14 +228,6 @@ namespace mineutils
         {
             return mpath::_isFile(path) && file_exts.find(mpath::_extension(path)) != file_exts.end();
         }
-        mdeprecated(R"(Deprecated. Please replace with function "mpath::isFileMatchExts"(in path.hpp))") inline bool isImage(std::string path, const std::set<std::string>& img_exts = { "png", "PNG", "jpg", "JPG", "jpeg", "JPEG" })
-        {
-            return mpath::_isFile(path) && img_exts.find(mpath::_extension(path)) != img_exts.end();
-        }
-        mdeprecated(R"(Deprecated. Please replace with function "mpath::isFileMatchExts"(in path.hpp))") inline bool isVideo(std::string path, const std::set<std::string>& video_exts = { "avi", "AVI", "mp4", "MP4", "flv", "FLV", "h264", "h265" })
-        {
-            return mpath::_isFile(path) && video_exts.find(mpath::_extension(path)) != video_exts.end();
-        }
 
         inline std::string _joinBranch(const std::string& path)
         {
@@ -455,6 +447,20 @@ namespace mineutils
             }
             return filenames;
         }
-    };
+
+
+
+        //已废弃
+        mdeprecated(R"(Deprecated. Please replace with function "mpath::isFileMatchExts"(in path.hpp))") inline bool isImage(std::string path, const std::set<std::string>& img_exts = { "png", "PNG", "jpg", "JPG", "jpeg", "JPEG" })
+        {
+            return mpath::_isFile(path) && img_exts.find(mpath::_extension(path)) != img_exts.end();
+        }
+
+        //已废弃
+        mdeprecated(R"(Deprecated. Please replace with function "mpath::isFileMatchExts"(in path.hpp))") inline bool isVideo(std::string path, const std::set<std::string>& video_exts = { "avi", "AVI", "mp4", "MP4", "flv", "FLV", "h264", "h265" })
+        {
+            return mpath::_isFile(path) && video_exts.find(mpath::_extension(path)) != video_exts.end();
+        }
+    }
 }
 #endif // !PATH_HPP_MINEUTILS

@@ -293,10 +293,10 @@ namespace mineutils
         {
             auto tmp_st = st;
             std::cout << "{";
-            int size = tmp_st.size();
+            size_t size = tmp_st.size();
             if (size > 0)
             {
-                for (int i = 0; i < size - 1; ++i)
+                for (size_t i = 0; i < size - 1; ++i)
                 {
                     mio::_print(tmp_st.top());
                     tmp_st.pop();
@@ -312,10 +312,10 @@ namespace mineutils
         {
             auto tmp_qe = qe;
             std::cout << "{";
-            int size = tmp_qe.size();
+            size_t size = tmp_qe.size();
             if (size > 0)
             {
-                for (int i = 0; i < size - 1; ++i)
+                for (size_t i = 0; i < size - 1; ++i)
                 {
                     mio::_print(tmp_qe.top());
                     tmp_qe.pop();
@@ -375,11 +375,11 @@ namespace mineutils
         inline void _printMap(const CTer<KeyT, VT, Ts...>& m)
         {
             std::cout << "{";
-            int size = m.size();
+            size_t size = m.size();
             if (size > 0)
             {
                 auto it = m.begin();
-                for (int i = 0; i < size - 1; ++i)
+                for (size_t i = 0; i < size - 1; ++i)
                 {
                     mio::_print((*it).first);
                     std::cout << ":";
@@ -619,11 +619,21 @@ namespace mineutils
 
         inline bool ArgumentParser::getParsedBoolOpt(const std::string& flag)
         {
+            if (flag.empty())
+            {
+                mprintfW("Got an empty flag!\n");
+                return false;
+            }
             return this->boolopts_parsed_.find(flag) != this->boolopts_parsed_.end();
         }
 
         inline std::string ArgumentParser::getParsedValueOpt(const std::string& flag)
         {
+            if (flag.empty())
+            {
+                mprintfW("Got an empty flag!\n");
+                return "";
+            }
             if (this->valueopts_parsed_.find(flag) != this->valueopts_parsed_.end())
                 return this->valueopts_parsed_[flag];
             return "";
@@ -795,7 +805,7 @@ namespace mineutils
             std::forward_list<int> fl({ 1,2,3 });
             std::initializer_list<int> initl({ 1, 2, 3 });
             printf("User check! Expected output: {0:0.1, 0:1.1} {5, 6, 7, 8, 8, 7, 6} {6.1, 5.3, 5.1} {3.3, 2.2, 1.1} {{1.1, 2.2, 3.3}, {1.1, 2.2, 3.3}} {1, 2, 3} {1, 2, 3}\n");
-            mio::print("              Actual output:", m1, list1, std::stack<float>({5.1, 5.3, 6.1}), qe2, vecvec, fl, initl);
+            mio::print("              Actual output:", m1, list1, std::stack<double>({5.1, 5.3, 6.1}), qe2, vecvec, fl, initl);
             printf("User check! Expected output: void (int) \n");
             mio::print(func1);
         }
@@ -832,6 +842,8 @@ namespace mineutils
             printf("%s ArgumentParser::getParsedBoolOpt(\"--BB1\"):%d.\n", ret1 ? "Passed." : "Failed!", ret1);
             ret1 = parser.getParsedBoolOpt("-b2");
             printf("%s ArgumentParser::getParsedBoolOpt(\"-b2\"):%d.\n", ret1 ? "Passed." : "Failed!", ret1);
+            ret1 = parser.getParsedBoolOpt("");
+            printf("%s ArgumentParser::getParsedBoolOpt(\"\"):%d.\n", !ret1 ? "Passed." : "Failed!", ret1);
 
             ret1 = parser.getParsedBoolOpt("--BBX");
             printf("%s ArgumentParser::getParsedBoolOpt(\"--BBX\"):%d.\n", !ret1 ? "Passed." : "Failed!", ret1);

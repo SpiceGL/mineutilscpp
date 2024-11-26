@@ -96,17 +96,17 @@ namespace mineutils
         {
             std::list<std::string>::iterator line;
             std::list<std::string>::iterator last;
-            size_t pos;
-            size_t len;
+            size_t pos = std::string::npos;
+            size_t len = 0;
         };
 
         struct IniFile::KeyInfo
         {
             std::list<std::string>::iterator line;
-            size_t key_pos;
-            size_t key_len;
-            size_t value_pos;
-            size_t value_len;
+            size_t key_pos = std::string::npos;;
+            size_t key_len = 0;
+            size_t value_pos = std::string::npos;;
+            size_t value_len = 0;
         };
  
         //打开ini文件
