@@ -66,6 +66,7 @@ namespace mineutils
 
     namespace mlog
     {
+
         inline std::string& _getFstrN()
         {
             static std::string warning_message(R"("{}": )");

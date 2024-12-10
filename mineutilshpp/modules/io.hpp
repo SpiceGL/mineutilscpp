@@ -808,6 +808,7 @@ namespace mineutils
             mio::print("              Actual output:", m1, list1, std::stack<double>({5.1, 5.3, 6.1}), qe2, vecvec, fl, initl);
             printf("User check! Expected output: void (int) \n");
             mio::print(func1);
+            printf("\n");
         }
 
 
@@ -863,13 +864,13 @@ namespace mineutils
             printf("User check:\n");
             parser.printPresetOptions();
             parser.printParsedOptions();
+            printf("\n");
         }
 
         inline void check()
         {
-            printf("\n--------------------check mio start--------------------\n");
+            printf("\n--------------------check mio start--------------------\n\n");
             printTest();
-            printf("\n");
             parseArgsTest();
             printf("--------------------check mio end--------------------\n\n");
         }

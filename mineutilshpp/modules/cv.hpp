@@ -278,7 +278,7 @@ namespace mineutils
                     else
                     {
                         if (digits <= 3)
-                            std::cout << mstr::zfillFlt(ptr[x], digits, 4, ' ', '0');
+                            std::cout << mstr::zfillFlt(ptr[x], digits, 4, ' ');
                         else
                             std::cout << std::setiosflags(std::ios::scientific) << std::setprecision(5) << ptr[x];
                         if (x != xend - 1)

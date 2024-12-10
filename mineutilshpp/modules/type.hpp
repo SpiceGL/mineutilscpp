@@ -61,7 +61,7 @@ namespace mineutils
 
 
         /*  检查T、Ts中的每一个类型是否都支持std::cout <<，支持模板SFINAE特性
-            - 每一个T、Ts类型的对象都可被std::cout <<接收
+            - 每一个T、Ts类型的对象都正确重载了operator<<(std::ostream&, const T&)
             - 对于每一个T、Ts类型的对象obj，std::cout << obj的返回值类型为std::ostream&
             - 对每一个T、Ts类型查找operator<<的范围为std命名空间、当前T所在命名空间及其关联命名空间，以及全局命名空间
             用法：StdCoutEachChecker<T, Ts...>::value, 类型为constexpr bool   */
@@ -116,7 +116,7 @@ namespace mineutils
             - Fn是仿函数时，自身的去引用类型必须支持使用自身的左值和右值对象进行构造，且不是volatile类型
             - Fn是具有多个operator()重载的仿函数时，参数类型与Fn的一个operator()匹配即可
             - const、volatile限定的成员函数只能由const、volatile对象调用，对于仿函数也是一样
-            - 要求Args...的去引用类型均支持使用自身的左值和右值对象进行构造
+            - 要求Args...中非C数组类型的去引用类型均支持使用自身的左值和右值对象进行构造
             - 要求Fn的参数类型不能为右值引用
             - 其他要求参考std::bind规则
             用法：
@@ -248,6 +248,12 @@ namespace mineutils
         template<class T>
         constexpr bool mtype::StdBeginEndChecker<T>::value;
 
+        template <typename... T>
+        struct _make_void { using type = void; };
+
+        template <typename... T>
+        using _void_t = typename _make_void<T...>::type;
+
 
         /*  检查T是否支持std::cout <<，支持模板SFINAE特性
             - T类型正确重载了operator<<(std::ostream&, const T&)
@@ -275,7 +281,7 @@ namespace mineutils
 
 
         /*  检查T、Ts中的每一个类型是否都支持std::cout <<，支持模板SFINAE特性
-            - 每一个T、Ts类型的对象都可被std::cout <<接收
+            - 每一个T、Ts类型的对象都正确重载了operator<<(std::ostream&, const T&)
             - 对于每一个T、Ts类型的对象obj，std::cout << obj的返回值类型为std::ostream&
             - 对每一个T、Ts类型查找operator<<的范围为std命名空间、当前T所在命名空间及其关联命名空间，以及全局命名空间
             用法：StdCoutEachChecker<T, Ts...>::value, 类型为constexpr bool   */
@@ -493,6 +499,7 @@ namespace mineutils
             //同样因为gcc4.7.3上std::reference_wrapper<Func>包装的Func进行上面的check，Func的cv属性不匹配会直接报错而不是触发SFINAE
             template<class Func>
             static Func checkFn(std::reference_wrapper<Func>);
+
             template<class Func>
             static Func checkFn(Func&&);
 
@@ -509,8 +516,14 @@ namespace mineutils
         struct _EachConstructibleByLRvalueChecker
         {
         private:
-            template<class Argument, class... Arguments, typename std::enable_if<mtype::ConstructibleFromEachChecker<typename std::remove_reference<Argument>::type, typename std::add_lvalue_reference<Argument>::type, typename mtype::RvalueRefMaker<Argument>::Type>::value&& mtype::_EachConstructibleByLRvalueChecker<Arguments...>::value, int>::type = 0>
+            template<class Argument, class... Arguments, typename std::enable_if<std::is_array<typename std::remove_reference<Argument>::type>::value, int>::type = 0, typename std::enable_if<mtype::_EachConstructibleByLRvalueChecker<Arguments...>::value, int>::type = 0>
             static std::true_type check(int);
+
+            template<class Argument, class... Arguments, typename std::enable_if<!std::is_array<typename std::remove_reference<Argument>::type>::value, int>::type = 0, typename std::enable_if<mtype::ConstructibleFromEachChecker<typename std::remove_reference<Argument>::type, typename std::add_lvalue_reference<Argument>::type, typename mtype::RvalueRefMaker<Argument>::Type>::value&& mtype::_EachConstructibleByLRvalueChecker<Arguments...>::value, int>::type = 0>
+            static std::true_type check(int);
+
+            //template<class Argument, class... Arguments, typename std::enable_if<mtype::ConstructibleFromEachChecker<typename std::remove_reference<Argument>::type, typename std::add_lvalue_reference<Argument>::type, typename mtype::RvalueRefMaker<Argument>::Type>::value&& mtype::_EachConstructibleByLRvalueChecker<Arguments...>::value, int>::type = 0>
+            //static std::true_type check(int);
 
             template<class... Arguments, typename std::enable_if<(sizeof...(Arguments) == 0), int>::type = 0>
             static std::true_type check(int);
@@ -670,7 +683,7 @@ namespace mineutils
             - Fn是仿函数时，自身的去引用类型必须支持使用自身的左值和右值对象进行构造，且不是volatile类型
             - Fn是具有多个operator()重载的仿函数时，参数类型与Fn的一个operator()匹配即可
             - const、volatile限定的成员函数只能由const、volatile对象调用，对于仿函数也是一样
-            - 要求Args...的去引用类型均支持使用自身的左值和右值对象进行构造
+            - 要求Args...中非C数组类型的去引用类型均支持使用自身的左值和右值对象进行构造
             - 要求Fn的参数类型不能为右值引用
             - 其他要求参考std::bind规则
             用法：
@@ -913,8 +926,7 @@ namespace mineutils
             using type1 = mtype::FuncChecker<decltype(&_MyClass3::func3)>::ReturnType;
             num_args = mtype::FuncChecker<decltype(&_MyClass3::func3)>::num_args;
             printf("User Check! FuncChecker<decltype(&_MyClass3::func3)>::ReturnType(int):%s, num_args(1):%d.\n", mtype::getTypeName<type1>(), num_args);
-
-
+            printf("\n");
         }
 
         inline void StdBindCheckerTest()
@@ -956,27 +968,19 @@ namespace mineutils
 
             using type1 = mtype::StdBindChecker<decltype(&_MyClass3::func2), const _MyClass3*, int>::ReturnType;
             printf("User Check! StdBindChecker<decltype(&_MyClass3::func2), const _MyClass3*, int>::ReturnType(int):%s.\n", mtype::getTypeName<type1>());
-
-
+            printf("\n");
         }
 
         inline void check()
         {
-            printf("\n--------------------check mtype start--------------------\n");
+            printf("\n--------------------check mtype start--------------------\n\n");
             SameTypesCheckerTest();
-            printf("\n");
             InTypesCheckerTest();
-            printf("\n");
             StdBeginEndCheckerTest();
-            printf("\n");
             StdCoutCheckerTest();
-            printf("\n");
             ConstructibleFromEachCheckerTest();
-            printf("\n");
             EachLRvalueConstructibleChecker();
-            printf("\n");
             FunctionCheckerTest();
-            printf("\n");
             StdBindCheckerTest();
             printf("--------------------check mtype end--------------------\n\n");
         }

@@ -1,15 +1,20 @@
 # mineutilscpp
 ## 描述
-* 开发目的：C++的便利功能封装，用于方便自己编程和锻炼代码文档规范性，文本使用UTF8-SIG编码。   
-+ 开发原则：代码基于C++11标准，开发优先级大致为：功能实现 > 类型检查 > 接口简洁 > 性能优化 > 可读性。
-- 命名空间：除宏外所有功能都在mineutils下，同时根据所属模块分布在次级的命名空间，如mineutils::mstr；基于第三方库的功能统一在mineutils::mext下。
-* 命名风格：类命名一律大驼峰；函数命名一律小驼峰；对象式宏统一大写，以MINE_作为前缀；函数式宏统一小驼峰命名，以m为前缀。
-+ 线程安全：所有非成员函数接口都保证自身线程安全；成员函数和函数对象接口除非明确说明，否则不保证线程安全。   
-- 更新规则：更新遵循大版本号删改接口，中版本号添加新功能接口，小版本号修复和优化的原则，保证大版本内的向下兼容性。  
+* **开发目的**：C++的便利功能封装，用于方便自己编程和锻炼代码文档规范性，文本使用UTF8-SIG编码。   
++ **开发原则**：代码基于C++11标准，开发优先级大致为：功能实现 > 类型检查 > 接口简洁 > 性能优化 > 可读性。
+- **命名空间**：除宏外所有功能都在mineutils下，同时根据所属模块分布在次级的命名空间，如mineutils::mstr；基于第三方库的功能统一在mineutils::mext下。
+* **命名风格**：类命名一律大驼峰；函数命名一律小驼峰；对象式宏统一大写，以MINE_作为前缀；函数式宏统一小驼峰命名，以m为前缀。
++ **线程安全**：所有非成员函数接口都保证自身线程安全；成员函数和函数对象接口除非明确说明，否则不保证线程安全。   
+- **更新规则**：更新遵循大版本号删改接口，中版本号添加新功能接口，小版本号修复和优化的原则。  
+
+## 兼容性声明
+### 大版本内保证接口的代码级兼容性，但以下情况除外：
+* **未明确指定签名的函数作为参数**：例如std::thread(func, args...)或mtype::FuncChecker<decltype(func)>。由于后续可能增加函数重载，这类情况下可能会导致不兼容。
++ **混用类型别名与其内部实现**：例如mtime::TimePoint在不同版本可能对应std::chrono::high_resolution_clock::time_point或std::chrono::steady_clock::time_point。类型别名的内部实现可能变化，如果混用类型别名与它当前的实际类型，未来更新不保证兼容。
 
 ## 版本信息
-当前库版本：1.13.0   
-文档注释修改日期：20241126     
+当前库版本：1.14.0   
+文档注释修改日期：20241210     
 
 ## 测试平台
 **Windows:**  
@@ -86,7 +91,7 @@ int main()
     long long cost_time = mtime::ms(end_t - start_t);
     
     //统计并打印代码段平均耗时
-    mtime::MultiMeanTimeCounter time_counter(10);
+    mtime::MeanTimeCounter time_counter(10);
     while(true)
     {
         time_counter.addStart("part1");
@@ -113,14 +118,14 @@ int main()
 ```
 ...
 
-template<class T, template<class T, typename std::enable_if<mtype::InTypesChecker<T, int, char, long long>::value, int>::type = 0>>
+template<class T, typename std::enable_if<mtype::InTypesChecker<T, int, char, long long>::value, int>::type = 0>
 void func1(T d)   //限制T必须为int、char、long long中的一个类型
 {
     do something...
 }
 
-template<class...>
-void func1(...)
+template<class T, typename std::enable_if<!mtype::InTypesChecker<T, int, char, long long>::value, int>::type = 0>
+void func1(T d)
 {
     do something...
 }
@@ -162,8 +167,8 @@ int main()
 int main()
 {
     //创建警告或错误信息
-    std::string strw = mmsg("{}: Be careful!");   //返回"!Warning! "fileXX"[funcXX](line XX): Be careful!"
-    mprintfE("Dangerous!");   //打印"!!!Error!!! "fileXX"[funcXX](line XX): Dangerous!"
+    std::string strw = mmsg("Be careful, {}!", "Bob");   //返回"!Warning! "fileXX"[funcXX](line XX): Be careful, Bob!"
+    mprintfE("Dangerous, %s!", "Bob");   //打印"!!!Error!!! "fileXX"[funcXX](line XX): Dangerous, Bob!"
     
     ...
 }
@@ -364,6 +369,14 @@ int main()
 ```  
 
 ## 版本更新日志
+**v1.14.0**  
+* 20241210  
+1. 添加新的mstr::toStr和mstr::fstr重载，用于为浮点数设置精度；
+2. 添加一个新的mstr::zfillFlt重载，并将旧的标记为废弃；
+3. 显著优化mstr下接口的整体性能，并修复mstr::toStr和基于它的接口可能以非预期的方式表示数字的问题；
+4. 修复mtype::StdBindChecker对C数组参数的检查结果；
+5. 优化mthread::ThreadPool在析构时的逻辑。
+
 **v1.13.0**  
 * 20241126  
 1. mtime::MeanTimeCounter现在包含mtime::MultiMeanTimeCounter的完整功能，同时将mtime::MultiMeanTimeCounter标记为废弃；

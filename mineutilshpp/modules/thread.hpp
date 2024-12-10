@@ -68,8 +68,8 @@ namespace mineutils
                 - addTask(&class::static_mem_function, args...)
                 - addTask(functor or std::ref(functor), args...)  
                 注意事项：在QNX的gcc4.7.3上，由于C++11特性支持不全，极端情况可能出现接收不支持的类型，编译错误出现在模板检查内部的情况
-                @param func: 任务函数。要求其参数类型不能为右值引用，返回类型必须为void或支持使用自身的右值赋值；如果Fn是一个函数对象(functor)类型，那么它的去引用类型必须支持使用自身的左值和右值对象进行构造，且不是volatile类型；func如果是成员函数或仿函数，它要保证要调用的函数的cv限定符与对象一致
-                @param args...: 任务函数的参数。需要左值引用传递的参数必须用std::ref或std::cref显式引用否则实际为值传递，其他参数的去引用类型必须支持使用自身的左值和右值对象进行构造
+                @param func: 任务函数。要求其参数类型不能为右值引用，返回类型必须为void或支持使用自身的右值赋值；如果func是一个函数对象(functor)类型，那么它的去引用类型必须支持使用自身的左值和右值对象进行构造，且不是volatile类型；如果func是成员函数或函数对象，它要保证要调用的函数的cv限定符与对象一致
+                @param args...: 任务函数的参数。需要左值引用传递的参数必须用std::ref或std::cref显式引用否则实际为值传递，其他非C数组参数的去引用类型必须支持使用自身的左值和右值对象进行构造
                 @return 任务结果状态，用于查询任务状态、等待任务结束以及获取任务返回值，注意ThreadPool对象析构后任务状态失效  */
             template<class Fn, class... Args, class Ret = typename mtype::StdBindChecker<Fn, Args...>::ReturnType, typename std::enable_if<std::is_same<Ret, typename mtype::StdBindChecker<Fn, Args...>::ReturnType>::value && (std::is_void<Ret>::value || std::is_move_assignable<typename std::remove_reference<Ret>::type>::value), int>::type = 0>
             TaskRetState<Ret> addTask(Fn&& func, Args&&... args);
@@ -210,7 +210,10 @@ namespace mineutils
 
         inline ThreadPool::~ThreadPool()
         {
-            this->need_abort_ = true;
+            {
+                std::unique_lock<std::mutex> lk(this->task_mtx_);
+                this->need_abort_ = true;
+            }
             this->cond_var_.notify_all();
             for (auto& thd : this->work_thds_)
             {

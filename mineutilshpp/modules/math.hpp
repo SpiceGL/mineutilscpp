@@ -193,9 +193,9 @@ namespace mineutils
                 return 0;
             }
             int normal_idx;
-            if (idx >= 0 and idx < len)
+            if (idx >= 0 && idx < len)
                 normal_idx = idx;
-            else if (idx < 0 and idx >= -len)
+            else if (idx < 0 && idx >= -len)
                 normal_idx = idx + len;
             else
             {

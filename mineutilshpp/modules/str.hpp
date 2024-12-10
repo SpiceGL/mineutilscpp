@@ -3,6 +3,7 @@
 #ifndef STR_HPP_MINEUTILS
 #define STR_HPP_MINEUTILS
 
+#include<algorithm>
 #include<atomic>
 #include<iomanip>
 #include<iostream>
@@ -43,44 +44,51 @@ namespace mineutils
         template<class T, typename std::enable_if<std::is_integral<T>::value, int>::type = 0>
         std::string toOrdinal(T number);
 
-        //将输入直接转换为字符串，要求参数支持std::cout<<操作
+        //将输入转换为std::string，要求参数正确支持std::cout<<操作，对浮点数默认保留6位小数
         template<class T, typename std::enable_if<mtype::StdCoutChecker<const T&>::value, int>::type = 0>
-        std::string toStr(const T& arg);
+        inline std::string toStr(const T& arg);
 
-        /*  类似Python字符串的zfill函数，将整型的数字转换为字符串并在前面添加字符
+        //将输入转换为std::string，可预设浮点数精度，要求参数正确支持std::cout<<操作
+        template<class T, typename std::enable_if<mtype::StdCoutChecker<const T&>::value, int>::type = 0>
+        inline std::string toStr(std::streamsize float_precision, const T& arg);
+
+
+        /*  类似Python字符串的zfill函数，且直接将整型的数字转换为字符串并在前面添加字符
             @param n：输入的整型数字
             @param min_len：转换结果的长度
             @param padding：用于填充的字符
             @return 转换结果   */
-        std::string zfillInt(long long n, unsigned int min_len = 0, char padding = '0');
+        std::string zfillInt(long long n, size_t min_len = 0, char padding = '0');
 
-        /*  类似Python字符串的zfill函数，将浮点型的数字转换为字符串并在前后添加字符
+        /*  类似Python字符串的zfill函数，将浮点型的数字转换为字符串并在前面添加字符
             @param f：输入的浮点数字
             @param min_len_int：转换结果整数部分的长度
             @param flt_precision：转换结果小数部分的精度
             @param int_padding：用于填充整数部分的字符
-            @param flt_padding：用于填充小数部分的字符
             @return 转换结果   */
-        std::string zfillFlt(long double f, unsigned int min_len_int = 0, unsigned int flt_precision = 4,
-            char int_padding = ' ', char flt_padding = '0');
+        std::string zfillFlt(long double f, size_t min_len_int = 0, std::streamsize flt_precision = 6, char int_padding = '0');
 
-        //实现类似于python的f-string功能，将字符串中的"{}"替换为后续的参数
+        //实现类似于python的f-string功能，将字符串中的"{}"替换为后续的参数，对于浮点数保留6位小数
         template<class... Args, typename std::enable_if<mtype::StdCoutEachChecker<int, const Args&...>::value, int>::type = 0>
-        std::string fstr(std::string s, const Args& ...args);
+        std::string fstr(const std::string& f_string, const Args& ...args);
+
+        //实现类似于python的f-string功能，将字符串中的"{}"替换为后续的参数，可以预设浮点数的精度
+        template<class... Args, typename std::enable_if<mtype::StdCoutEachChecker<int, const Args&...>::value, int>::type = 0>
+        std::string fstr(std::streamsize float_precision, const std::string& f_string, const Args& ...args);
 
         /*  实现正向查找sep对字符串分割的功能，以vector形式返回。分割空字符串会返回包含一个空字符串的vector(类Python规则)
             @param s：待分割的字符串
             @param sep：分割符，不可为空字符串
             @param max_split_times：最大分割次数，-1代表全部分割
             @return 分割结果，至少返回包含一个元素的vector   */
-        std::vector<std::string> split(std::string s, const std::string& sep, size_t max_split_times = -1);
+        std::vector<std::string> split(const std::string& s, const std::string& sep, size_t max_split_times = -1);
 
         /*  实现反向查找sep对字符串分割的功能，以vector形式返回。分割空字符串会返回包含一个空字符串的vector(类Python规则)
             @param s：待分割的字符串
             @param sep：分割符，不可为空字符串
             @param max_split_times：最大分割次数，-1代表全部分割
-            @return 分割结果，至少返回包含一个元素的vector   */
-        std::vector<std::string> rsplit(std::string s, const std::string& sep, size_t max_split_times = -1);
+            @return 分割结果，至少返回包含一个元素的vector，元素排列顺序不会反向   */
+        std::vector<std::string> rsplit(const std::string& s, const std::string& sep, size_t max_split_times = -1);
 
         //按字符串中的空白符（包括空格、多空格、\n、\t等）分割字符串，若输入空字符串或全空格符串则返回空vector(类Python规则)
         std::vector<std::string> split(const std::string& s);
@@ -146,12 +154,44 @@ namespace mineutils
             return str;
         }
 
+        template<class T, typename std::enable_if<mtype::ConstructibleFromEachChecker<std::string, const T&>::value, int>::type = 0>
+        inline std::string _toStr(std::streamsize, const T& arg)
+        {
+            return arg;
+        }
+
+
+        template<class T, typename std::enable_if<!mtype::ConstructibleFromEachChecker<std::string, const T&>::value, int>::type = 0>
+        inline std::string _toStr(std::streamsize float_precision, const T& arg)
+        {
+            MINE_THREAD_LOCAL_IF_HAVE std::ostringstream str_buf;
+
+            str_buf.str("");
+            str_buf.clear();
+            if (float_precision < 0)
+                float_precision = 0;
+            str_buf << std::fixed << std::setprecision(float_precision) << arg;
+            return str_buf.str();
+        }
+
+        template<class T, typename std::enable_if<mtype::StdCoutChecker<const T&>::value, int>::type>
+        inline std::string toStr(const T& arg)
+        {
+            return mstr::_toStr(6, arg);
+        }
+
+        template<class T, typename std::enable_if<mtype::StdCoutChecker<const T&>::value, int>::type>
+        inline std::string toStr(std::streamsize float_precision, const T& arg)
+        {
+            return mstr::_toStr(float_precision, arg);
+        }
+
         //将数字转换为序数词，1st、2nd等，只接受正整数，否则会返回空字符串
         template<class T, typename std::enable_if<std::is_integral<T>::value, int>::type>
         inline std::string toOrdinal(T number)
         {
-            if(number <= 0)
-            { 
+            if (number <= 0)
+            {
                 printf("!Warning! \"%s\"[%s](line %d): Param number:%d must be positive integer!\n", MINE_FUNCSIG, __FILE__, __LINE__, number);
                 return "";
             }
@@ -161,94 +201,72 @@ namespace mineutils
                 return "2nd";
             else if (number == 3)
                 return "3rd";
-            else return mstr::toStr(number) + "th";
+            else return mstr::toStr(number).append("th");
         }
 
-        template<class T, typename std::enable_if<mtype::StdCoutChecker<const T&>::value, int>::type>
-        inline std::string toStr(const T& arg)
-        {
-            MINE_THREAD_LOCAL_IF_HAVE std::ostringstream str_buf;
-            str_buf.str("");
-            str_buf.clear();
-            str_buf << arg;
-            return str_buf.str();
-        }
-
-        inline std::string zfillInt(long long n, unsigned int min_len, char padding)
+        inline std::string zfillInt(long long n, size_t min_len, char padding)
         {
             std::string s = mstr::toStr(n);
             if (s.length() < min_len)
-            {
-                s = std::string(min_len - s.length(), padding) + s;
-            }
+                s.insert(0, min_len - s.length(), padding);
             return s;
         }
 
-        inline std::string zfillFlt(long double f, unsigned int min_len_int, unsigned int flt_precision,
-            char int_padding, char flt_padding)
+        inline std::string zfillFlt(long double f, size_t min_len_int, std::streamsize flt_precision, char int_padding)
         {
-            //static_assert(std::is_floating_point<FT>::value, "Class FT must be floating_point!");
-            MINE_THREAD_LOCAL_IF_HAVE std::ostringstream buffer;
-            buffer.str("");
-            buffer.clear();
-            buffer << std::setprecision(flt_precision) << f;
-            std::string s = buffer.str();
-
-            /*找到输入小数的整数部分和小数部分，分别处理并合并*/
-            std::string int_part, flt_part;
+            std::string s = mstr::toStr(flt_precision, f);
             size_t point_pos = s.find(".");
-            if (point_pos != std::string::npos)
-            {
-                int_part = s.substr(0, point_pos);
-                flt_part = s.substr(point_pos + 1);
-            }
-            else
-            {
-                int_part = s;
-                flt_part = "";
-            }
-            if (int_part.length() < min_len_int)
-                int_part = std::string(min_len_int - int_part.length(), int_padding) + int_part;
-            if (flt_part.length() < flt_precision)
-                flt_part = flt_part + std::string(flt_precision - flt_part.length(), flt_padding);
-            s = int_part + "." + flt_part;
+
+            if (point_pos < min_len_int)  //找到"."且整数部分低于目标
+                s.insert(0, min_len_int - point_pos, int_padding);
+            else if (s.length() < min_len_int)  //没找到"."且整数部分低于目标
+                s.insert(0, min_len_int - s.length(), int_padding);
             return s;
         }
-
 
         //fstr函数的相关
-        inline std::string _fstr(std::string& s, size_t)
+        inline void _fstr(std::ostringstream& oss, const std::string& s, size_t pos_offset)
         {
-            return s;
+            oss.write(s.data() + pos_offset, s.length() - pos_offset);
         }
 
         //fstr函数的相关
         template<class Arg, class... Args>
-        inline std::string _fstr(std::string& s, size_t pos_offset, const Arg& arg, const Args&... args)
+        inline void _fstr(std::ostringstream& oss, const std::string& s, size_t pos_offset, const Arg& arg, const Args& ...args)
         {
             size_t pos = s.find("{}", pos_offset);
             if (pos != std::string::npos)
             {
-                std::string arg_s = mstr::toStr(arg);
-                s.replace(pos, 2, arg_s);
-                pos_offset = pos + arg_s.size();
-                return mstr::_fstr(s, pos_offset, args...);
+                oss.write(s.data() + pos_offset, pos - pos_offset);
+                oss << arg;
+                pos_offset = pos + 2;
+                mstr::_fstr(oss, s, pos_offset, args...);
             }
-            else return s;            
         }
 
         template<class... Args, typename std::enable_if<mtype::StdCoutEachChecker<int, const Args&...>::value, int>::type>
-        inline std::string fstr(std::string s, const Args& ...args)
+        inline std::string fstr(const std::string& f_string, const Args& ...args)
         {
-            s.reserve(s.size() + 64);
-            return mstr::_fstr(s, 0, args...);
+            return mstr::fstr(6, f_string, args...);
         }
 
-        inline std::vector<std::string> split(std::string s, const std::string& sep, size_t max_split_times)
+        template<class... Args, typename std::enable_if<mtype::StdCoutEachChecker<int, const Args&...>::value, int>::type>
+        std::string fstr(std::streamsize float_precision, const std::string& f_string, const Args& ...args)
+        {
+            MINE_THREAD_LOCAL_IF_HAVE std::ostringstream oss;
+            oss.str("");
+            oss.clear();
+            if (float_precision < 0)
+                float_precision = 0;
+            oss << std::fixed << std::setprecision(float_precision);
+            mstr::_fstr(oss, f_string, 0, args...);
+            return oss.str();
+        }
+
+        inline std::vector<std::string> split(const std::string& s, const std::string& sep, size_t max_split_times)
         {
             if (s.empty() || max_split_times == 0)
-            {
-                return { s };
+            {return { s };
             }
             if (sep.empty())
             {
@@ -256,25 +274,24 @@ namespace mineutils
                 return { s };
             }
             std::vector<std::string> strs;
-            size_t sep_pos;
-            std::string s_tmp;   //s_tmp存放已处理的字段，s存放待处理的字段
 
             size_t now_split_times = 0;
-            while ((sep_pos = s.find(sep)) != std::string::npos)
+            size_t start_pos = 0;
+            size_t sep_pos;
+            while (sep_pos = s.find(sep, start_pos), sep_pos != std::string::npos)
             {
-                s_tmp = s.substr(0, sep_pos);
-                s = s.substr(sep_pos + sep.length());
-                strs.emplace_back(s_tmp);
-                s_tmp.clear();
+                strs.emplace_back(s.substr(start_pos, sep_pos - start_pos));
+                start_pos = sep_pos + sep.length();
                 now_split_times++;
                 if (now_split_times >= max_split_times)
                     break;
             }
-            strs.emplace_back(s);
+            strs.emplace_back(s.substr(start_pos));
             return strs;
         }
 
-        inline std::vector<std::string> rsplit(std::string s, const std::string& sep, size_t max_split_times)
+
+        inline std::vector<std::string> rsplit(const std::string& s, const std::string& sep, size_t max_split_times)
         {
             if (s.empty() || max_split_times == 0)
             {
@@ -286,21 +303,20 @@ namespace mineutils
                 return { s };
             }
             std::vector<std::string> strs;
-            size_t sep_pos;
-            std::string s_tmp;   //s_tmp存放已处理的字段，s存放待处理的字段
 
             size_t now_split_times = 0;
-            while ((sep_pos = s.rfind(sep)) != std::string::npos)
+            size_t start_pos = std::string::npos;
+            size_t sep_pos = std::string::npos, tmp_sep_pos;
+            while (tmp_sep_pos = s.rfind(sep, start_pos), tmp_sep_pos != std::string::npos)
             {
-                s_tmp = s.substr(sep_pos + sep.length());
-                s = s.substr(0, sep_pos);
-                strs.emplace(strs.begin(), s_tmp);
-                s_tmp.clear();
+                sep_pos = tmp_sep_pos;
+                strs.emplace(strs.begin(), s.substr(sep_pos + sep.length(), start_pos - (sep_pos + sep.length()) + 1));
+                start_pos = sep_pos - 1;
                 now_split_times++;
-                if (now_split_times >= max_split_times)
+                if (now_split_times >= max_split_times || sep_pos == 0)
                     break;
             }
-            strs.emplace(strs.begin(), s);
+            strs.emplace(strs.begin(), s.substr(0, sep_pos));
             return strs;
         }
 
@@ -311,23 +327,154 @@ namespace mineutils
                 return { };
             }
 
-            MINE_THREAD_LOCAL_IF_HAVE std::stringstream ss;
-            ss.str("");
-            ss.clear();
-            ss << s;
             std::vector<std::string> strs;
-            std::string s_tmp;
-            ss >> s_tmp;
+            std::string::const_iterator it = s.begin();
+            std::string::const_iterator end = s.end();
 
-            while (!s_tmp.empty())
+            while (it != end) 
             {
-                strs.emplace_back(s_tmp);
-                s_tmp.clear();
-                ss >> s_tmp;
+                it = std::find_if_not(it, end, [](unsigned char c) { return std::isspace(c); });
+                if (it == end) 
+                    break;
+                auto start = it;
+                it = std::find_if(start, end, [](unsigned char c) { return std::isspace(c); });
+
+                if (start != it)
+                    strs.push_back(std::string(start, it));
             }
+
             return strs;
         }
+
+
+        mdeprecated(R"(Deprecated! Please use an alternative overload(in str.hpp))")
+            inline std::string zfillFlt(long double f, size_t min_len_int, size_t flt_precision, char int_padding, char flt_padding)
+        {
+            std::string s = mstr::toStr(f);
+
+            /*找到输入小数的整数部分和小数部分，分别处理并合并*/
+            std::string int_part, flt_part;
+            size_t point_pos = s.find(".");
+            if (point_pos != std::string::npos)
+            {
+                int_part = s.substr(0, point_pos);
+                flt_part = s.substr(point_pos + 1, flt_precision);
+            }
+            else
+            {
+                int_part = std::move(s);
+                flt_part.clear();
+            }
+            s.clear();
+            if (int_part.length() < min_len_int)
+                s = std::string(min_len_int - int_part.length(), int_padding);
+            s.append(int_part);
+            if (flt_precision > 0)
+                s.append(".").append(flt_part);
+            if (flt_precision > flt_part.length())
+                s.append(std::string(flt_precision - flt_part.length(), flt_padding));
+            return s;
+        }
+
+        //废弃实现
+
+        //inline std::vector<std::string> split(const std::string& s)
+        //{
+        //    if (s.empty())
+        //    {
+        //        return { };
+        //    }
+
+        //    MINE_THREAD_LOCAL_IF_HAVE std::stringstream ss;
+        //    ss.str("");
+        //    ss.clear();
+        //    ss << s;
+        //    std::vector<std::string> strs;
+        //    std::string s_tmp;
+        //    ss >> s_tmp;
+
+        //    while (!s_tmp.empty())
+        //    {
+        //        strs.emplace_back(std::move(s_tmp));
+        //        s_tmp.clear();
+        //        ss >> s_tmp;
+        //    }
+        //    return strs;
+        //}
+
+
     }
+
+
+#ifdef MINEUTILS_TEST_MODULES
+    namespace _mstr
+    {
+        inline void toOrdinalTest()
+        {
+            bool ret1;
+            ret1 = (mstr::toOrdinal(1) == "1st" && mstr::toOrdinal(2) == "2nd" && mstr::toOrdinal(3) == "3rd" && mstr::toOrdinal(10) == "10th");
+            printf("%s toOrdinal check.\n", ret1 ? "Passed." : "Failed!");
+            printf("\n");
+        }
+        inline void toStrTest()
+        {
+            bool ret1;
+            ret1 = (mstr::toOrdinal(1) == "1st" && mstr::toOrdinal(2) == "2nd" && mstr::toOrdinal(3) == "3rd" && mstr::toOrdinal(10) == "10th");
+            printf("%s toOrdinal check:%d.\n", ret1 ? "Passed." : "Failed!", ret1);
+            ret1 = (mstr::toStr(1.112) == "1.112000");
+            printf("%s toStr(1.112):%s\n", ret1 ? "Passed." : "Failed!", mstr::toStr(1.112).c_str());
+            printf("\n");
+        }
+
+        inline void zfillTest()
+        {
+            bool ret1;
+            ret1 = (mstr::zfillInt(123, 3, '0') == "123" && mstr::zfillInt(123, 5, '0') == "00123" && mstr::zfillInt(123, 2, '0') == "123");
+            printf("%s zfillInt(123, 3, '0'):%s  zfillInt(123, 5, '0'):%s  zfillInt(123, 2, '0'):%s\n", ret1 ? "Passed." : "Failed!", 
+                mstr::zfillInt(123, 3, '0').c_str(), mstr::zfillInt(123, 5, '0').c_str(), mstr::zfillInt(123, 2, '0').c_str());
+            ret1 = (mstr::zfillFlt(12, 3, 0, '0') == "012" && mstr::zfillFlt(12, 3, 3, '0') == "012.000" && mstr::zfillFlt(12.111111, 3, 3, '0') == "012.111" && mstr::zfillFlt(1234.111111, 3, 3, '0') == "1234.111");
+            printf("%s mstr::zfillFlt(12, 3, 0, '0'):%s  mstr::zfillFlt(12, 3, 3, '0'):%s  mstr::zfillFlt(12.111111, 3, 3, '0'):%s  mstr::zfillFlt(1234.111111, 3, 3, '0'):%s\n", ret1 ? "Passed." : "Failed!",
+                mstr::zfillFlt(12, 3, 0, '0').c_str(), mstr::zfillFlt(12, 3, 3, '0').c_str(), mstr::zfillFlt(12.111111, 3, 3, '0').c_str(), mstr::zfillFlt(1234.111111, 3, 3, '0').c_str());
+            printf("\n");
+        }
+
+        inline void fstrTest()
+        {
+            bool ret1;
+            ret1 = (mstr::fstr("I need {} and {}  ", 1, 2) == "I need 1 and 2  " && mstr::fstr("I need {}, {} and {}  ", 1, 2) == "I need 1, 2 and {}  " && mstr::fstr("I need {}  ", 1, 2) == "I need 1  ");
+            printf("%s mstr::fstr check\n", ret1 ? "Passed." : "Failed!");
+            printf("\n");
+        }
+
+        inline void splitTest()
+        {
+            bool ret1;
+            ret1 = (mstr::split("I need {} and {}  ") == std::vector<std::string>({ "I", "need", "{}", "and", "{}" }) && mstr::split("I need {} and {}  ", "{}") == std::vector<std::string>({ "I need ", " and ", "  " }));
+            printf("%s mstr::split check1\n", ret1 ? "Passed." : "Failed!");
+
+            ret1 = (mstr::split("I need {} and {}  ", "x") == std::vector<std::string>({ "I need {} and {}  " }) && mstr::split("I need {} and {}  ", "{}", 1) == std::vector<std::string>({ "I need ", " and {}  " }));
+            printf("%s mstr::split check2\n", ret1 ? "Passed." : "Failed!");
+
+
+            ret1 = (mstr::rsplit("I need {} and {}  ", "{}") == std::vector<std::string>({ "I need ", " and ", "  " }) );
+            printf("%s mstr::rsplit check1\n", ret1 ? "Passed." : "Failed!");
+
+            ret1 = (mstr::rsplit("I need {} and {}  ", "x") == std::vector<std::string>({ "I need {} and {}  " }) && mstr::rsplit("I need {} and {}  ", "{}", 1) == std::vector<std::string>({ "I need {} and ", "  " }));
+            printf("%s mstr::rsplit check2\n", ret1 ? "Passed." : "Failed!");
+            printf("\n");
+        }
+
+        inline void check()
+        {
+            printf("\n--------------------check mstr start--------------------\n\n");
+            toOrdinalTest();
+            toStrTest();
+            zfillTest();
+            splitTest();
+            printf("--------------------check mstr end--------------------\n\n");
+        }
+    }
+#endif
 }
 
 #endif // !STR_HPP_MINEUTILS

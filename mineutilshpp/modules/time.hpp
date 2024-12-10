@@ -513,32 +513,24 @@ namespace mineutils
             if (this->time_unit_ == mtime::Unit::s)
             {
                 long long used_time = mtime::s(this->end_t_ - this->start_t_);
-                if (used_time < 0)
-                    used_time = 0;
                 long long need_sleep = this->target_time_ - used_time;
                 mtime::sleep(need_sleep);
             }
             else if (this->time_unit_ == mtime::Unit::ms)
             {
                 long long used_time = mtime::ms(this->end_t_ - this->start_t_);
-                if (used_time < 0)
-                    used_time = 0;
                 long long need_sleep = this->target_time_ - used_time;
                 mtime::msleep(need_sleep);
             }
             else if (this->time_unit_ == mtime::Unit::us)
             {
                 long long used_time = mtime::us(this->end_t_ - this->start_t_);
-                if (used_time < 0)
-                    used_time = 0;
                 long long need_sleep = this->target_time_ - used_time;
                 mtime::usleep(need_sleep);
             }
             else if (this->time_unit_ == mtime::Unit::ns)
             {
                 long long used_time = mtime::ns(this->end_t_ - this->start_t_);
-                if (used_time < 0)
-                    used_time = 0;
                 long long need_sleep = this->target_time_ - used_time;
                 mtime::nsleep(need_sleep);
             }
