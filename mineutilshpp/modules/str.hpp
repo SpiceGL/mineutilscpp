@@ -90,9 +90,20 @@ namespace mineutils
             @return 分割结果，至少返回包含一个元素的vector，元素排列顺序不会反向   */
         std::vector<std::string> rsplit(const std::string& s, const std::string& sep, size_t max_split_times = -1);
 
-        //按字符串中的空白符（包括空格、多空格、\n、\t等）分割字符串，若输入空字符串或全空格符串则返回空vector(类Python规则)
+        //按字符串中的空白字符(包含空格符以及\t\n\r\f\v)分割字符串，若输入空字符串或全空格符串则返回空vector(类Python规则)
         std::vector<std::string> split(const std::string& s);
+
+        //去除字符串首尾的指定字符
+        std::string trim(std::string s, const char* chars_to_remove = " \t\n\r\f\v");
+
+        //去除字符串首端的指定字符
+        std::string ltrim(std::string s, const char* chars_to_remove = " \t\n\r\f\v");
+
+        //去除字符串尾端的指定字符
+        std::string rtrim(std::string s, const char* chars_to_remove = " \t\n\r\f\v");
     }
+
+
 
 
 
@@ -266,8 +277,7 @@ namespace mineutils
         inline std::vector<std::string> split(const std::string& s, const std::string& sep, size_t max_split_times)
         {
             if (s.empty() || max_split_times == 0)
-            {return { s };
-            }
+                return { s };
             if (sep.empty())
             {
                 printf("!!!Error!!! \"%s\"[%s](line %d): param sep is empty!\n", MINE_FUNCSIG, __FILE__, __LINE__);
@@ -294,9 +304,7 @@ namespace mineutils
         inline std::vector<std::string> rsplit(const std::string& s, const std::string& sep, size_t max_split_times)
         {
             if (s.empty() || max_split_times == 0)
-            {
                 return { s };
-            }
             if (sep.empty())
             {
                 printf("!!!Error!!! \"%s\"[%s](line %d): param sep is empty!\n", MINE_FUNCSIG, __FILE__, __LINE__);
@@ -323,28 +331,64 @@ namespace mineutils
         inline std::vector<std::string> split(const std::string& s)
         {
             if (s.empty())
-            {
                 return { };
-            }
 
             std::vector<std::string> strs;
-            std::string::const_iterator it = s.begin();
-            std::string::const_iterator end = s.end();
-
-            while (it != end) 
+            size_t lpos = 0;
+            size_t rpos = 0;
+            while (lpos != std::string::npos)
             {
-                it = std::find_if_not(it, end, [](unsigned char c) { return std::isspace(c); });
-                if (it == end) 
+                lpos = s.find_first_not_of(" \t\n\r\f\v", rpos);
+                if (lpos == std::string::npos)
                     break;
-                auto start = it;
-                it = std::find_if(start, end, [](unsigned char c) { return std::isspace(c); });
-
-                if (start != it)
-                    strs.push_back(std::string(start, it));
+                rpos = s.find_first_of(" \t\n\r\f\v", lpos);
+                if (lpos != rpos)
+                    strs.emplace_back(s.substr(lpos, rpos - lpos));
             }
 
             return strs;
         }
+
+        inline std::string trim(std::string s, const char* chars_to_remove)
+        {
+            if (s.empty())
+            {
+                return "";
+            }
+
+            size_t left_pos = s.find_first_not_of(chars_to_remove);
+            if (left_pos == std::string::npos)
+                return "";
+            s.erase(0, left_pos);
+            size_t right_pos = s.find_last_not_of(chars_to_remove);
+            s.erase(right_pos + 1, s.size());
+            return s;
+        }
+
+        inline std::string ltrim(std::string s, const char* chars_to_remove)
+        {
+            if (s.empty())
+                return s;
+
+            size_t left_pos = s.find_first_not_of(chars_to_remove);
+            if (left_pos == std::string::npos)
+                s.clear();
+            else s.erase(0, left_pos);
+            return s;
+        }
+
+        inline std::string rtrim(std::string s, const char* chars_to_remove)
+        {
+            if (s.empty())
+                return s;
+           
+            size_t right_pos = s.find_last_not_of(chars_to_remove);
+            if (right_pos == std::string::npos)
+                s.clear();
+            else s.erase(right_pos + 1, s.size());
+            return s;
+        }
+
 
 
         mdeprecated(R"(Deprecated! Please use an alternative overload(in str.hpp))")
@@ -402,7 +446,31 @@ namespace mineutils
         //    return strs;
         //}
 
+        //inline std::vector<std::string> split(const std::string& s)
+        //{
+        //    if (s.empty())
+        //    {
+        //        return { };
+        //    }
 
+        //    std::vector<std::string> strs;
+        //    std::string::const_iterator it = s.begin();
+        //    std::string::const_iterator end = s.end();
+
+        //    while (it != end)
+        //    {
+        //        it = std::find_if_not(it, end, [](unsigned char c) { return std::isspace(c); });
+        //        if (it == end)
+        //            break;
+        //        auto start = it;
+        //        it = std::find_if(start, end, [](unsigned char c) { return std::isspace(c); });
+
+        //        if (start != it)
+        //            strs.emplace_back(std::string(start, it));
+        //    }
+
+        //    return strs;
+        //}
     }
 
 
@@ -464,6 +532,20 @@ namespace mineutils
             printf("\n");
         }
 
+        inline void trimTest()
+        {
+            bool ret1;
+            ret1 = (mstr::trim(" \n\t 123 \v\r") == "123" && mstr::trim(" \n\t 123") == "123", mstr::trim("123 \v\r") == "123");
+            printf("%s mstr::trim check\n", ret1 ? "Passed." : "Failed!");
+
+            ret1 = (mstr::ltrim(" \n\t 123 \v\r") == "123 \v\r" && mstr::ltrim(" \n\t 123") == "123", mstr::ltrim("123 \v\r") == "123 \v\r");
+            printf("%s mstr::ltrim check\n", ret1 ? "Passed." : "Failed!");
+
+            ret1 = (mstr::rtrim(" \n\t 123 \v\r") == " \n\t 123" && mstr::rtrim(" \n\t 123") == " \n\t 123", mstr::rtrim("123 \v\r") == "123");
+            printf("%s mstr::rtrim check\n", ret1 ? "Passed." : "Failed!");
+            printf("\n");
+        }
+
         inline void check()
         {
             printf("\n--------------------check mstr start--------------------\n\n");
@@ -471,6 +553,7 @@ namespace mineutils
             toStrTest();
             zfillTest();
             splitTest();
+            trimTest();
             printf("--------------------check mstr end--------------------\n\n");
         }
     }

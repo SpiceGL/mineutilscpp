@@ -187,35 +187,35 @@ namespace mineutils
 
 #ifndef printfN
 //已废弃
-#define printfN(fmt_chars, ...) (_mprintfDeprecatedWarning("Micro definition \"printfN\" is deprecated! Please replace with macro definition \"mprintfN\"(in log.hpp).\n"), mprintfN(f_str, ##__VA_ARGS__))
+#define printfN(fmt_chars, ...) (_mprintfDeprecatedWarning("Micro definition \"printfN\" is deprecated! Please replace with macro definition \"mprintfN\"(in log.hpp).\n"), mprintfN(fmt_chars, ##__VA_ARGS__))
 #endif
 
 #ifndef printfW
 //已废弃
-#define printfW(fmt_chars, ...) (_mprintfDeprecatedWarning("Micro definition \"printfW\" is deprecated! Please replace with macro definition \"mprintfW\"(in log.hpp).\n"), mprintfW(f_str, ##__VA_ARGS__))
+#define printfW(fmt_chars, ...) (_mprintfDeprecatedWarning("Micro definition \"printfW\" is deprecated! Please replace with macro definition \"mprintfW\"(in log.hpp).\n"), mprintfW(fmt_chars, ##__VA_ARGS__))
 #endif
 
 #ifndef printfE
 //已废弃
-#define printfE(fmt_chars, ...) (_mprintfDeprecatedWarning("Micro definition \"printfE\" is deprecated! Please replace with macro definition \"mprintfE\"(in log.hpp).\n"), mprintfE(f_str, ##__VA_ARGS__))
+#define printfE(fmt_chars, ...) (_mprintfDeprecatedWarning("Micro definition \"printfE\" is deprecated! Please replace with macro definition \"mprintfE\"(in log.hpp).\n"), mprintfE(fmt_chars, ##__VA_ARGS__))
 #endif
 
 #ifndef dprintf
 //已废弃
-#define dprintf(fmt_chars, ...) (_mprintfDeprecatedWarning("Micro definition \"dprintf\" is deprecated! Please replace with macro definition \"mdprintf\"(in log.hpp).\n"), mdprintf(f_str, ##__VA_ARGS__))
+#define dprintf(fmt_chars, ...) (_mprintfDeprecatedWarning("Micro definition \"dprintf\" is deprecated! Please replace with macro definition \"mdprintf\"(in log.hpp).\n"), mdprintf(fmt_chars, ##__VA_ARGS__))
 #endif
 
 #ifndef dprintfN
 //已废弃
-#define dprintfN(fmt_chars, ...) (_mprintfDeprecatedWarning("Micro definition \"dprintfN\" is deprecated! Please replace with macro definition \"mdprintfN\"(in log.hpp).\n"), mdprintfN(f_str, ##__VA_ARGS__))
+#define dprintfN(fmt_chars, ...) (_mprintfDeprecatedWarning("Micro definition \"dprintfN\" is deprecated! Please replace with macro definition \"mdprintfN\"(in log.hpp).\n"), mdprintfN(fmt_chars, ##__VA_ARGS__))
 
 #ifndef dprintfW
 //已废弃
-#define dprintfW(fmt_chars, ...) (_mprintfDeprecatedWarning("Micro definition \"dprintfW\" is deprecated! Please replace with macro definition \"mdprintfW\"(in log.hpp).\n"), mdprintfW(f_str, ##__VA_ARGS__))
+#define dprintfW(fmt_chars, ...) (_mprintfDeprecatedWarning("Micro definition \"dprintfW\" is deprecated! Please replace with macro definition \"mdprintfW\"(in log.hpp).\n"), mdprintfW(fmt_chars, ##__VA_ARGS__))
 #endif
 
 #ifndef dprintfE
 //已废弃
-#define dprintfE(fmt_chars, ...) (_mprintfDeprecatedWarning("Micro definition \"dprintfE\" is deprecated! Please replace with macro definition \"mdprintfE\"(in log.hpp).\n"), mdprintfE(f_str, ##__VA_ARGS__))
+#define dprintfE(fmt_chars, ...) (_mprintfDeprecatedWarning("Micro definition \"dprintfE\" is deprecated! Please replace with macro definition \"mdprintfE\"(in log.hpp).\n"), mdprintfE(fmt_chars, ##__VA_ARGS__))
 #endif
 #endif // !LOG_HPP_MINEUTILS

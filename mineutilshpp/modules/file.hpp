@@ -78,6 +78,7 @@ namespace mineutils
             //已废弃
             mdeprecated(R"(Deprecated. Please set note_signs when calling function "IniFile::open"!)") inline void setNoteSigns(std::vector<std::string> note_signs = { "#", ";" });
         };
+
     }
 
 
@@ -152,8 +153,7 @@ namespace mineutils
                     std::getline(this->file_, line);
                     if (!line.empty())
                     {
-                        line = mstr::split(line, "\n")[0];
-                        line = mstr::split(line, "\r")[0];
+                        line = mstr::rtrim(std::move(line));
                     }
                     this->content_list_.emplace_back(line);
                     if (line.empty())

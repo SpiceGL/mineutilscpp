@@ -13,8 +13,8 @@
 + **混用类型别名与其内部实现**：例如mtime::TimePoint在不同版本可能对应std::chrono::high_resolution_clock::time_point或std::chrono::steady_clock::time_point。类型别名的内部实现可能变化，如果混用类型别名与它当前的实际类型，未来更新不保证兼容。
 
 ## 版本信息
-当前库版本：1.14.0   
-文档注释修改日期：20241210     
+当前库版本：1.15.0   
+文档注释修改日期：20241219     
 
 ## 测试平台
 **Windows:**  
@@ -369,6 +369,11 @@ int main()
 ```  
 
 ## 版本更新日志
+**v1.15.0**  
+* 20241219  
+1. mstr下添加trim、ltrim、rtrim函数；
+2. 修复被标记为废弃的printfN系列宏编译错误的问题。
+
 **v1.14.0**  
 * 20241210  
 1. 添加新的mstr::toStr和mstr::fstr重载，用于为浮点数设置精度；

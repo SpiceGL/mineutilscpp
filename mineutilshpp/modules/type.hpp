@@ -697,15 +697,13 @@ namespace mineutils
         };
 
 
-        /*  用于判断类型是不是相同类型
-            -忽略引用&修饰
-            -比较非指针类型时忽略const修饰
-            -比较指针或C风格数组类型时忽略作用于对该指针的const修饰   */
+        
+
+        //已废弃
         template<class T1, class T2, class ...Types>
         mdeprecated(R"(Deprecated. Please replace with struct "SameTypesChecker"(in type.hpp))") constexpr bool isSameType();
 
-
-        //用于判断T是否属于后面的多种类型
+        //已废弃
         template<class T, class Tother, class... Tothers>
         mdeprecated(R"(Deprecated. Please replace with struct "SameTypesChecker"(in type.hpp))") constexpr bool isInTypes();
 
@@ -728,7 +726,6 @@ namespace mineutils
             return mtype::_isSameType<T1, T2, Types...>(std::integral_constant<bool, (sizeof...(Types) > 0)>());
         }
 
-        //用于判断输入参数是不是相同类型
         template<class T1, class T2, class ...Types>
         inline constexpr bool isSameType(T1& arg1, T2& arg2, Types & ...args)
         {

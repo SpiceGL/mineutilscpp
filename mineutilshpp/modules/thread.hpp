@@ -228,7 +228,6 @@ namespace mineutils
         {
             auto task = std::make_shared<std::packaged_task<Ret()>>(std::bind(std::forward<Fn>(func), std::forward<Args>(args)...));
             TaskRetState<Ret> state(task->get_future());
-
             {
                 std::lock_guard<std::mutex> lk(this->task_mtx_);
                 this->task_queue_.emplace([task]() {(*task)(); });
