@@ -5,16 +5,17 @@
 - **命名空间**：除宏外所有功能都在mineutils下，同时根据所属模块分布在次级的命名空间，如mineutils::mstr；基于第三方库的功能统一在mineutils::mext下。
 * **命名风格**：类命名一律大驼峰；函数命名一律小驼峰；对象式宏统一大写，以MINE_作为前缀；函数式宏统一小驼峰命名，以m为前缀。
 + **线程安全**：所有非成员函数接口都保证自身线程安全；成员函数和函数对象接口除非明确说明，否则不保证线程安全。   
-- **更新规则**：更新遵循大版本号删改接口，中版本号添加新功能接口，小版本号修复和优化的原则。  
+- **更新规则**：更新遵循大版本号删改接口，中版本号添加新功能接口，小版本号修复和优化的原则；废弃接口仅标记，不会在大版本更新前删除。  
 
 ## 兼容性声明
 ### 大版本内保证接口的代码级兼容性，但以下情况除外：
-* **未明确指定签名的函数作为参数**：例如std::thread(func, args...)或mtype::FuncChecker<decltype(func)>。由于后续可能增加函数重载，这类情况下可能会导致不兼容。
+* **未明确指定签名的函数作为参数**：例如std::thread(func, args...)或mtype::FuncChecker<decltype(func)>。由于后续可能增加函数重载，这类情况由于函数签名未明确指出，可能会因为更新导致无法确认指向哪个重载。
 + **混用类型别名与其内部实现**：例如mtime::TimePoint在不同版本可能对应std::chrono::high_resolution_clock::time_point或std::chrono::steady_clock::time_point。类型别名的内部实现可能变化，如果混用类型别名与它当前的实际类型，未来更新不保证兼容。
+- **使用非安全的手段访问私有资源**：例如使用指针偏移等方式访问类的私有成员，不保证更新后私有成员的签名、类型和内存偏移不发生变动。
 
 ## 版本信息
-当前库版本：1.15.0   
-文档注释修改日期：20241219     
+当前库版本：1.16.0   
+文档注释修改日期：20241225     
 
 ## 测试平台
 **Windows:**  
@@ -369,6 +370,12 @@ int main()
 ```  
 
 ## 版本更新日志
+**v1.16.0**  
+* 20241225  
+1. mthread下添加SpinLock自旋锁和ReadWriteMutex读写锁；
+2. 为了与惯例保持一致，将使用RAII方式管理资源的接口统一在命名中加入Guard，为此mtime下的MeanTimeCounter::addLocal更名为MeanTimeCounter::addGuard，LocalTimeCounter更名为TimeCounterGuard，LocalTimeController更名为TimeControllerGuard，并将原命名标记为废弃；
+
+
 **v1.15.0**  
 * 20241219  
 1. mstr下添加trim、ltrim、rtrim函数；

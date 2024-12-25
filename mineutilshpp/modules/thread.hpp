@@ -24,6 +24,71 @@ namespace mineutils
 
     namespace mthread
     {
+        //简易自旋锁，适用于临界区操作非常少的情况，线程安全
+        class SpinLock
+        {
+        private:
+            class Guard;
+
+        public:
+            SpinLock() = default;
+
+            void lock();
+            void unlock();
+
+            /*  使用RAII方式对局部区域加锁
+                - 用法：auto guard = spin_lock.lockGuard();
+                @return 一个私有类Guard对象，只能用auto推导；构造时加锁，析构时解锁  */
+            SpinLock::Guard lockGuard();
+
+            SpinLock(const SpinLock& tmp_lock) = delete;
+            SpinLock(SpinLock&& tmp_lock) = delete;
+            SpinLock& operator=(const SpinLock& tmp_lock) = delete;
+            SpinLock& operator=(SpinLock&& tmp_lock) = delete;
+
+        private:
+            std::atomic_flag lock_flag_ = ATOMIC_FLAG_INIT;
+        };
+
+        //基于mutex实现的读写锁，线程安全
+        class ReadWriteMutex
+        {
+        private:
+            class RGuard;
+            class WGuard;
+
+        public:
+            ReadWriteMutex() = default;
+
+            void lockRead();
+            void unlockRead();
+
+            /*  使用RAII方式对局部区域加读锁
+                - 用法：auto guard = rw_lock.lockReadGuard();
+                @return 一个私有类RGuard对象，只能用auto推导；构造时加锁，析构时解锁  */
+            ReadWriteMutex::RGuard lockReadGuard();
+
+            void lockWrite();
+            void unlockWrite();
+
+            /*  使用RAII方式对局部区域加写锁
+                - 用法：auto guard = rw_lock.lockWriteGuard();
+                @return 一个私有类WGuard对象，只能用auto推导；构造时加锁，析构时解锁  */
+            ReadWriteMutex::WGuard lockWriteGuard();
+
+            ReadWriteMutex(const ReadWriteMutex& tmp_lock) = delete;
+            ReadWriteMutex(ReadWriteMutex&& tmp_lock) = delete;
+            ReadWriteMutex& operator=(const ReadWriteMutex& tmp_lock) = delete;
+            ReadWriteMutex& operator=(ReadWriteMutex&& tmp_lock) = delete;
+
+        private:
+            std::mutex mtx_;
+            std::condition_variable cv_;
+            unsigned int num_readers_ = 0;
+            bool is_writing_ = false;
+        };
+
+
         //任务结果状态
         template<class Ret>
         class TaskRetState
@@ -53,7 +118,7 @@ namespace mineutils
         using TaskState = TaskRetState<void>;
 
 
-        //简易线程池
+        //简易线程池，在rv1126上执行一个任务大概会引入接近200us的时间开销
         class ThreadPool
         {
         public:
@@ -66,8 +131,10 @@ namespace mineutils
                 - addTask(function or &function, args...)
                 - addTask(&class::mem_function, &class_obj, args...)
                 - addTask(&class::static_mem_function, args...)
-                - addTask(functor or std::ref(functor), args...)  
-                注意事项：在QNX的gcc4.7.3上，由于C++11特性支持不全，极端情况可能出现接收不支持的类型，编译错误出现在模板检查内部的情况
+                - addTask(functor or std::ref(functor), args...)
+                注意，经测试QNX的g++4.7.3对C++11特性支持不全，以下情况可能直接在模板内部编译错误而非触发SFINAE特性：
+                - 仿函数作为Fn，但被类似std::reference_wrapper的第三方引用包装传递时
+                - 仿函数作为Fn，但匹配Args...的operator()为私有或受保护的成员时
                 @param func: 任务函数。要求其参数类型不能为右值引用，返回类型必须为void或支持使用自身的右值赋值；如果func是一个函数对象(functor)类型，那么它的去引用类型必须支持使用自身的左值和右值对象进行构造，且不是volatile类型；如果func是成员函数或函数对象，它要保证要调用的函数的cv限定符与对象一致
                 @param args...: 任务函数的参数。需要左值引用传递的参数必须用std::ref或std::cref显式引用否则实际为值传递，其他非C数组参数的去引用类型必须支持使用自身的左值和右值对象进行构造
                 @return 任务结果状态，用于查询任务状态、等待任务结束以及获取任务返回值，注意ThreadPool对象析构后任务状态失效  */
@@ -139,6 +206,147 @@ namespace mineutils
 
     namespace mthread
     {
+        class SpinLock::Guard
+        {
+        public:
+            Guard(Guard&& tmp) noexcept
+            {
+                this->self_ = tmp.self_;
+                tmp.self_ = nullptr;
+            }
+
+            ~Guard()
+            {
+                if (this->self_)
+                    this->self_->unlock();
+            }
+
+            Guard(const Guard& tmp) = delete;
+            Guard& operator=(const Guard& tmp) = delete;
+            Guard& operator=(Guard&& tmp) = delete;
+
+        private:
+            Guard(SpinLock* self)
+            {
+                this->self_ = self;
+                this->self_->lock();
+            }
+
+            SpinLock* self_ = nullptr;
+            friend SpinLock;
+        };
+
+        inline void SpinLock::lock()
+        {
+            while (this->lock_flag_.test_and_set(std::memory_order_acquire)) {}
+        }
+
+        inline void SpinLock::unlock()
+        {
+            this->lock_flag_.clear(std::memory_order_release);
+        }
+
+        inline SpinLock::Guard SpinLock::lockGuard()
+        {
+            return SpinLock::Guard(this);
+        }
+
+
+        class ReadWriteMutex::RGuard
+        {
+        public:
+            RGuard(RGuard&& tmp) noexcept
+            {
+                this->self_ = tmp.self_;
+                tmp.self_ = nullptr;
+            }
+            ~RGuard()
+            {
+                if (this->self_)
+                    this->self_->unlockRead();
+            }
+        private:
+            RGuard(ReadWriteMutex* self)
+            {
+                this->self_ = self;
+                this->self_->lockRead();
+            }
+
+            ReadWriteMutex* self_ = nullptr;
+            friend ReadWriteMutex;
+        };
+
+        class ReadWriteMutex::WGuard
+        {
+        public:
+            WGuard(WGuard&& tmp) noexcept
+            {
+                this->self_ = tmp.self_;
+                tmp.self_ = nullptr;
+            }
+            ~WGuard()
+            {
+                if (this->self_)
+                    this->self_->unlockWrite();
+            }
+        private:
+            WGuard(ReadWriteMutex* self)
+            {
+                this->self_ = self;
+                this->self_->lockWrite();
+            }
+
+            ReadWriteMutex* self_ = nullptr;
+            friend ReadWriteMutex;
+        };
+
+        inline void ReadWriteMutex::lockRead()
+        {
+            std::unique_lock<std::mutex> lk(this->mtx_);
+            while (this->is_writing_)
+                this->cv_.wait(lk);
+            this->num_readers_++;
+        }
+
+        inline void ReadWriteMutex::unlockRead()
+        {
+            {
+                std::lock_guard<std::mutex> lk(this->mtx_);
+                this->num_readers_--;
+                if (this->num_readers_ != 0)
+                    return;
+            }
+            this->cv_.notify_one();
+        }
+
+        inline ReadWriteMutex::RGuard ReadWriteMutex::lockReadGuard()
+        {
+            return ReadWriteMutex::RGuard(this);
+        }
+
+        inline void ReadWriteMutex::lockWrite()
+        {
+            std::unique_lock<std::mutex> lk(this->mtx_);
+            while (this->is_writing_ || this->num_readers_ != 0)
+                this->cv_.wait(lk);
+            this->is_writing_ = true;
+        }
+
+        inline void ReadWriteMutex::unlockWrite()
+        {
+            {
+                std::lock_guard<std::mutex> lk(this->mtx_);
+                this->is_writing_ = false;
+            }
+            this->cv_.notify_all();
+        }
+
+        inline ReadWriteMutex::WGuard ReadWriteMutex::lockWriteGuard()
+        {
+            return ReadWriteMutex::WGuard(this);
+        }
+
+
         template<class Ret>
         inline TaskRetState<Ret>::TaskRetState(std::future<Ret>&& future_state) noexcept
         {
@@ -333,6 +541,161 @@ namespace mineutils
             }
         }
     }
+
+
+
+#ifdef MINEUTILS_TEST_MODULES
+    namespace _mthreadcheck
+    {
+        inline void SpinLockTest()
+        {
+            mthread::SpinLock splk;
+            char strs[] = "Hello World";
+
+            bool func1_check_ret = true;
+            auto func1 = [&strs, &splk, &func1_check_ret]()
+            {
+                for (int i = 0; i < 10000; i++)
+                {
+                    auto guard = splk.lockGuard();
+                    strs[0] = 'W';
+                    strs[1] = 'o';
+                    strs[2] = 'r';
+                    strs[3] = 'l';
+                    strs[4] = 'd';
+                    func1_check_ret = func1_check_ret && (std::string("World World") == strs);
+                }
+            };
+
+            bool func2_check_ret = true;
+            auto func2 = [&strs, &splk, &func2_check_ret]()
+            {
+                for (int i = 0; i < 10000; i++)
+                {
+                    auto guard = splk.lockGuard();
+                    strs[0] = 'H';
+                    strs[1] = 'e';
+                    strs[2] = 'l';
+                    strs[3] = 'l';
+                    strs[4] = 'o';
+                    func2_check_ret = func2_check_ret && (std::string("Hello World") == strs);
+                }
+            };
+            std::thread thd1(func1);
+            std::thread thd2(func2);
+            thd1.join();
+            thd2.join();
+
+            printf("%s SpinLock check.\n", func1_check_ret && func2_check_ret ? "Passed." : "Failed!");
+            printf("\n");
+        }
+
+        inline void ReadWriteMutexTest()
+        {
+            mthread::ReadWriteMutex rwlk;
+            char strs[] = "Hello World";
+
+            bool func1_check_ret = true;
+            auto func1 = [&strs, &rwlk, &func1_check_ret]()
+            {
+                for (int i = 0; i < 10000; i++)
+                {
+                    auto guard = rwlk.lockReadGuard();
+                    strs[0] = 'W';
+                    strs[1] = 'o';
+                    strs[2] = 'r';
+                    strs[3] = 'l';
+                    strs[4] = 'd';
+                    func1_check_ret = func1_check_ret && (std::string("World World") == strs);
+                }
+            };
+
+            bool func2_check_ret = true;
+            auto func2 = [&strs, &rwlk, &func2_check_ret]()
+            {
+                for (int i = 0; i < 10000; i++)
+                {
+                    auto guard = rwlk.lockReadGuard();
+                    strs[0] = 'H';
+                    strs[1] = 'e';
+                    strs[2] = 'l';
+                    strs[3] = 'l';
+                    strs[4] = 'o';
+                    func2_check_ret = func2_check_ret && (std::string("Hello World") == strs);
+                }
+            };
+            {
+                std::thread thd1(func1);
+                std::thread thd2(func2);
+                thd1.join();
+                thd2.join();
+                printf("%s ReadWriteMutexTest Read-Read Lock check.\n", !(func1_check_ret && func2_check_ret) ? "Passed." : "Maybe failed! Try again!");
+            }
+
+            memcpy(strs, "Hello World", 11);
+            bool func3_check_ret = true;
+            auto func3 = [&strs, &rwlk, &func3_check_ret]()
+            {
+                for (int i = 0; i < 10000; i++)
+                {
+                    auto guard = rwlk.lockWriteGuard();
+                    strs[0] = 'W';
+                    strs[1] = 'o';
+                    strs[2] = 'r';
+                    strs[3] = 'l';
+                    strs[4] = 'd';
+                    func3_check_ret = func3_check_ret && (std::string("World World") == strs);
+                }
+            };
+
+            bool func4_check_ret = true;
+            auto func4 = [&strs, &rwlk, &func4_check_ret]()
+            {
+                for (int i = 0; i < 10000; i++)
+                {
+                    auto guard = rwlk.lockWriteGuard();
+                    strs[0] = 'H';
+                    strs[1] = 'e';
+                    strs[2] = 'l';
+                    strs[3] = 'l';
+                    strs[4] = 'o';
+                    func4_check_ret = func4_check_ret && (std::string("Hello World") == strs);
+                }
+            };
+
+            {
+                func1_check_ret = true;
+                func4_check_ret = true;
+                std::thread thd1(func1);
+                std::thread thd4(func4);
+                thd1.join();
+                thd4.join();
+                printf("%s ReadWriteMutexTest Read-Write Lock check.\n", func1_check_ret && func4_check_ret ? "Passed." : "Failed!");
+            }
+
+            {
+                func3_check_ret = true;
+                func4_check_ret = true;
+                std::thread thd3(func3);
+                std::thread thd4(func4);
+                thd3.join();
+                thd4.join();
+                printf("%s ReadWriteMutexTest Write-Write Lock check.\n", func3_check_ret && func4_check_ret ? "Passed." : "Failed!");
+            }
+            printf("\n");
+        }
+
+        inline void check()
+        {
+            printf("\n--------------------check mthread start--------------------\n\n");
+            SpinLockTest();
+            ReadWriteMutexTest();
+            printf("--------------------check mthread end--------------------\n\n");
+        }
+    }
+#endif
+
+
 }
 
 #endif // !THREAD_HPP_MINEUTILS

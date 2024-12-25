@@ -485,7 +485,9 @@ namespace mineutils
         template <class Fn, class... Args>
         struct _FunctorBindChecker
         {
-            //此处仍然存在风险：在gcc4.7.3这个C++特性支持不完全的编译器上，如果用户自行实现了类似std::reference_wrapper的模板类，即user_reference_wrapper<Func>，其中Func的cv限定符和实际调用的operator()不匹配会产生编译错误而非触发SFINAE
+            /*  此处在gcc4.7.3这个C++特性支持不完全的编译器上仍然存在风险：
+                - 如果用户自行实现了类似std::reference_wrapper的模板类，即user_reference_wrapper<Func>，其中Func的cv限定符和实际调用的operator()不匹配会产生编译错误而非触发SFINAE
+                - 如果匹配的operator()是私有或受保护的，那么会在产生编译错误而非触发SFINAE  */
             template <class Func, class... Arguments, typename std::enable_if<std::is_class<typename std::remove_reference<Func>::type>::value, int>::type = 0, class Ret = decltype(std::declval<Func>()(std::declval<typename std::add_lvalue_reference<Arguments>::type>()...))>
             static std::true_type check(int);
 
@@ -688,7 +690,10 @@ namespace mineutils
             - 其他要求参考std::bind规则
             用法：
             - StdBindChecker<Fn>::value，判断Fn是否为有效函数类型，类型为constexpr bool
-            - StdBindChecker<Fn>::ReturnType，获取Fn的返回值类型，Fn和Args...不匹配时ReturnType不存在   */
+            - StdBindChecker<Fn>::ReturnType，获取Fn的返回值类型，Fn和Args...不匹配时ReturnType不存在
+            注意，经测试QNX的g++4.7.3对C++11特性支持不全，以下情况可能直接在模板内部编译错误而非触发SFINAE特性：
+            - 仿函数作为Fn，但使用类似std::reference_wrapper的第三方引用包装传递时
+            - 仿函数作为Fn，但匹配Args...的operator()为私有或受保护的成员时  */
         template<class Fn, class... Args>
         struct StdBindChecker : public mtype::_StdBindCheckerHelper<decltype(mtype::_StdBindCheckerBase<Fn, Args...>::template checkValue<Fn, Args...>(0))::value, Fn, Args...>
         {
@@ -926,6 +931,19 @@ namespace mineutils
             printf("\n");
         }
 
+        class _Functor3
+        {
+        private:
+            void operator()(int a) {}
+        public:
+            void operator()(float a) {}
+            void operator()(void* a) {}
+
+            void func1(void* ptr) {}
+        };
+
+
+
         inline void StdBindCheckerTest()
         {
             static_assert(mtype::StdBindChecker<int, int>::value == false, "assert failed!");
@@ -959,6 +977,17 @@ namespace mineutils
             static_assert(mtype::StdBindChecker<decltype(&_Functor1::func), std::reference_wrapper<_Functor1Son>&, int>::value == true, "assert failed!");
             static_assert(mtype::StdBindChecker<decltype(&_Functor1::func), std::reference_wrapper<volatile _Functor1Son>, int>::value == false, "assert failed!");
             static_assert(mtype::StdBindChecker<decltype(&_Functor1::funcV), std::reference_wrapper<volatile _Functor1Son>, int>::value == true, "assert failed!");
+
+#if !defined(__GNUC__) || (defined(__GNUC__) && (__GNUC__ >= 5 ||  (__GNUC__ == 4 && __GNUC_MINOR__ >= 8)))  //for qnx660
+            static_assert(mtype::StdBindChecker<_Functor3, int>::value == false, "assert failed!");
+#endif
+            static_assert(mtype::StdBindChecker<_Functor3, float>::value == true, "assert failed!");
+            static_assert(mtype::StdBindChecker<decltype(&_Functor3::func1), _Functor3*, int*>::value == true, "assert failed!");
+            static_assert(mtype::StdBindChecker<_Functor3, int*>::value == true, "assert failed!");
+
+            _Functor3 functor3;
+            int a = 0;
+            std::bind(&_Functor3::func1, &functor3, &a)();
 
             using type0 = mtype::StdBindChecker<decltype(_myFunc1), int, float>::ReturnType;
             printf("User Check! StdBindChecker<decltype(_myFunc1), int, float>::ReturnType(int):%s.\n", mtype::getTypeName<type0>());

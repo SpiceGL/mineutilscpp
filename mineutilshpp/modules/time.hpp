@@ -68,7 +68,7 @@ namespace mineutils
         class MeanTimeCounter
         {
         private:
-            class LocalObj;
+            class Guard;
 
         public:
             MeanTimeCounter() {}
@@ -86,10 +86,10 @@ namespace mineutils
             void addEnd(const std::string& codeblock_tag);
 
             /*  使用RAII方式记录一段代码的耗时
-                - 用法：auto tmp = addLocal("codeblock_tag")
+                - 用法：auto guard = time_counter.addGuard("codeblock_tag")
                 @param codeblock_tag: 要统计的代码段的tag
-                @return 一个私有类LocalObj对象，只能用auto推导；在返回时记录开始时间，在被析构时记录结束时间  */
-            LocalObj addLocal(std::string codeblock_tag);
+                @return 一个私有类Guard对象，只能用auto推导；在返回时记录开始时间，在被析构时记录结束时间  */
+            MeanTimeCounter::Guard addGuard(std::string codeblock_tag);
 
             /*  在codeblock_tag代码段达到目标统计次数后输出平均消耗时间，并重新开始统计此段代码
                 @param codeblock_tag: 输出信息中被统计代码段的tag
@@ -120,28 +120,34 @@ namespace mineutils
             std::map<std::string, SingleCounter> time_counter_;
             std::vector<std::string> keys_;
             bool time_counter_on_ = true;
+
+        public:
+            mdeprecated(R"(Deprecated. Please replace with function "MeanTimeCounter::addGuard"(in time.hpp) )") Guard addLocal(std::string codeblock_tag);
         };
 
 
         //统计代码块的运行时间，在创建对象时开始计时，在析构时停止计时并打印耗时
-        class LocalTimeCounter
+        class TimeCounterGuard
         {
         public:
-            /*  构造LocalTimeCounter类
+            /*  构造TimeCounterGuard类
                 @param codeblock_tag: 要计时的代码块标识符
                 @param time_unit: 计时单位，强枚举类型mtime::Unit的成员，默认为ms
                 @param time_counter_on: 计时功能开关，为false会跳过计时功能   */
-            LocalTimeCounter(const std::string& codeblock_tag, mtime::Unit time_unit = mtime::Unit::ms, bool time_counter_on = true);
+            TimeCounterGuard(const std::string& codeblock_tag, mtime::Unit time_unit = mtime::Unit::ms, bool time_counter_on = true);
 
-            /*  构造LocalTimeCounter类
+            /*  构造TimeCounterGuard类
                 @param print_head: 输出信息的头部内容，比如使用创建该类对象的函数名
                 @param codeblock_tag: 要计时的代码块标识符
                 @param time_unit: 计时单位，强枚举类型mtime::Unit的成员，默认为ms
                 @param time_counter_on: 是否开启计时功能，默认为true   */
-            LocalTimeCounter(const std::string& print_head, const std::string& codeblock_tag, mtime::Unit time_unit = mtime::Unit::ms, bool time_counter_on = true);
-            LocalTimeCounter(const LocalTimeCounter& _temp) = delete;
-            LocalTimeCounter& operator=(const LocalTimeCounter& _temp) = delete;
-            ~LocalTimeCounter();
+            TimeCounterGuard(const std::string& print_head, const std::string& codeblock_tag, mtime::Unit time_unit = mtime::Unit::ms, bool time_counter_on = true);
+
+            TimeCounterGuard(const TimeCounterGuard& _temp) = delete;
+            TimeCounterGuard(TimeCounterGuard&& _temp) = delete;
+            TimeCounterGuard& operator=(const TimeCounterGuard& _temp) = delete;
+            TimeCounterGuard& operator=(TimeCounterGuard&& _temp) = delete;
+            ~TimeCounterGuard();
 
         private:
             bool time_counter_on_;
@@ -152,13 +158,17 @@ namespace mineutils
         };
 
         //控制代码段的时间消耗不低于设定时间，单位越小精度越高
-        class LocalTimeController
+        class TimeControllerGuard
         {
         public:
-            LocalTimeController(long long target_time, mtime::Unit time_unit = mtime::Unit::ms);
-            LocalTimeController(const LocalTimeController& _temp) = delete;
-            LocalTimeController& operator=(const LocalTimeController& _temp) = delete;
-            ~LocalTimeController();
+            TimeControllerGuard(long long target_time, mtime::Unit time_unit = mtime::Unit::ms);
+
+            TimeControllerGuard(const TimeControllerGuard& _temp) = delete;
+            TimeControllerGuard(TimeControllerGuard&& _temp) = delete;
+            TimeControllerGuard& operator=(const TimeControllerGuard& _temp) = delete;
+            TimeControllerGuard& operator=(TimeControllerGuard&& _temp) = delete;
+            ~TimeControllerGuard();
+
         private:
             mtime::TimePoint start_t_;
             mtime::TimePoint end_t_;
@@ -263,26 +273,28 @@ namespace mineutils
         }
 
 
-        class MeanTimeCounter::LocalObj
+        class MeanTimeCounter::Guard
         {
         public:
-            LocalObj(LocalObj&& tmp) noexcept
+            Guard(Guard&& tmp) noexcept
             {
                 this->codeblock_tag_ = std::move(tmp.codeblock_tag_);
                 this->self_ = tmp.self_;
                 tmp.self_ = nullptr;
             }
-            ~LocalObj()
+
+            ~Guard()
             {
                 if (this->self_)
                     this->self_->addEnd(this->codeblock_tag_);
             }
-            LocalObj(const LocalObj& tmp) = delete;
-            LocalObj& operator=(LocalObj&& tmp) = delete;
-            LocalObj& operator=(const LocalObj& tmp) = delete;
+
+            Guard(const Guard& tmp) = delete;
+            Guard& operator=(const Guard& tmp) = delete;
+            Guard& operator=(Guard&& tmp) = delete;
 
         private:
-            LocalObj(MeanTimeCounter* self, std::string& codeblock_tag)
+            Guard(MeanTimeCounter* self, std::string& codeblock_tag)
             {
                 self->addStart(codeblock_tag);
                 this->self_ = self;
@@ -291,7 +303,6 @@ namespace mineutils
 
             MeanTimeCounter* self_ = nullptr;
             std::string codeblock_tag_;
-
             friend MeanTimeCounter;
         };
 
@@ -424,10 +435,9 @@ namespace mineutils
             }
         }
 
-        inline MeanTimeCounter::LocalObj MeanTimeCounter::addLocal(std::string codeblock_tag)
-        {
-            LocalObj tmp(this, codeblock_tag);
-            return tmp;
+        inline MeanTimeCounter::Guard MeanTimeCounter::addGuard(std::string codeblock_tag)
+        {            
+            return MeanTimeCounter::Guard(this, codeblock_tag);
         }
 
         inline long long MeanTimeCounter::printMeanTimeCost(const std::string& codeblock_tag, mtime::Unit time_unit)
@@ -466,7 +476,12 @@ namespace mineutils
             }
         }
 
-        inline LocalTimeCounter::LocalTimeCounter(const std::string& codeblock_tag, mtime::Unit time_unit, bool time_counter_on)
+        inline MeanTimeCounter::Guard MeanTimeCounter::addLocal(std::string codeblock_tag)
+        {
+            return this->addGuard(std::move(codeblock_tag));
+        }
+
+        inline TimeCounterGuard::TimeCounterGuard(const std::string& codeblock_tag, mtime::Unit time_unit, bool time_counter_on)
         {
             this->start_t_ = mtime::now();
             this->codeblock_tag_ = codeblock_tag;
@@ -474,7 +489,7 @@ namespace mineutils
             this->time_counter_on_ = time_counter_on;
         }
 
-        inline LocalTimeCounter::LocalTimeCounter(const std::string& print_head, const std::string& codeblock_tag, mtime::Unit time_unit, bool time_counter_on)
+        inline TimeCounterGuard::TimeCounterGuard(const std::string& print_head, const std::string& codeblock_tag, mtime::Unit time_unit, bool time_counter_on)
         {
             this->start_t_ = mtime::now();
             this->codeblock_tag_ = "\"" + print_head + "\": " + codeblock_tag;
@@ -482,7 +497,7 @@ namespace mineutils
             this->time_counter_on_ = time_counter_on;
         }
 
-        inline LocalTimeCounter::~LocalTimeCounter()
+        inline TimeCounterGuard::~TimeCounterGuard()
         {
             if (mtime::_getTimeCounterOn() && this->time_counter_on_)
             {
@@ -500,14 +515,14 @@ namespace mineutils
             }
         }
 
-        inline LocalTimeController::LocalTimeController(long long target_time, mtime::Unit time_unit)
+        inline TimeControllerGuard::TimeControllerGuard(long long target_time, mtime::Unit time_unit)
         {
             this->start_t_ = mtime::now();
             this->target_time_ = target_time;
             this->time_unit_ = time_unit;
         }
 
-        inline LocalTimeController::~LocalTimeController()
+        inline TimeControllerGuard::~TimeControllerGuard()
         {
             this->end_t_ = mtime::now();
             if (this->time_unit_ == mtime::Unit::s)
@@ -537,12 +552,28 @@ namespace mineutils
         }
 
 
+
         //已废弃
-        class mdeprecated(R"(Deprecated. Please replace with class "MeanTimeCounter"(in time.hpp) )") MultiMeanTimeCounter : public MeanTimeCounter
+        class mdeprecated(R"(Deprecated. Please replace with class "MeanTimeCounter"(in time.hpp) )") MultiMeanTimeCounter :public MeanTimeCounter
         {
         public:
             MultiMeanTimeCounter() :MeanTimeCounter() {}
             explicit MultiMeanTimeCounter(int target_count_times, bool time_counter_on = true) :MeanTimeCounter(target_count_times, time_counter_on) {}
+        };
+
+        //已废弃
+        class mdeprecated(R"(Deprecated. Please replace with class "TimeCounterGuard"(in time.hpp) )") LocalTimeCounter :public TimeCounterGuard
+        {
+        public:
+            LocalTimeCounter(const std::string & codeblock_tag, mtime::Unit time_unit = mtime::Unit::ms, bool time_counter_on = true) :TimeCounterGuard(codeblock_tag, time_unit, time_counter_on) {}
+            LocalTimeCounter(const std::string & print_head, const std::string & codeblock_tag, mtime::Unit time_unit = mtime::Unit::ms, bool time_counter_on = true) :TimeCounterGuard(print_head, codeblock_tag, time_unit, time_counter_on) {}
+        };
+
+        //已废弃
+        class mdeprecated(R"(Deprecated. Please replace with class "TimeControllerGuard"(in time.hpp) )") LocalTimeController :public TimeControllerGuard
+        {
+        public:
+            LocalTimeController(long long target_time, mtime::Unit time_unit = mtime::Unit::ms) :TimeControllerGuard(target_time, time_unit) {}
         };
     }
 }

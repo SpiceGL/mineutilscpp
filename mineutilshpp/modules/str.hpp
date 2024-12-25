@@ -90,7 +90,7 @@ namespace mineutils
             @return 分割结果，至少返回包含一个元素的vector，元素排列顺序不会反向   */
         std::vector<std::string> rsplit(const std::string& s, const std::string& sep, size_t max_split_times = -1);
 
-        //按字符串中的空白字符(包含空格符以及\t\n\r\f\v)分割字符串，若输入空字符串或全空格符串则返回空vector(类Python规则)
+        //按字符串中的空白字符(包含空格符以及\t\n\r\f\v)分割字符串，若输入空字符串或全空白符串则返回空vector(类Python规则)
         std::vector<std::string> split(const std::string& s);
 
         //去除字符串首尾的指定字符
