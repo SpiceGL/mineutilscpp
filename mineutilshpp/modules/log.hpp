@@ -10,12 +10,6 @@
 #include"base.hpp"
 #include"str.hpp"
 
-//命名空间::类名::函数名
-#define MINE_FUNCNAME (mineutils::mstr::rsplit(mineutils::mstr::split(MINE_FUNCSIG, __func__ + std::string("("), 1).front(), " ", 1).back() + __func__).c_str()
-//
-//#define MINE_CLASSNAME (mineutils::mlog::_getClassName(MINE_FUNCNAME).c_str())
-
-
 
 namespace mineutils
 {
@@ -141,8 +135,6 @@ namespace mineutils
         {
             printf((mlog::_getFmtE() + (fmt_chars)).c_str(), funcname, filename, line, args...);
         }
-
-
 
 
         template <class... Ts>

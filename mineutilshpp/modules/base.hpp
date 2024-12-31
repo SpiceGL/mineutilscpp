@@ -8,14 +8,16 @@
 #include<sstream>
 #include<stdio.h>
 #include<string>
+#include<string.h>
 #include<tuple>
 #include<typeinfo>
 #include<type_traits>
+#include<unordered_map>
 
 #define MINEUTILS_MAJOR_VERSION "1"   //主版本号，对应不向下兼容的API或文件改动
 #define MINEUTILS_MINOR_VERSION "16"   //次版本号，对应不影响现有API使用的新功能增加
-#define MINEUTILS_PATCH_VERSION "0"   //修订版本号，对应不改变API的BUG修复或效能优化
-#define MINEUTILS_DATE_VERSION "20241225-release"   //日期版本号，对应文档和注释级别的改动和测试阶段
+#define MINEUTILS_PATCH_VERSION "1"   //修订版本号，对应不改变API的BUG修复或效能优化
+#define MINEUTILS_DATE_VERSION "20241231-release"   //日期版本号，对应文档和注释级别的改动和测试阶段
 #ifdef __GNUC__ 
 #include<cxxabi.h>
 #endif
@@ -26,7 +28,7 @@
 #define mlikely(condition) __builtin_expect(!!(condition), 1)
 #define munlikely(condition) __builtin_expect(!!(condition), 0)
 #elif defined(_MSC_VER)
-#define MINE_FUNCSIG __FUNCSIG__
+#define MINE_FUNCSIG __FUNCSIG__    //依赖编译器实现的函数名信息
 #define mdeprecated(msg) __declspec(deprecated(msg))
 #define mlikely(condition) (condition) 
 #define munlikely(condition) (condition)
@@ -43,6 +45,9 @@
 #else 
 #define MINE_THREAD_LOCAL_IF_HAVE thread_local   
 #endif 
+
+//命名空间::类名::函数名格式的const char*字符串
+#define MINE_FUNCNAME mineutils::mbase::_splitFuncName(MINE_FUNCSIG, __func__)
 
 
 namespace mineutils
@@ -102,10 +107,50 @@ namespace mineutils
         }
 
 
+        //template<size_t N>
+        //inline std::string _splitFuncName(const char* func_sig, const char(&func_name)[N])
+        //{
+        //    std::string s_func_sig = func_sig;
+        //    char sep[N + 1] = "";
+        //    memcpy(sep, func_name, N - 1);
+        //    memcpy(sep + N - 1, "(", 2);
+        //    size_t name_pos = s_func_sig.find(sep);
+        //    if (name_pos == std::string::npos)
+        //    {
+        //        sep[N - 1] = '<';
+        //        name_pos = s_func_sig.find(sep);
+        //    }
+        //    s_func_sig.erase(name_pos + N - 1);
+        //    size_t func_start_pos = s_func_sig.rfind(' ', name_pos - 1) + 1;
+        //    s_func_sig.erase(0, func_start_pos);
+        //    return s_func_sig;
+        //}
 
+        inline const char* _splitFuncName(const char* func_sig, const char* func_name)
+        {
+            MINE_THREAD_LOCAL_IF_HAVE std::unordered_map<const char*, std::string> func_name_map;
+            auto it = func_name_map.find(func_sig);
+            if (it != func_name_map.end())
+                return it->second.c_str();
 
-
-
+            std::string s_func_sig = func_sig;
+            size_t name_pos = s_func_sig.find(func_name + std::string("("));
+            if (name_pos == std::string::npos)
+            {
+                name_pos = s_func_sig.find(func_name + std::string("<"));
+                //处理gcc上lambda函数
+                if (name_pos == std::string::npos)
+                {
+                    s_func_sig.append("::").append(func_name);
+                    func_name_map[func_sig] = std::move(s_func_sig);
+                    return func_name_map[func_sig].c_str();
+                }
+            }
+            s_func_sig.erase(name_pos + strlen(func_name));
+            s_func_sig.erase(0, s_func_sig.rfind(' ', name_pos - 1) + 1);
+            func_name_map[func_sig] = std::move(s_func_sig);
+            return func_name_map[func_sig].c_str();
+        }
 
         //已废弃，使用std::false_type代替
         class CaseTag0

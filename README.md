@@ -1,7 +1,7 @@
 # mineutilscpp
 ## 描述
 * **开发目的**：C++的便利功能封装，用于方便自己编程和锻炼代码文档规范性，文本使用UTF8-SIG编码。   
-+ **开发原则**：代码基于C++11标准，开发优先级大致为：功能实现 > 类型检查 > 接口简洁 > 性能优化 > 可读性。
++ **开发原则**：代码基于C++11标准，开发优先级大致为：功能实现 > 类型检查 > 接口简洁 > 性能优化 > 可读性，但不会为了少量的高优先级优化牺牲大量的低优先级优化。
 - **命名空间**：除宏外所有功能都在mineutils下，同时根据所属模块分布在次级的命名空间，如mineutils::mstr；基于第三方库的功能统一在mineutils::mext下。
 * **命名风格**：类命名一律大驼峰；函数命名一律小驼峰；对象式宏统一大写，以MINE_作为前缀；函数式宏统一小驼峰命名，以m为前缀。
 + **线程安全**：所有非成员函数接口都保证自身线程安全；成员函数和函数对象接口除非明确说明，否则不保证线程安全。   
@@ -14,18 +14,22 @@
 - **使用非安全的手段访问私有资源**：例如使用指针偏移等方式访问类的私有成员，不保证更新后私有成员的签名、类型和内存偏移不发生变动。
 
 ## 版本信息
-当前库版本：1.16.0   
-文档注释修改日期：20241225     
+当前库版本：1.16.1   
+文档注释修改日期：20241231     
 
 ## 测试平台
 **Windows:**  
 VS2019  
 **Linux:**  
-x86_64-linux-gnu-gcc 9.4.0   
-arm-linux-gnueabihf-gcc 8.3.0    
+x86_64-linux-gnu-g++ 9.4.0   
+arm-linux-gnueabihf-g++ 8.3.0    
 **QNX660:**    
-arm-unknown-nto-qnx6.6.0eabi-gcc 4.7.3  
-**注：** qnx660上编译时需要额外添加g++指令：-D_GLIBCXX_USE_NANOSLEEP  
+arm-unknown-nto-qnx6.6.0eabi-g++ 4.7.3  
+**QNX710:**  
+aarch64-barebone1.1.0-g++ 8.3.0
+
+**注1：** QNX660上编译时需要额外添加g++指令：-D_GLIBCXX_USE_NANOSLEEP  
+**注2：** QNX710上编译时需要指定：-std=gnu++11  
 
 ## 使用方法
 * 可以单独导入./mineutilshpp/modules下的模块，如：  
@@ -370,11 +374,14 @@ int main()
 ```  
 
 ## 版本更新日志
+**v1.16.1**  
+* 20241231  
+1. 修复MINE_FUNCNAME宏在VS2019上无法正确解析的问题，并极大降低MINE_FUNCNAME开销，因此mprintfN和mdprintfN宏得到相应优化。  
+
 **v1.16.0**  
 * 20241225  
 1. mthread下添加SpinLock自旋锁和ReadWriteMutex读写锁；
-2. 为了与惯例保持一致，将使用RAII方式管理资源的接口统一在命名中加入Guard，为此mtime下的MeanTimeCounter::addLocal更名为MeanTimeCounter::addGuard，LocalTimeCounter更名为TimeCounterGuard，LocalTimeController更名为TimeControllerGuard，并将原命名标记为废弃；
-
+2. 为了与惯例保持一致，将使用RAII方式管理资源的接口统一在命名中加入Guard，为此mtime下的MeanTimeCounter::addLocal更名为MeanTimeCounter::addGuard，LocalTimeCounter更名为TimeCounterGuard，LocalTimeController更名为TimeControllerGuard，并将原命名标记为废弃。
 
 **v1.15.0**  
 * 20241219  
