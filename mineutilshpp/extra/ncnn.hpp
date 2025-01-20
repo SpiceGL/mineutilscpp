@@ -4,16 +4,17 @@
 #define NCNN_HPP_MINEUTILS
 
 #include<limits.h>
+//基于ncnn2021-2024的版本
 #include<iostream>
 #include<stdlib.h>
 #include<string>
 #include<vector>
 #include"ncnn/net.h"
 
-#include"str.hpp"
-#include"log.hpp"
-#include"math.hpp"
-#include"io.hpp"
+#include"../core/base.hpp"
+#include"../core/str.hpp"
+#include"../core/math.hpp"
+#include"../core/io.hpp"
 
 
 namespace mineutils
@@ -23,25 +24,20 @@ namespace mineutils
     namespace mext
     {
         //从路径加载ncnn的net，正常返回0，出错返回其他值
-        int loadNcnn(ncnn::Net& out_net, const std::string& param_path, const std::string& bin_path);
+        int ncnnLoad(ncnn::Net& out_net, const std::string& param_path, const std::string& bin_path);
 
         //快速运行一次ncnn的net推理
-        std::vector<ncnn::Mat> quickRunNcnn(ncnn::Net& net_in, ncnn::Mat& input, const std::string& in_name,
-            const std::vector<std::string>& out_names);
+        std::vector<ncnn::Mat> ncnnQuickRun(ncnn::Net& net_in, ncnn::Mat& input, const std::string& in_name, const std::vector<std::string>& out_names);
 
         //输入ncnn的net路径，快速运行一次ncnn的net推理
-        std::vector<ncnn::Mat> quickRunNcnn(const std::string& param_path, const std::string& model_path, ncnn::Mat& input, const std::string& in_name, const std::vector<std::string>& out_names);
+        std::vector<ncnn::Mat> ncnnQuickRun(const std::string& param_path, const std::string& model_path, ncnn::Mat& input, const std::string& in_name, const std::vector<std::string>& out_names);
 
         /*  打印ncnn::Mat，只支持CHW排列的三维ncnn::Mat
             @param m：要打印的ncnn::Mat
             @param x_range：x坐标值或range，支持Python风格range，类型限制为std::pair<int, int>或int
             @param y_range：y坐标值或range，支持Python风格range，类型限制为std::pair<int, int>或int
             @param c_range：channel值或range，支持Python风格range，类型限制为std::pair<int, int>或int   */
-        template<class Tx = std::pair<int, int>, class Ty = std::pair<int, int>, class Tc = std::pair<int, int>, typename std::enable_if<mtype::InTypesChecker<typename std::decay<Tx>::type, std::pair<int, int>, int>::value&& mtype::InTypesChecker<typename std::decay<Tx>::type, std::pair<int, int>, int>::value&& mtype::InTypesChecker<typename std::decay<Tx>::type, std::pair<int, int>, int>::value, int>::type = 0>
-        void printMat(const ncnn::Mat& m, Tx x_range = { 0, INT_MAX }, Ty y_range = { 0, INT_MAX }, Tc c_range = { 0, INT_MAX });
-
-        //打印一组ncnn的Mat，只支持CHW排列的三位ncnn::Mat
-        void printMats(const std::vector<ncnn::Mat>& mats);
+        void ncnnPrintMat(const ncnn::Mat& m, std::pair<unsigned int, unsigned int> x_range = { 0, UINT_MAX }, std::pair<unsigned int, unsigned int> y_range = { 0, UINT_MAX }, std::pair<unsigned int, unsigned int> c_range = { 0, UINT_MAX });
     }
 
 
@@ -54,7 +50,7 @@ namespace mineutils
     namespace mext
     {
         //从路径加载ncnn的net，正常返回0，出错返回其他值
-        inline int loadNcnn(ncnn::Net& out_net, const std::string& param_path, const std::string& bin_path)
+        inline int ncnnLoad(ncnn::Net& out_net, const std::string& param_path, const std::string& bin_path)
         {
             //ncnn::Net net;
             if (out_net.load_param(param_path.c_str()))
@@ -71,7 +67,7 @@ namespace mineutils
         }
 
         //快速运行一次ncnn的net推理
-        inline std::vector<ncnn::Mat> quickRunNcnn(ncnn::Net& net_in, ncnn::Mat& input, const std::string& in_name,
+        inline std::vector<ncnn::Mat> ncnnQuickRun(ncnn::Net& net_in, ncnn::Mat& input, const std::string& in_name,
             const std::vector<std::string>& out_names)
         {
 
@@ -90,22 +86,20 @@ namespace mineutils
         }
 
         //输入ncnn的net路径，快速运行一次ncnn的net推理
-        inline std::vector<ncnn::Mat> quickRunNcnn(const std::string& param_path, const std::string& model_path, ncnn::Mat& input, const std::string& in_name, const std::vector<std::string>& out_names)
+        inline std::vector<ncnn::Mat> ncnnQuickRun(const std::string& param_path, const std::string& model_path, ncnn::Mat& input, const std::string& in_name, const std::vector<std::string>& out_names)
         {
             ncnn::Net net;
             net.load_param(param_path.c_str());
             net.load_model(model_path.c_str());
-            return mext::quickRunNcnn(net, input, in_name, out_names);
+            return mext::ncnnQuickRun(net, input, in_name, out_names);
         }
 
-        //打印ncnn的Mat，只支持CHW排列的三位ncnn::Mat
-        template<class Tx, class Ty, class Tc, typename std::enable_if<mtype::InTypesChecker<typename std::decay<Tx>::type, std::pair<int, int>, int>::value&& mtype::InTypesChecker<typename std::decay<Tx>::type, std::pair<int, int>, int>::value&& mtype::InTypesChecker<typename std::decay<Tx>::type, std::pair<int, int>, int>::value, int>::type>
-        inline void printMat(const ncnn::Mat& m, Tx x_range, Ty y_range, Tc c_range)
+        inline void ncnnPrintMat(const ncnn::Mat& m, std::pair<unsigned int, unsigned int> x_range, std::pair<unsigned int, unsigned int> y_range, std::pair<unsigned int, unsigned int> c_range)
         {
-            using Range = std::pair<int, int>;
-            Range x_norm_range = mmath::normRange(x_range, m.w);
-            Range y_norm_range = mmath::normRange(y_range, m.h);
-            Range c_norm_range = mmath::normRange(c_range, m.c);
+            using Range = std::pair<unsigned int, unsigned int>;
+            Range x_norm_range = mbase::_normRange(x_range, m.w);
+            Range y_norm_range = mbase::_normRange(y_range, m.h);
+            Range c_norm_range = mbase::_normRange(c_range, m.c);
             int xstart = x_norm_range.first, xend = x_norm_range.second;
             int ystart = y_norm_range.first, yend = y_norm_range.second;
             int cstart = c_norm_range.first, cend = c_norm_range.second;
@@ -138,30 +132,6 @@ namespace mineutils
                 else std::cout << "]";
             }
             std::cout << "}\n";
-        }
-
-        //std::ostream& operator<<(std::ostream& std::cout, ncnn::Mat& mat)
-        //{
-        //    printMat(mat);
-        //    return std::cout;
-        //}
-
-        //打印一组ncnn的Mat，只支持CHW排列的三位ncnn::Mat
-        inline void printMats(const std::vector<ncnn::Mat>& mats)
-        {
-            std::cout << "Mats{" << std::endl;
-            for (auto mat : mats)
-                printMat(mat);
-            std::cout << "}\n";
-        }
-    }
-
-    namespace mio
-    {
-        //为print函数添加对ncnn::Mat的支持
-        inline void _print(const ncnn::Mat& m)
-        {
-            mext::printMat(m);
         }
     }
 }
