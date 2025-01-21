@@ -160,6 +160,7 @@ namespace mineutils
         };
 
 
+
         //跨线程暂停，使用条件变量实现以代替循环sleep
         class ThreadPauser
         {
@@ -515,7 +516,7 @@ namespace mineutils
                     }
                     if (this->need_abort_)
                         break;
-                    task = this->task_queue_.front();
+                    task = std::move(this->task_queue_.front());
                     this->task_queue_.pop();
                 }
                 task();

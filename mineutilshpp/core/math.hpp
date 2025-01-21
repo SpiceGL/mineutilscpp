@@ -5,6 +5,7 @@
 
 #include<array>
 #include<cmath>
+#include<cstdlib>
 #include<iostream>
 #include<string>
 #include<string.h>
@@ -140,7 +141,7 @@ namespace mineutils
 
     namespace mmath
     {
-        inline long long _align(long long value, long long alignment, int align_mode = 1)
+        inline long _align(long value, long alignment, int align_mode = 1)
         {
             long long rem = value % alignment;
             long long quot = value / alignment;
@@ -148,27 +149,27 @@ namespace mineutils
             if (align_mode > 0)
             {
                 if (rem > 0)
-                    return quot * alignment + std::abs(alignment);
+                    return quot * alignment + std::labs(alignment);
                 else return quot * alignment;
             }
             else if (align_mode < 0)
             {
                 if (rem >= 0)
                     return quot * alignment;
-                else return quot * alignment - std::abs(alignment);
+                else return quot * alignment - std::labs(alignment);
             }
             else
             {
                 if (rem > 0)
                 {
-                    if (std::abs(rem) >= (std::abs(alignment) / 2))
-                        return quot * alignment + std::abs(alignment);
+                    if (std::labs(rem) >= (std::labs(alignment) / 2))
+                        return quot * alignment + std::labs(alignment);
                     else return quot * alignment;
                 }
                 else if (rem < 0)
                 {
-                    if (std::abs(rem) >= (std::abs(alignment) / 2))
-                        return quot * alignment - std::abs(alignment);
+                    if (std::labs(rem) > (std::labs(alignment) / 2))
+                        return quot * alignment - std::labs(alignment);
                     else return quot * alignment;
                 }
                 else return quot * alignment;
