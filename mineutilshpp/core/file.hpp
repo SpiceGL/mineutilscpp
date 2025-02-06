@@ -12,7 +12,6 @@
 
 #include"base.hpp"
 #include"str.hpp"
-#include"log.hpp"
 
 
 namespace mineutils
@@ -32,29 +31,28 @@ namespace mineutils
                 @param key_value_sep: 分割key和value的字符，默认为'='
                 @param note_signs: 注释标记符，默认为{ "#", ";" }
                 @return 0代表正常，其他代表失败   */
-            int open(const std::string& path, const char& key_value_sep = '=', const std::vector<std::string>& note_signs = { "#", ";" });
+            int open(std::string path, const char key_value_sep = '=', std::vector<std::string> note_signs = { "#", ";" });
 
             //关闭并保存文件，文件已关闭也能close；返回0代表正常，其他代表失败
             int close();
 
-            //通过section和key获取value的值
+            //通过section和key获取value的值，section为空代表无section
             std::string getValue(const std::string& section, const std::string& key);
 
             //通过key获取value的值，只能获取无section的key-value条目
             std::string getValue(const std::string& key);
 
-            //设置和添加key-value条目，value可以是任意正确支持operator<<的类型
-            template<class T, typename std::enable_if<mtype::StdCoutChecker<T>::value, int>::type = 0>
+            //设置和添加key-value条目，，section为空代表无section，value可以是任意正确支持std::cout<<的类型
+            template<class T, typename std::enable_if<mtype::StdCoutEachChecker<T>::value, int>::type = 0>
             void setValue(const std::string& section, const std::string& key, const T& value);
 
-            //设置和添加无section的key-value条目，value可以是任意正确支持operator<<的类型
-            template<class T, typename std::enable_if<mtype::StdCoutChecker<T>::value, int>::type = 0>
+            //设置和添加无section的key-value条目，value可以是任意正确支持std::cout<<的类型
+            template<class T, typename std::enable_if<mtype::StdCoutEachChecker<T>::value, int>::type = 0>
             void setValue(const std::string& key, const T& value);
 
+            //禁止拷贝和移动
             IniFile(const IniFile& file) = delete;
-            IniFile(IniFile&& file) = delete;
             IniFile& operator=(const IniFile& file) = delete;
-            IniFile& operator=(IniFile&& file) = delete;
             ~IniFile();
 
         private:
@@ -73,10 +71,6 @@ namespace mineutils
             std::list<std::string> content_list_;
             std::map<std::string, SectionInfo> section_map_;
             std::map<std::string, std::map<std::string, KeyInfo>> key_map_;
-
-        public:
-            //已废弃
-            mdeprecated(R"(Deprecated. Please set note_signs when calling function "IniFile::open"!)") inline void setNoteSigns(std::vector<std::string> note_signs = { "#", ";" });
         };
 
     }
@@ -111,7 +105,7 @@ namespace mineutils
         };
  
         //打开ini文件
-        inline int IniFile::open(const std::string& path, const char& key_value_sep, const std::vector<std::string>& note_signs)
+        inline int IniFile::open(std::string path, const char key_value_sep, std::vector<std::string> note_signs)
         {
             /*  ios::app：　　　 //以追加的方式打开文件
                 ios::ate：　　　 //文件打开后定位到文件尾，ios:app就包含有此属性
@@ -123,8 +117,8 @@ namespace mineutils
                 ios::trunc：　  //如果文件存在，把文件长度设为0   */
             if (this->file_.is_open())
             {
-                mprintfW("File opened. Close the old file and open the new file.\n");
-                this->file_.close();
+                mprintfW("Duplicated open!\n");
+                return 1;
             }
 
             this->file_.open(path, std::ios::binary | std::ios::in);
@@ -136,9 +130,9 @@ namespace mineutils
             }
             else
             {
-                this->file_path_ = path;
+                this->file_path_ = std::move(path);
                 this->sep_ = key_value_sep;
-                this->note_signs_ = note_signs;
+                this->note_signs_ = std::move(note_signs);
 
                 std::string line;
                 std::vector<std::string> line_split;
@@ -245,7 +239,7 @@ namespace mineutils
             return this->getValue("", key);
         }
 
-        template<class T, typename std::enable_if<mtype::StdCoutChecker<T>::value, int>::type>
+        template<class T, typename std::enable_if<mtype::StdCoutEachChecker<T>::value, int>::type>
         inline void IniFile::setValue(const std::string& section, const std::string& key, const T& value)
         {
             if (!this->file_.is_open())
@@ -301,7 +295,7 @@ namespace mineutils
             }
         }
 
-        template<class T, typename std::enable_if<mtype::StdCoutChecker<T>::value, int>::type>
+        template<class T, typename std::enable_if<mtype::StdCoutEachChecker<T>::value, int>::type>
         inline void IniFile::setValue(const std::string& key, const T& value)
         {
             this->setValue("", key, value);
@@ -401,14 +395,6 @@ namespace mineutils
                 i++;
             }
             return 0;
-        }
-
-
-        //已废弃
-        inline void IniFile::setNoteSigns(std::vector<std::string> note_signs)
-        {
-            if (!this->file_path_.empty())
-                this->open(this->file_path_, this->sep_, note_signs);
         }
     }
 }

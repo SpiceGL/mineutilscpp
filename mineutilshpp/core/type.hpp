@@ -7,7 +7,7 @@
 #include<iostream>
 #include<tuple>
 #include<type_traits>
-
+#include<vector>
 
 #include"base.hpp"
 
@@ -41,28 +41,9 @@ namespace mineutils
         struct InTypesChecker;
 
 
-        /*  检查T是否拥有类似于标准的STL容器的begin()和end()接口，支持模板SFINAE特性
-            - T类型具有begin()和end()接口
-            - T类型的begin()和end()接口返回的迭代器类型为std::remove_reference<U>::type::iterator或std::remove_reference<U>::type::const_iterator
-            - T类型的begin()返回的迭代器可用被*解引用
-            - T类型的begin()返回的迭代器支持++操作符，且前缀的++操作符返回迭代器的引用，后缀的++操作符返回迭代器的拷贝
-            用法：StdBeginEndChecker<T>::value, 类型为constexpr bool   */
-        template<class T>
-        struct StdBeginEndChecker;
-
-
-        /*  检查T是否支持std::cout <<，支持模板SFINAE特性
-            - T类型正确重载了operator<<(std::ostream&, const T&)
-            - 对于T类型的对象obj，std::cout << obj的返回值类型为std::ostream&
-            - 对T类型查找operator<<的范围为std命名空间、T所在命名空间及其关联命名空间，以及全局命名空间
-            用法：StdCoutChecker<T>::value, 类型为constexpr bool   */
-        template<class T>
-        struct StdCoutChecker;
-
-
-        /*  检查T、Ts中的每一个类型是否都支持std::cout <<，支持模板SFINAE特性
+        /*  检查T、Ts中的每一个类型是否都支持std::cout<<，支持模板SFINAE特性
             - 每一个T、Ts类型的对象都正确重载了operator<<(std::ostream&, const T&)
-            - 对于每一个T、Ts类型的对象obj，std::cout << obj的返回值类型为std::ostream&
+            - 对于每一个T、Ts类型的对象obj，std::cout<< obj的返回值类型为std::ostream&
             - 对每一个T、Ts类型查找operator<<的范围为std命名空间、当前T所在命名空间及其关联命名空间，以及全局命名空间
             用法：StdCoutEachChecker<T, Ts...>::value, 类型为constexpr bool   */
         template<class T, class... Ts>
@@ -98,21 +79,21 @@ namespace mineutils
 
         /*  对Fn进行检查，判断Fn是否为可解析的函数、仿函数或成员函数，并获取返回值、参数数量等信息，支持模板SFINAE特性
             - Fn支持函数、函数指针、成员函数指针和仿函数类型
-            - Fn接收有多个重载的函数和成员函数时，需要显式指定函数类型，如FuncChecker<decltype((void(*)(int&))func1)>
-            - Fn是仿函数时，如果仿函数重载了多个operator()，那么FuncChecker<Fn>::value为false
+            - Fn接收有多个重载的函数和成员函数时，需要显式指定函数类型，如FuncTraits<decltype((void(*)(int&))func1)>
+            - Fn是仿函数时，如果仿函数重载了多个operator()，那么FuncTraits<Fn>::value为false
             - Fn是仿函数时，对operator()的检查不会考虑其const、volatile等限定
             用法：
-            - FuncChecker<Fn>::value，判断Fn是否为有效函数，类型为constexpr bool
-            - FuncChecker<Fn>::ReturnType，获取Fn的返回值类型，Fn不是有效的函数类型时ReturnType不存在
-            - FuncChecker<Fn>::ArgsTupleType，获取Fn的参数列表类型组成的std::tuple类型，Fn不是有效的函数类型时ArgsTupleType不存在
-            - FuncChecker<Fn>::num_args，类型为constexpr size_t，获得Fn的参数数量，Fn不是有效的函数类型时num_args不存在   */
+            - FuncTraits<Fn>::value，判断Fn是否为有效函数，类型为constexpr bool
+            - FuncTraits<Fn>::ReturnType，获取Fn的返回值类型，Fn不是有效的函数类型时ReturnType不存在
+            - FuncTraits<Fn>::ArgsTupleType，获取Fn的参数列表类型组成的std::tuple类型，Fn不是有效的函数类型时ArgsTupleType不存在
+            - FuncTraits<Fn>::num_args，类型为constexpr size_t，获得Fn的参数数量，Fn不是有效的函数类型时num_args不存在   */
         template <class Fn>
-        struct FuncChecker;
+        struct FuncTraits;
 
 
         /*  检查Fn和Args...参数是否能使用std::bind绑定，且具有更严格的限制，支持模板SFINAE特性
             - Fn支持函数、函数指针、成员函数指针、仿函数类型以及它们的reference_warpper包装
-            - Fn接收重载函数时，需要显式指定函数类型，如StdBindChecker<decltype((void(*)(int&))func1), int&>
+            - Fn接收重载函数时，需要显式指定函数类型，如StdBindTraits<decltype((void(*)(int&))func1), int&>
             - Fn是仿函数时，自身的去引用类型必须支持使用自身的左值和右值对象进行构造，且不是volatile类型
             - Fn是具有多个operator()重载的仿函数时，参数类型与Fn的一个operator()匹配即可
             - const、volatile限定的成员函数只能由const、volatile对象调用，对于仿函数也是一样
@@ -120,10 +101,10 @@ namespace mineutils
             - 要求Fn的参数类型不能为右值引用
             - 其他要求参考std::bind规则
             用法：
-            - StdBindChecker<Fn>::value，判断Fn是否为有效函数类型，类型为constexpr bool
-            - StdBindChecker<Fn>::ReturnType，获取Fn的返回值类型，Fn和Args...不匹配时ReturnType不存在   */
+            - StdBindTraits<Fn>::value，判断Fn是否为有效函数类型，类型为constexpr bool
+            - StdBindTraits<Fn>::ReturnType，获取Fn的返回值类型，Fn和Args...不匹配时ReturnType不存在   */
         template<class Fn, class... Args>
-        struct StdBindChecker;
+        struct StdBindTraits;
     }
 
 
@@ -210,9 +191,9 @@ namespace mineutils
             - T类型的begin()和end()接口返回的迭代器类型为std::remove_reference<U>::type::iterator或std::remove_reference<U>::type::const_iterator
             - T类型的begin()返回的迭代器可用被*解引用
             - T类型的begin()返回的迭代器支持++操作符，且前缀的++操作符返回迭代器的引用，后缀的++操作符返回迭代器的拷贝
-            用法：StdBeginEndChecker<T>::value, 类型为constexpr bool   */
+            用法：_StdBeginEndChecker<T>::value, 类型为constexpr bool   */
         template<class T>
-        struct StdBeginEndChecker
+        struct _StdBeginEndChecker
         {
         private:
             //之所以用U而不是T，是因为为T的话，模板类型就被类的模板类型确定了，函数调用不再具有SFINAE特性
@@ -240,13 +221,13 @@ namespace mineutils
             template<class...>
             static std::false_type checkIncrementOperator(...);
 
-            StdBeginEndChecker() = delete;
+            _StdBeginEndChecker() = delete;
 
         public:
-            static constexpr bool value = decltype(mtype::StdBeginEndChecker<T>::template checkExist<T>(0))::value && decltype(mtype::StdBeginEndChecker<T>::template checkDeref<T>(0))::value && decltype(mtype::StdBeginEndChecker<T>::template checkIncrementOperator<T>(0))::value;
+            static constexpr bool value = decltype(mtype::_StdBeginEndChecker<T>::template checkExist<T>(0))::value && decltype(mtype::_StdBeginEndChecker<T>::template checkDeref<T>(0))::value && decltype(mtype::_StdBeginEndChecker<T>::template checkIncrementOperator<T>(0))::value;
         };
         template<class T>
-        constexpr bool mtype::StdBeginEndChecker<T>::value;
+        constexpr bool mtype::_StdBeginEndChecker<T>::value;
 
         template <typename... T>
         struct _make_void { using type = void; };
@@ -259,9 +240,9 @@ namespace mineutils
             - T类型正确重载了operator<<(std::ostream&, const T&)
             - 对于T类型的对象obj，std::cout << obj的返回值类型为std::ostream&
             - 对T类型查找operator<<的范围为std命名空间、T所在命名空间及其关联命名空间，以及全局命名空间
-            用法：StdCoutChecker<T>::value, 类型为constexpr bool   */
+            用法：_StdCoutChecker<T>::value, 类型为constexpr bool   */
         template<class T>
-        struct StdCoutChecker
+        struct _StdCoutChecker
         {
         private:
             //之所以用U而不是T，是因为为T的话，模板类型就被类的模板类型确定了，函数调用不再具有SFINAE特性
@@ -271,28 +252,28 @@ namespace mineutils
             template<typename...>
             static std::false_type check(...);
 
-            StdCoutChecker() = delete;
+            _StdCoutChecker() = delete;
 
         public:
-            static constexpr bool value = decltype(mtype::StdCoutChecker<T>::template check<T>(0))::value;
+            static constexpr bool value = decltype(mtype::_StdCoutChecker<T>::template check<T>(0))::value;
         };
         template<class T>
-        constexpr bool mtype::StdCoutChecker<T>::value;
+        constexpr bool mtype::_StdCoutChecker<T>::value;
 
 
-        /*  检查T、Ts中的每一个类型是否都支持std::cout <<，支持模板SFINAE特性
+        /*  检查T、Ts中的每一个类型是否都支持std::cout<<，支持模板SFINAE特性
             - 每一个T、Ts类型的对象都正确重载了operator<<(std::ostream&, const T&)
-            - 对于每一个T、Ts类型的对象obj，std::cout << obj的返回值类型为std::ostream&
+            - 对于每一个T、Ts类型的对象obj，std::cout<< obj的返回值类型为std::ostream&
             - 对每一个T、Ts类型查找operator<<的范围为std命名空间、当前T所在命名空间及其关联命名空间，以及全局命名空间
             用法：StdCoutEachChecker<T, Ts...>::value, 类型为constexpr bool   */
         template<class T, class... Ts>
         struct StdCoutEachChecker
         {
         private:
-            template<class U, class... Us, typename std::enable_if<mtype::StdCoutChecker<U>::value&& mtype::StdCoutEachChecker<Us...>::value, int>::type = 0>
+            template<class U, class... Us, typename std::enable_if<mtype::_StdCoutChecker<U>::value&& mtype::StdCoutEachChecker<Us...>::value, int>::type = 0>
             static std::true_type check(int);
 
-            template<class U, class... Us, typename std::enable_if<mtype::StdCoutChecker<U>::value && (sizeof...(Us) == 0), int>::type = 0>
+            template<class U, class... Us, typename std::enable_if<mtype::_StdCoutChecker<U>::value && (sizeof...(Us) == 0), int>::type = 0>
             static std::true_type check(int);
 
             template<class...>
@@ -466,19 +447,19 @@ namespace mineutils
 
         /*  对Fn进行检查，判断Fn是否为可解析的函数、仿函数或成员函数，并获取返回值、参数数量等信息，支持模板SFINAE特性
             - Fn支持函数、函数指针、成员函数指针和仿函数类型
-            - Fn接收有多个重载的函数和成员函数时，需要显式指定函数类型，如FuncChecker<decltype((void(*)(int&))func1)>
-            - Fn是仿函数时，如果仿函数重载了多个operator()，那么FuncChecker<Fn>::value为false
+            - Fn接收有多个重载的函数和成员函数时，需要显式指定函数类型，如FuncTraits<decltype((void(*)(int&))func1)>
+            - Fn是仿函数时，如果仿函数重载了多个operator()，那么FuncTraits<Fn>::value为false
             - Fn是仿函数时，对operator()的检查不会考虑其const、volatile等限定
             用法：
-            - FuncChecker<Fn>::value，判断Fn是否为有效函数，类型为constexpr bool
-            - FuncChecker<Fn>::ReturnType，获取Fn的返回值类型，Fn不是有效的函数类型时ReturnType不存在
-            - FuncChecker<Fn>::ArgsTupleType，获取Fn的参数列表类型组成的std::tuple类型，Fn不是有效的函数类型时ArgsTupleType不存在
-            - FuncChecker<Fn>::num_args，类型为constexpr size_t，获得Fn的参数数量，Fn不是有效的函数类型时num_args不存在   */
+            - FuncTraits<Fn>::value，判断Fn是否为有效函数，类型为constexpr bool
+            - FuncTraits<Fn>::ReturnType，获取Fn的返回值类型，Fn不是有效的函数类型时ReturnType不存在
+            - FuncTraits<Fn>::ArgsTupleType，获取Fn的参数列表类型组成的std::tuple类型，Fn不是有效的函数类型时ArgsTupleType不存在
+            - FuncTraits<Fn>::num_args，类型为constexpr size_t，获得Fn的参数数量，Fn不是有效的函数类型时num_args不存在   */
         template <class Fn>
-        struct FuncChecker : public mtype::_FunctionCheckerHelper<decltype(mtype::_FunctionCheckerBase::template checkValidity<Fn>(0))::value, Fn>
+        struct FuncTraits : public mtype::_FunctionCheckerHelper<decltype(mtype::_FunctionCheckerBase::template checkValidity<Fn>(0))::value, Fn>
         {
         private:
-            FuncChecker() = delete;
+            FuncTraits() = delete;
         };
 
         //std::bind在qnx的gcc4.7.3上，无法绑定const仿函数和它的非const operator()，在其他编译器上却可以，因此统一按照严格的限定处理
@@ -628,60 +609,60 @@ namespace mineutils
 
 
         template<class Fn, class... Args>
-        struct _StdBindCheckerBase
+        struct _StdBindTraitsBase
         {
         public:
-            template<class Func, class... Arguments, class DecayFunc = typename std::remove_reference<Func>::type, typename std::enable_if<!std::is_class<DecayFunc>::value && !std::is_member_function_pointer<DecayFunc>::value && (mtype::FuncChecker<Func>::num_args == sizeof...(Arguments)) && mtype::_EachConstructibleByLRvalueChecker<Arguments...>::value, int>::type = 0>
+            template<class Func, class... Arguments, class DecayFunc = typename std::remove_reference<Func>::type, typename std::enable_if<!std::is_class<DecayFunc>::value && !std::is_member_function_pointer<DecayFunc>::value && (mtype::FuncTraits<Func>::num_args == sizeof...(Arguments)) && mtype::_EachConstructibleByLRvalueChecker<Arguments...>::value, int>::type = 0>
             static std::true_type checkConditionsUnsupportSFINAE(int);
 
             //检查Functor和std::ref包装的函数
             template<class Func, class... Arguments, class DecayFunc = typename std::remove_reference<Func>::type, typename std::enable_if <std::is_class<DecayFunc>::value && !std::is_volatile<DecayFunc>::value, int>::type = 0, typename std::enable_if<mtype::_EachConstructibleByLRvalueChecker<Func, Arguments...>::value && mtype::_FunctorBindChecker<Func, Arguments...>::value, int> ::type = 0 >
             static std::true_type checkConditionsUnsupportSFINAE(int);  
 
-            template<class Func, class... Arguments, typename std::enable_if<std::is_member_function_pointer<typename std::remove_reference<Func>::type>::value && (FuncChecker<Func>::num_args + 1 == sizeof...(Arguments)) && mtype::_EachConstructibleByLRvalueChecker<Arguments...>::value, int>::type = 0, typename std::enable_if<mtype::_MemFnObjCvMatchChecker<Func, Arguments...>::value, int>::type = 0>
+            template<class Func, class... Arguments, typename std::enable_if<std::is_member_function_pointer<typename std::remove_reference<Func>::type>::value && (FuncTraits<Func>::num_args + 1 == sizeof...(Arguments)) && mtype::_EachConstructibleByLRvalueChecker<Arguments...>::value, int>::type = 0, typename std::enable_if<mtype::_MemFnObjCvMatchChecker<Func, Arguments...>::value, int>::type = 0>
             static std::true_type checkConditionsUnsupportSFINAE(int);
 
             template<class ...>
             static std::false_type checkConditionsUnsupportSFINAE(...);
 
 
-            template<class Func, class... Arguments, typename std::enable_if<decltype(mtype::_StdBindCheckerBase<Func, Arguments...>::template checkConditionsUnsupportSFINAE<Func, Arguments...>(0))::value, int>::type = 0>
+            template<class Func, class... Arguments, typename std::enable_if<decltype(mtype::_StdBindTraitsBase<Func, Arguments...>::template checkConditionsUnsupportSFINAE<Func, Arguments...>(0))::value, int>::type = 0>
             static auto checkRet(int) -> decltype(std::bind(std::forward<Func>(std::declval<Func>()), std::forward<Arguments>(std::declval<Arguments>())...)());
 
             //template<class Func, class... Arguments, class DecayFunc = decltype(std::declval<Func>().get())>
-            //static auto checkValue(int) -> decltype(mtype::_StdBindCheckerBase<DecayFunc, Arguments...>::template checkRet<DecayFunc, Arguments...>(0), std::true_type());
+            //static auto checkValue(int) -> decltype(mtype::_StdBindTraitsBase<DecayFunc, Arguments...>::template checkRet<DecayFunc, Arguments...>(0), std::true_type());
 
             template<class Func, class... Arguments>
-            static auto checkValue(int) -> decltype(mtype::_StdBindCheckerBase<Func, Arguments...>::template checkRet<Func, Arguments...>(0), std::true_type());
+            static auto checkValue(int) -> decltype(mtype::_StdBindTraitsBase<Func, Arguments...>::template checkRet<Func, Arguments...>(0), std::true_type());
 
             template<class...>
             static std::false_type checkValue(...);
         };
 
         template <bool Checker, class Fn, class... Args>
-        struct _StdBindCheckerHelper
+        struct _StdBindTraitsHelper
         {
         public:
-            static constexpr bool value = decltype(mtype::_StdBindCheckerBase<Fn, Args...>::template checkValue<Fn, Args...>(0))::value;
+            static constexpr bool value = decltype(mtype::_StdBindTraitsBase<Fn, Args...>::template checkValue<Fn, Args...>(0))::value;
         };
         template <bool Checker, class Fn, class... Args>
-        constexpr bool mtype::_StdBindCheckerHelper<Checker, Fn, Args...>::value;
+        constexpr bool mtype::_StdBindTraitsHelper<Checker, Fn, Args...>::value;
 
 
         template <class Fn, class... Args>
-        struct _StdBindCheckerHelper<true, Fn, Args...>
+        struct _StdBindTraitsHelper<true, Fn, Args...>
         {
         public:
-            static constexpr bool value = decltype(mtype::_StdBindCheckerBase<Fn, Args...>::template checkValue<Fn, Args...>(0))::value;
-            using ReturnType = decltype(mtype::_StdBindCheckerBase<Fn, Args...>::template checkRet<Fn, Args...>(0));
+            static constexpr bool value = decltype(mtype::_StdBindTraitsBase<Fn, Args...>::template checkValue<Fn, Args...>(0))::value;
+            using ReturnType = decltype(mtype::_StdBindTraitsBase<Fn, Args...>::template checkRet<Fn, Args...>(0));
         };
         template <class Fn, class... Args>
-        constexpr bool mtype::_StdBindCheckerHelper<true, Fn, Args...>::value;
+        constexpr bool mtype::_StdBindTraitsHelper<true, Fn, Args...>::value;
 
 
         /*  检查Fn和Args...参数是否能使用std::bind绑定，且具有更严格的限制，支持模板SFINAE特性
             - Fn支持函数、函数指针、成员函数指针、仿函数类型以及它们的reference_warpper包装
-            - Fn接收重载函数时，需要显式指定函数类型，如StdBindChecker<decltype((void(*)(int&))func1), int&>
+            - Fn接收重载函数时，需要显式指定函数类型，如StdBindTraits<decltype((void(*)(int&))func1), int&>
             - Fn是仿函数时，自身的去引用类型必须支持使用自身的左值和右值对象进行构造，且不是volatile类型
             - Fn是具有多个operator()重载的仿函数时，参数类型与Fn的一个operator()匹配即可
             - const、volatile限定的成员函数只能由const、volatile对象调用，对于仿函数也是一样
@@ -689,78 +670,21 @@ namespace mineutils
             - 要求Fn的参数类型不能为右值引用
             - 其他要求参考std::bind规则
             用法：
-            - StdBindChecker<Fn>::value，判断Fn是否为有效函数类型，类型为constexpr bool
-            - StdBindChecker<Fn>::ReturnType，获取Fn的返回值类型，Fn和Args...不匹配时ReturnType不存在
+            - StdBindTraits<Fn>::value，判断Fn是否为有效函数类型，类型为constexpr bool
+            - StdBindTraits<Fn>::ReturnType，获取Fn的返回值类型，Fn和Args...不匹配时ReturnType不存在
             注意，经测试QNX的g++4.7.3对C++11特性支持不全，以下情况可能直接在模板内部编译错误而非触发SFINAE特性：
             - 仿函数作为Fn，但使用类似std::reference_wrapper的第三方引用包装传递时
             - 仿函数作为Fn，但匹配Args...的operator()为私有或受保护的成员时  */
         template<class Fn, class... Args>
-        struct StdBindChecker : public mtype::_StdBindCheckerHelper<decltype(mtype::_StdBindCheckerBase<Fn, Args...>::template checkValue<Fn, Args...>(0))::value, Fn, Args...>
+        struct StdBindTraits : public mtype::_StdBindTraitsHelper<decltype(mtype::_StdBindTraitsBase<Fn, Args...>::template checkValue<Fn, Args...>(0))::value, Fn, Args...>
         {
         private:
-            StdBindChecker() = delete;
+            StdBindTraits() = delete;
         };
-
-
-        
-
-        //已废弃
-        template<class T1, class T2, class ...Types>
-        mdeprecated(R"(Deprecated. Please replace with struct "SameTypesChecker"(in type.hpp))") constexpr bool isSameType();
-
-        //已废弃
-        template<class T, class Tother, class... Tothers>
-        mdeprecated(R"(Deprecated. Please replace with struct "SameTypesChecker"(in type.hpp))") constexpr bool isInTypes();
-
-        template<class T1, class T2>
-        inline constexpr bool _isSameType(std::false_type bool_tag)
-        {
-            return std::is_same<typename std::decay<T1>::type, typename std::decay<T2>::type>::value;
-        }
-
-        template<class T1, class T2, class ...Types>
-        inline constexpr bool _isSameType(std::true_type bool_tag)
-        {
-            return std::is_same<typename std::decay<T1>::type, typename std::decay<T2>::type>::value and mtype::isSameType<T1, Types...>();
-        }
-
-
-        template<class T1, class T2, class ...Types>
-        inline constexpr bool isSameType()
-        {
-            return mtype::_isSameType<T1, T2, Types...>(std::integral_constant<bool, (sizeof...(Types) > 0)>());
-        }
-
-        template<class T1, class T2, class ...Types>
-        inline constexpr bool isSameType(T1& arg1, T2& arg2, Types & ...args)
-        {
-            return mtype::isSameType<T1, T2, Types...>();
-        }
-
-
-        template<class T, class Tother>
-        inline constexpr bool _isInTypes(std::false_type bool_tag)
-        {
-            return mtype::isSameType<T, Tother>();
-        }
-
-        template<class T, class Tother, class... Tothers>
-        inline constexpr bool _isInTypes(std::true_type bool_tag)
-        {
-            return mtype::isSameType<T, Tother>() or isInTypes<T, Tothers...>();
-        }
-
-        //用于判断T是否属于后面的多种类型
-        template<class T, class Tother, class... Tothers>
-        mdeprecated(R"(Deprecated. Please replace with struct "InTypesChecker"(in type.hpp))") inline constexpr bool isInTypes()
-        {
-            return mtype::_isInTypes<T, Tother, Tothers...>(std::integral_constant<bool, (sizeof...(Tothers) > 0)>());
-        }
     }
 
 
 #ifdef MINEUTILS_TEST_MODULES
-#include<vector>
     namespace _mtypecheck
     {
         inline void SameTypesCheckerTest()
@@ -780,17 +704,17 @@ namespace mineutils
             static_assert(mtype::InTypesChecker<int, unsigned int, int, float>::value == true, "assert failed!");
         }
 
-        inline void StdBeginEndCheckerTest()
+        inline void _StdBeginEndCheckerTest()
         {
-            static_assert(mtype::StdBeginEndChecker<int>::value == false, "assert failed!");
-            static_assert(mtype::StdBeginEndChecker<std::vector<int>>::value == true, "assert failed!");
-            static_assert(mtype::StdBeginEndChecker<const std::vector<int>>::value == true, "assert failed!");
+            static_assert(mtype::_StdBeginEndChecker<int>::value == false, "assert failed!");
+            static_assert(mtype::_StdBeginEndChecker<std::vector<int>>::value == true, "assert failed!");
+            static_assert(mtype::_StdBeginEndChecker<const std::vector<int>>::value == true, "assert failed!");
         }
 
-        inline void StdCoutCheckerTest()
+        inline void _StdCoutCheckerTest()
         {
-            static_assert(mtype::StdCoutChecker<int>::value == true, "assert failed!");
-            static_assert(mtype::StdCoutChecker<std::vector<int>>::value == false, "assert failed!");
+            static_assert(mtype::_StdCoutChecker<int>::value == true, "assert failed!");
+            static_assert(mtype::_StdCoutChecker<std::vector<int>>::value == false, "assert failed!");
             static_assert(mtype::StdCoutEachChecker<int>::value == true, "assert failed!");
             static_assert(mtype::StdCoutEachChecker<std::vector<int>>::value == false, "assert failed!");
             static_assert(mtype::StdCoutEachChecker<int, float, char>::value == true, "assert failed!");
@@ -906,28 +830,28 @@ namespace mineutils
 
         inline void FunctionCheckerTest()
         {
-            static_assert(mtype::FuncChecker<int>::value == false, "assert failed!");
-            static_assert(mtype::FuncChecker<decltype(_myFunc1)>::value == true, "assert failed!");
-            static_assert(mtype::FuncChecker<decltype(&_MyClass3::func1)>::value == true, "assert failed!");
-            static_assert(mtype::FuncChecker<decltype(&_MyClass3::func3)>::value == true, "assert failed!");
-            static_assert(mtype::FuncChecker<_Functor1>::value == false, "assert failed!");
-            static_assert(mtype::FuncChecker<volatile _Functor1>::value == false, "assert failed!");
-            static_assert(mtype::FuncChecker<volatile _Functor2>::value == true, "assert failed!");
-            static_assert(mtype::FuncChecker<const void>::value == false, "assert failed!");
+            static_assert(mtype::FuncTraits<int>::value == false, "assert failed!");
+            static_assert(mtype::FuncTraits<decltype(_myFunc1)>::value == true, "assert failed!");
+            static_assert(mtype::FuncTraits<decltype(&_MyClass3::func1)>::value == true, "assert failed!");
+            static_assert(mtype::FuncTraits<decltype(&_MyClass3::func3)>::value == true, "assert failed!");
+            static_assert(mtype::FuncTraits<_Functor1>::value == false, "assert failed!");
+            static_assert(mtype::FuncTraits<volatile _Functor1>::value == false, "assert failed!");
+            static_assert(mtype::FuncTraits<volatile _Functor2>::value == true, "assert failed!");
+            static_assert(mtype::FuncTraits<const void>::value == false, "assert failed!");
 
             int num_args = 0;
-            using type0 = mtype::FuncChecker<decltype(_myFunc1)>::ReturnType;
-            using tuple_type0 = mtype::FuncChecker<decltype(_myFunc1)>::ArgsTupleType;
-            num_args = mtype::FuncChecker<decltype(_myFunc1)>::num_args;
-            printf("User Check! FuncChecker<decltype(_myFunc1)>::RetType(int):%s, ArgsTupleType(std::tuple<int const&, int>):%s, num_args(2):%d.\n", mtype::getTypeName<type0>(), mtype::getTypeName<tuple_type0>(), num_args);
+            using type0 = mtype::FuncTraits<decltype(_myFunc1)>::ReturnType;
+            using tuple_type0 = mtype::FuncTraits<decltype(_myFunc1)>::ArgsTupleType;
+            num_args = mtype::FuncTraits<decltype(_myFunc1)>::num_args;
+            printf("User Check! FuncTraits<decltype(_myFunc1)>::RetType(int):%s, ArgsTupleType(std::tuple<int const&, int>):%s, num_args(2):%d.\n", mtype::getTypeName<type0>(), mtype::getTypeName<tuple_type0>(), num_args);
 
-            using type1 = mtype::FuncChecker<decltype(&_MyClass3::func1)>::ReturnType;
-            num_args = mtype::FuncChecker<decltype(&_MyClass3::func1)>::num_args;
-            printf("User Check! FuncChecker<decltype(&_MyClass3::func1)>::ReturnType(int):%s, num_args(1):%d.\n", mtype::getTypeName<type1>(), num_args);
+            using type1 = mtype::FuncTraits<decltype(&_MyClass3::func1)>::ReturnType;
+            num_args = mtype::FuncTraits<decltype(&_MyClass3::func1)>::num_args;
+            printf("User Check! FuncTraits<decltype(&_MyClass3::func1)>::ReturnType(int):%s, num_args(1):%d.\n", mtype::getTypeName<type1>(), num_args);
 
-            using type1 = mtype::FuncChecker<decltype(&_MyClass3::func3)>::ReturnType;
-            num_args = mtype::FuncChecker<decltype(&_MyClass3::func3)>::num_args;
-            printf("User Check! FuncChecker<decltype(&_MyClass3::func3)>::ReturnType(int):%s, num_args(1):%d.\n", mtype::getTypeName<type1>(), num_args);
+            using type1 = mtype::FuncTraits<decltype(&_MyClass3::func3)>::ReturnType;
+            num_args = mtype::FuncTraits<decltype(&_MyClass3::func3)>::num_args;
+            printf("User Check! FuncTraits<decltype(&_MyClass3::func3)>::ReturnType(int):%s, num_args(1):%d.\n", mtype::getTypeName<type1>(), num_args);
             printf("\n");
         }
 
@@ -944,56 +868,56 @@ namespace mineutils
 
 
 
-        inline void StdBindCheckerTest()
+        inline void StdBindTraitsTest()
         {
-            static_assert(mtype::StdBindChecker<int, int>::value == false, "assert failed!");
-            static_assert(mtype::StdBindChecker<decltype(_myFunc1), int, float>::value == true, "assert failed!");
-            static_assert(mtype::StdBindChecker<decltype(_myFunc1), int>::value == false, "assert failed!");
-            static_assert(mtype::StdBindChecker<decltype(_myFunc1), int, int, int>::value == false, "assert failed!");
-            static_assert(mtype::StdBindChecker<decltype(_myFunc2), void>::value == false, "assert failed!");
-            static_assert(mtype::StdBindChecker<void, void>::value == false, "assert failed!");
-            static_assert(mtype::StdBindChecker<decltype(&_MyClass3::func1), int>::value == false, "assert failed!");
-            static_assert(mtype::StdBindChecker<decltype(&_MyClass3::func1), std::vector<int>>::value == false, "assert failed!");
-            static_assert(mtype::StdBindChecker<decltype(&_MyClass3::func1), const _MyClass3*, int>::value == false, "assert failed!");
-            static_assert(mtype::StdBindChecker<decltype(&_MyClass3::func2), const _MyClass3*, int>::value == true, "assert failed!");
+            static_assert(mtype::StdBindTraits<int, int>::value == false, "assert failed!");
+            static_assert(mtype::StdBindTraits<decltype(_myFunc1), int, float>::value == true, "assert failed!");
+            static_assert(mtype::StdBindTraits<decltype(_myFunc1), int>::value == false, "assert failed!");
+            static_assert(mtype::StdBindTraits<decltype(_myFunc1), int, int, int>::value == false, "assert failed!");
+            static_assert(mtype::StdBindTraits<decltype(_myFunc2), void>::value == false, "assert failed!");
+            static_assert(mtype::StdBindTraits<void, void>::value == false, "assert failed!");
+            static_assert(mtype::StdBindTraits<decltype(&_MyClass3::func1), int>::value == false, "assert failed!");
+            static_assert(mtype::StdBindTraits<decltype(&_MyClass3::func1), std::vector<int>>::value == false, "assert failed!");
+            static_assert(mtype::StdBindTraits<decltype(&_MyClass3::func1), const _MyClass3*, int>::value == false, "assert failed!");
+            static_assert(mtype::StdBindTraits<decltype(&_MyClass3::func2), const _MyClass3*, int>::value == true, "assert failed!");
 
-            static_assert(mtype::StdBindChecker<decltype(&_MyClass3::func2), _MyClass2*, int>::value == false, "assert failed!");
-            static_assert(mtype::StdBindChecker<decltype(&_MyClass3::func3), const volatile _MyClass3&, int>::value == false, "assert failed!");  //没有默认可接收volatile类型的拷贝构造函数
-            static_assert(mtype::StdBindChecker<decltype(&_MyClass3::staticFunc1), _MyClass3*, int>::value == false, "assert failed!");
-            static_assert(mtype::StdBindChecker<decltype(&_MyClass3::staticFunc1), int>::value == true, "assert failed!");
+            static_assert(mtype::StdBindTraits<decltype(&_MyClass3::func2), _MyClass2*, int>::value == false, "assert failed!");
+            static_assert(mtype::StdBindTraits<decltype(&_MyClass3::func3), const volatile _MyClass3&, int>::value == false, "assert failed!");  //没有默认可接收volatile类型的拷贝构造函数
+            static_assert(mtype::StdBindTraits<decltype(&_MyClass3::staticFunc1), _MyClass3*, int>::value == false, "assert failed!");
+            static_assert(mtype::StdBindTraits<decltype(&_MyClass3::staticFunc1), int>::value == true, "assert failed!");
 
-            static_assert(mtype::StdBindChecker<_Functor1, short&&>::value == true, "assert failed!");
-            static_assert(mtype::StdBindChecker<std::reference_wrapper<_Functor1>, short&&>::value == true, "assert failed!");
-            static_assert(mtype::StdBindChecker<std::reference_wrapper<const _Functor1>>::value == true, "assert failed!");
-            static_assert(mtype::StdBindChecker<std::reference_wrapper<const _Functor1>, short>::value == false, "assert failed!");
+            static_assert(mtype::StdBindTraits<_Functor1, short&&>::value == true, "assert failed!");
+            static_assert(mtype::StdBindTraits<std::reference_wrapper<_Functor1>, short&&>::value == true, "assert failed!");
+            static_assert(mtype::StdBindTraits<std::reference_wrapper<const _Functor1>>::value == true, "assert failed!");
+            static_assert(mtype::StdBindTraits<std::reference_wrapper<const _Functor1>, short>::value == false, "assert failed!");
 
-            static_assert(mtype::StdBindChecker<_Functor1, int&&>::value == false, "assert failed!");
-            static_assert(mtype::StdBindChecker<_Functor1, short>::value == true, "assert failed!");
-            static_assert(mtype::StdBindChecker<volatile _Functor1, short>::value == false, "assert failed!");
-            static_assert(mtype::StdBindChecker<const _Functor1, short>::value == false, "assert failed!");
-            static_assert(mtype::StdBindChecker<decltype(&_Functor1Son::func), _Functor1Son, int>::value == true, "assert failed!");
+            static_assert(mtype::StdBindTraits<_Functor1, int&&>::value == false, "assert failed!");
+            static_assert(mtype::StdBindTraits<_Functor1, short>::value == true, "assert failed!");
+            static_assert(mtype::StdBindTraits<volatile _Functor1, short>::value == false, "assert failed!");
+            static_assert(mtype::StdBindTraits<const _Functor1, short>::value == false, "assert failed!");
+            static_assert(mtype::StdBindTraits<decltype(&_Functor1Son::func), _Functor1Son, int>::value == true, "assert failed!");
 
-            static_assert(mtype::StdBindChecker<decltype(&_Functor1::func), std::reference_wrapper<_Functor1Son>, int>::value == true, "assert failed!");
-            static_assert(mtype::StdBindChecker<decltype(&_Functor1::func), std::reference_wrapper<_Functor1Son>&, int>::value == true, "assert failed!");
-            static_assert(mtype::StdBindChecker<decltype(&_Functor1::func), std::reference_wrapper<volatile _Functor1Son>, int>::value == false, "assert failed!");
-            static_assert(mtype::StdBindChecker<decltype(&_Functor1::funcV), std::reference_wrapper<volatile _Functor1Son>, int>::value == true, "assert failed!");
+            static_assert(mtype::StdBindTraits<decltype(&_Functor1::func), std::reference_wrapper<_Functor1Son>, int>::value == true, "assert failed!");
+            static_assert(mtype::StdBindTraits<decltype(&_Functor1::func), std::reference_wrapper<_Functor1Son>&, int>::value == true, "assert failed!");
+            static_assert(mtype::StdBindTraits<decltype(&_Functor1::func), std::reference_wrapper<volatile _Functor1Son>, int>::value == false, "assert failed!");
+            static_assert(mtype::StdBindTraits<decltype(&_Functor1::funcV), std::reference_wrapper<volatile _Functor1Son>, int>::value == true, "assert failed!");
 
-#if !defined(__GNUC__) || (defined(__GNUC__) && (__GNUC__ >= 5 ||  (__GNUC__ == 4 && __GNUC_MINOR__ >= 8)))  //for qnx660
-            static_assert(mtype::StdBindChecker<_Functor3, int>::value == false, "assert failed!");
+#if !defined(__GNUC__) || (defined(__GNUC__) && _mgccMinVersion(4, 8, 1))  
+            static_assert(mtype::StdBindTraits<_Functor3, int>::value == false, "assert failed!");
 #endif
-            static_assert(mtype::StdBindChecker<_Functor3, float>::value == true, "assert failed!");
-            static_assert(mtype::StdBindChecker<decltype(&_Functor3::func1), _Functor3*, int*>::value == true, "assert failed!");
-            static_assert(mtype::StdBindChecker<_Functor3, int*>::value == true, "assert failed!");
+            static_assert(mtype::StdBindTraits<_Functor3, float>::value == true, "assert failed!");
+            static_assert(mtype::StdBindTraits<decltype(&_Functor3::func1), _Functor3*, int*>::value == true, "assert failed!");
+            static_assert(mtype::StdBindTraits<_Functor3, int*>::value == true, "assert failed!");
 
             _Functor3 functor3;
             int a = 0;
             std::bind(&_Functor3::func1, &functor3, &a)();
 
-            using type0 = mtype::StdBindChecker<decltype(_myFunc1), int, float>::ReturnType;
-            printf("User Check! StdBindChecker<decltype(_myFunc1), int, float>::ReturnType(int):%s.\n", mtype::getTypeName<type0>());
+            using type0 = mtype::StdBindTraits<decltype(_myFunc1), int, float>::ReturnType;
+            printf("User Check! StdBindTraits<decltype(_myFunc1), int, float>::ReturnType(int):%s.\n", mtype::getTypeName<type0>());
 
-            using type1 = mtype::StdBindChecker<decltype(&_MyClass3::func2), const _MyClass3*, int>::ReturnType;
-            printf("User Check! StdBindChecker<decltype(&_MyClass3::func2), const _MyClass3*, int>::ReturnType(int):%s.\n", mtype::getTypeName<type1>());
+            using type1 = mtype::StdBindTraits<decltype(&_MyClass3::func2), const _MyClass3*, int>::ReturnType;
+            printf("User Check! StdBindTraits<decltype(&_MyClass3::func2), const _MyClass3*, int>::ReturnType(int):%s.\n", mtype::getTypeName<type1>());
             printf("\n");
         }
 
@@ -1002,12 +926,12 @@ namespace mineutils
             printf("\n--------------------check mtype start--------------------\n\n");
             SameTypesCheckerTest();
             InTypesCheckerTest();
-            StdBeginEndCheckerTest();
-            StdCoutCheckerTest();
+            _StdBeginEndCheckerTest();
+            _StdCoutCheckerTest();
             ConstructibleFromEachCheckerTest();
             EachLRvalueConstructibleChecker();
             FunctionCheckerTest();
-            StdBindCheckerTest();
+            StdBindTraitsTest();
             printf("--------------------check mtype end--------------------\n\n");
         }
     }

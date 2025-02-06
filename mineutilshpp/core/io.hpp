@@ -29,7 +29,7 @@
 #include"base.hpp"
 #include"type.hpp"
 #include"math.hpp"
-#include"log.hpp"
+#include"thread.hpp"
 
 
 namespace mineutils
@@ -43,7 +43,6 @@ namespace mineutils
             - 可以正常打印任意支持std::cout<<的内置数据类型
             - 可以正常打印正确重载了operator<<(std::ostream&, const T&)的自定义类型
             - 拓展了STL容器的打印
-            - 拓展了OpenCV、NCNN的部分数据类型的打印(需要导入cv.hpp及ncnn.hpp模块)
             - 注意wchar_t、char16_t等宽字符型打印会乱码(宽字符型本身不支持std::cout)
             - 未支持的类型将会打印<类型名: 地址>
             - 在不混用print函数和std::cout时，线程安全  */
@@ -91,8 +90,8 @@ namespace mineutils
             //获取解析的参数中是否指定了的布尔选项flag，注意flag必须带有"-"，即"-b"或"--bool"形式
             bool getParsedBoolOpt(const std::string& flag);
 
-            //获取解析的参数中指定的值选项flag的值，如果未指定则获得预设的默认值，注意flag必须带有"-"，即"-a"或"--arg"形式
-            std::string getParsedValueOpt(const std::string& flag);
+            //获取解析的参数中指定的值选项flag的值，如果未指定则获得预设的默认值。注意flag必须带有"-"，即"-a"或"--arg"形式
+            const char* getParsedValueOpt(const std::string& flag);
 
             /*  按一定格式打印预设的选项与描述
                 Preset Boolean Options:
@@ -102,7 +101,7 @@ namespace mineutils
                     -shortflag  --longflag    DESCRIPTION: description    DEFAULT VALUE: default value
                     -shortflag  --longflag    DESCRIPTION: description    REQUIRED
                     ...                                                             */
-            void printPresetOptions();
+            void printPreset();
 
             /*  按一定格式打印解析后的选项值
                     -shortflag  --longflag    Parsed boolean value: true
@@ -112,12 +111,11 @@ namespace mineutils
                     -shortflag  --longflag    Parsed value: parsed value
                     -shortflag  --longflag    No value parsed!
                     ...                                                             */
-            void printParsedOptions();
+            void printParsed();
 
+            //禁止拷贝和移动
             ArgumentParser(const ArgumentParser& tmp) = delete;
-            ArgumentParser(ArgumentParser&& tmp) = delete;
             ArgumentParser& operator=(const ArgumentParser& tmp) = delete;
-            ArgumentParser& operator=(ArgumentParser&& tmp) = delete;
 
         private:
             int checkPresetsAreValid(const std::vector<BooleanOption>& boolopts_preset, const std::vector<ValueOption>& valueopts_preset);
@@ -132,21 +130,6 @@ namespace mineutils
     }
 
 }
-
-#ifndef OPENCV_CORE_HPP
-namespace cv
-{
-    class Mat;
-    class MatExpr;
-}
-#endif
-
-#ifndef NCNN_NET_H
-namespace ncnn
-{
-    class Mat;
-}
-#endif // !NCNN_NET_H
 
 
 namespace mineutils
@@ -163,8 +146,8 @@ namespace mineutils
         template<class T>
         void _print(std::initializer_list<T> arg);
 
-        template<class T, size_t N>
-        void _print(const std::array<T, N>& arr);
+        template<class T, size_t n>
+        void _print(const std::array<T, n>& arr);
 
         template<class T, class...Ts>
         void _print(const std::stack<T, Ts...>& st);
@@ -205,40 +188,33 @@ namespace mineutils
         template<size_t Idx, class... Ts>
         void _printTuple(const std::tuple<Ts...>& tp, const int& size_tp, std::false_type bool_tag);
 
-
-        template<template<class U, class... Us> class CTer, class T, class... Ts, typename std::enable_if<mtype::StdBeginEndChecker<const CTer<T, Ts...>>::value, int>::type = 0>
+        template<template<class U, class... Us> class CTer, class T, class... Ts, typename std::enable_if<mtype::_StdBeginEndChecker<const CTer<T, Ts...>>::value, int>::type = 0>
         void _print(const CTer<T, Ts...>& cter);
 
-        template<class T, int N>
-        void _print(const T(&arr)[N]);
-
-        void _print(const cv::Mat& img);
-
-        void _print(const cv::MatExpr& img);
-
-        void _print(const ncnn::Mat& m);
+        template<class T, int n>
+        void _print(const T(&arr)[n]);
 
         //为print函数添加对函数及函数指针的支持
-        template<class T, typename std::enable_if<mtype::StdCoutChecker<const T>::value && (std::is_function<typename std::remove_pointer<const T>::type>::value || std::is_member_function_pointer<const T>::value), int>::type = 0>
+        template<class T, typename std::enable_if<mtype::StdCoutEachChecker<const T>::value && (std::is_function<typename std::remove_pointer<const T>::type>::value || std::is_member_function_pointer<const T>::value), int>::type = 0>
         void _print(const T& arg);
 
-        template<class T, typename std::enable_if<mtype::StdCoutChecker<const T>::value && !(std::is_function<typename std::remove_pointer<const T>::type>::value || std::is_member_function_pointer<const T>::value), int>::type = 0>
+        template<class T, typename std::enable_if<mtype::StdCoutEachChecker<const T>::value && !(std::is_function<typename std::remove_pointer<const T>::type>::value || std::is_member_function_pointer<const T>::value), int>::type = 0>
         void _print(const T& arg);
 
-        template<class T, typename std::enable_if<!mtype::StdCoutChecker<const T>::value, int>::type = 0>
+        template<class T, typename std::enable_if<!mtype::StdCoutEachChecker<const T>::value, int>::type = 0>
         void _print(const T& arg);
 
 
-        inline std::mutex& _getPrintMtx()
+        inline _MINE_EXPORT std::mutex& _immutableGetPrintlock()
         {
-            static std::mutex mtx;
-            return mtx;
+            static std::mutex lk;
+            return lk;
         }
 
         template<class T, class... Args>
         inline void print(const T& arg, const Args&... args)
         {
-            std::lock_guard<std::mutex> lk(_getPrintMtx());
+            std::lock_guard<std::mutex> lk(mio::_immutableGetPrintlock());
             mio::_recurPrint(arg, args...);
         }
 
@@ -271,14 +247,14 @@ namespace mineutils
         }
 
         //为print函数添加对std::array类型的支持
-        template<class T, size_t N>
-        inline void _print(const std::array<T, N>& arr)
+        template<class T, size_t n>
+        inline void _print(const std::array<T, n>& arr)
         {
             std::cout << "{";
-            if (N > 0)
+            if (n > 0)
             {
                 auto bg = arr.begin();
-                for (int i = 0; i < N - 1; ++i)
+                for (int i = 0; i < n - 1; ++i)
                 {
                     mio::_print(*bg);
                     std::cout << ", ";
@@ -439,7 +415,7 @@ namespace mineutils
         //}
 
         //添加对STL大部分标准容器的支持
-        template<template<class U, class... Us> class CTer, class T, class... Ts, typename std::enable_if<mtype::StdBeginEndChecker<const CTer<T, Ts...>>::value, int>::type>
+        template<template<class U, class... Us> class CTer, class T, class... Ts, typename std::enable_if<mtype::_StdBeginEndChecker<const CTer<T, Ts...>>::value, int>::type>
         inline void _print(const CTer<T, Ts...>& cter)   //虽然用了双层模板，但单层也可以达成目的
         {
             std::cout << "{";
@@ -462,8 +438,8 @@ namespace mineutils
 
 
         //为print函数添加对数组类型的支持
-        template<class T, int N>
-        inline void _print(const T(&arr)[N])
+        template<class T, int n>
+        inline void _print(const T(&arr)[n])
         {
             if (mtype::InTypesChecker<T, char>::value)
                 //std::cout << "\"" << arr << "\"";
@@ -471,32 +447,32 @@ namespace mineutils
             else
             {
                 std::cout << "{";
-                for (int i = 0; i < N - 1; i++)
+                for (int i = 0; i < n - 1; i++)
                 {
                     mio::_print(arr[i]);
                     std::cout << ", ";
                 }
-                mio::_print(arr[N - 1]);
+                mio::_print(arr[n - 1]);
                 std::cout << "}";
             }
         }
 
         //为print函数添加对函数及函数指针的支持
-        template<class T, typename std::enable_if<mtype::StdCoutChecker<const T>::value && (std::is_function<typename std::remove_pointer<const T>::type>::value || std::is_member_function_pointer<const T>::value), int>::type>
+        template<class T, typename std::enable_if<mtype::StdCoutEachChecker<const T>::value && (std::is_function<typename std::remove_pointer<const T>::type>::value || std::is_member_function_pointer<const T>::value), int>::type>
         inline void _print(const T& arg)
         {
             std::cout << mtype::getTypeName<T>();
         }
 
         //为print函数拓展其他支持std::cout<<且不是函数指针的类型
-        template<class T, typename std::enable_if<mtype::StdCoutChecker<const T>::value && !(std::is_function<typename std::remove_pointer<const T>::type>::value || std::is_member_function_pointer<const T>::value), int>::type>
+        template<class T, typename std::enable_if<mtype::StdCoutEachChecker<const T>::value && !(std::is_function<typename std::remove_pointer<const T>::type>::value || std::is_member_function_pointer<const T>::value), int>::type>
         inline void _print(const T& arg)
         {
             std::cout << arg;
         }
 
         //为print函数拓展其他不支持std::cout<<或属于函数指针的类型
-        template<class T, typename std::enable_if<!mtype::StdCoutChecker<const T>::value, int>::type>
+        template<class T, typename std::enable_if<!mtype::StdCoutEachChecker<const T>::value, int>::type>
         inline void _print(const T& arg)
         {
 #ifdef __GNUC__
@@ -628,7 +604,7 @@ namespace mineutils
             return this->boolopts_parsed_.find(flag) != this->boolopts_parsed_.end();
         }
 
-        inline std::string ArgumentParser::getParsedValueOpt(const std::string& flag)
+        inline const char* ArgumentParser::getParsedValueOpt(const std::string& flag)
         {
             if (flag.empty())
             {
@@ -636,11 +612,11 @@ namespace mineutils
                 return "";
             }
             if (this->valueopts_parsed_.find(flag) != this->valueopts_parsed_.end())
-                return this->valueopts_parsed_[flag];
+                return this->valueopts_parsed_[flag].c_str();
             return "";
         }
 
-        inline void ArgumentParser::printPresetOptions()
+        inline void ArgumentParser::printPreset()
         {
             if (!this->boolopts_preset_.empty())
                 printf("Preset Boolean Options:\n");
@@ -669,7 +645,7 @@ namespace mineutils
             }
         }
 
-        inline void ArgumentParser::printParsedOptions()
+        inline void ArgumentParser::printParsed()
         {
             if (!this->boolopts_preset_.empty())
                 printf("Parsed Boolean Options:\n");
@@ -835,7 +811,6 @@ namespace mineutils
                 { {"-b1", "--BB1", "bool switch1"}, {"-b2", "", "bool switch2"}, {"", "--BB3", "bool switch3"}, {"-b4", "--BB4", "bool switch4"} },
                 { {"-a1", "--AA1", "value1", "111"}, {"-a2", "--AA2", "value2", "222"}, {"-a3", "--AA3", "value3", "333"}, {"-a4", "--AA4", "value4", ""} });
 
-            static_assert(mtype::StdBindChecker<int, int>::value == false, "assert failed!");
             printf("%s ArgumentParser::init:%d.\n", ret0 == 0 ? "Passed." : "Failed!", ret0);
 
             bool ret1 = parser.getParsedBoolOpt("-b1");
@@ -863,8 +838,8 @@ namespace mineutils
             printf("%s ArgumentParser::getParsedValueOpt(\"-a3\"):%s.\n", ret2 == "3" ? "Passed." : "Failed!", ret2.c_str());
 
             printf("User check:\n");
-            parser.printPresetOptions();
-            parser.printParsedOptions();
+            parser.printPreset();
+            parser.printParsed();
             printf("\n");
         }
 

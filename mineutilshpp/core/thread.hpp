@@ -8,6 +8,7 @@
 #include<condition_variable>
 #include<functional>
 #include<future>
+#include<map>
 #include<mutex>
 #include<queue>
 #include<stdexcept>
@@ -16,13 +17,13 @@
 
 #include"base.hpp"
 #include"time.hpp"
-#include"log.hpp"
+#include"type.hpp"
 
 namespace mineutils
 {
     /*--------------------------------------------用户接口--------------------------------------------*/
 
-    namespace mthread
+    namespace mthrd
     {
         //简易自旋锁，适用于临界区操作非常少的情况，线程安全
         class SpinLock
@@ -38,13 +39,11 @@ namespace mineutils
 
             /*  使用RAII方式对局部区域加锁
                 - 用法：auto guard = spin_lock.lockGuard();
-                @return 一个私有类Guard对象，只能用auto推导；构造时加锁，析构时解锁  */
+                @return 一个非线程安全的私有类RGuard对象，只能用auto推导；构造时加锁，调用release函数或析构时解锁  */
             SpinLock::Guard lockGuard();
 
             SpinLock(const SpinLock& tmp_lock) = delete;
-            SpinLock(SpinLock&& tmp_lock) = delete;
             SpinLock& operator=(const SpinLock& tmp_lock) = delete;
-            SpinLock& operator=(SpinLock&& tmp_lock) = delete;
 
         private:
             std::atomic_flag lock_flag_ = ATOMIC_FLAG_INIT;
@@ -65,7 +64,7 @@ namespace mineutils
 
             /*  使用RAII方式对局部区域加读锁
                 - 用法：auto guard = rw_lock.lockReadGuard();
-                @return 一个私有类RGuard对象，只能用auto推导；构造时加锁，析构时解锁  */
+                @return 一个非线程安全的私有类RGuard对象，只能用auto推导；构造时加锁，调用release函数或析构时解锁  */
             ReadWriteMutex::RGuard lockReadGuard();
 
             void lockWrite();
@@ -73,13 +72,12 @@ namespace mineutils
 
             /*  使用RAII方式对局部区域加写锁
                 - 用法：auto guard = rw_lock.lockWriteGuard();
-                @return 一个私有类WGuard对象，只能用auto推导；构造时加锁，析构时解锁  */
+                @return 一个非线程安全的私有类RGuard对象，只能用auto推导；构造时加锁，调用release函数或析构时解锁  */
             ReadWriteMutex::WGuard lockWriteGuard();
 
+            //禁止拷贝和移动
             ReadWriteMutex(const ReadWriteMutex& tmp_lock) = delete;
-            ReadWriteMutex(ReadWriteMutex&& tmp_lock) = delete;
             ReadWriteMutex& operator=(const ReadWriteMutex& tmp_lock) = delete;
-            ReadWriteMutex& operator=(ReadWriteMutex&& tmp_lock) = delete;
 
         private:
             std::mutex mtx_;
@@ -88,17 +86,15 @@ namespace mineutils
             bool is_writing_ = false;
         };
 
+        class ThreadPool;
 
-        //任务结果状态
+        //任务的状态
         template<class Ret>
-        class TaskRetState
+        class TaskFuture
         {
         public:
-            //构造一个无效的TaskRetState对象
-            TaskRetState() = default;
-            explicit TaskRetState(std::future<Ret>&& future_state) noexcept;
-            TaskRetState(TaskRetState<Ret>&& future_state) noexcept;
-            TaskRetState& operator=(TaskRetState<Ret>&& future_state) noexcept;
+            //构造一个无效的TaskFuture对象
+            TaskFuture() = default;
 
             //判断任务是否为有效状态；线程安全
             bool valid();
@@ -109,13 +105,17 @@ namespace mineutils
             //等待并获取任务结果，如果任务为无效状态会抛出std::runtime_error异常；线程安全
             Ret get();
 
-            TaskRetState(const TaskRetState<Ret>& future_state) = delete;    //不支持拷贝构造
-            TaskRetState& operator=(const TaskRetState<Ret>& future_state) = delete;   //不支持拷贝赋值
-        private:
-            std::shared_future<Ret> future_state_;
-        };
+            //支持移动禁止拷贝
+            TaskFuture(TaskFuture<Ret>&& future_state) noexcept;
+            TaskFuture& operator=(TaskFuture<Ret>&& future_state) noexcept;
 
-        using TaskState = TaskRetState<void>;
+        private:
+            //从std::future右值对象构造
+            explicit TaskFuture(std::future<Ret>&& future_state) noexcept;
+
+            std::shared_future<Ret> future_state_;
+            friend class ThreadPool;
+        };
 
 
         //简易线程池，在rv1126上执行一个任务大概会引入接近200us的时间开销
@@ -134,17 +134,18 @@ namespace mineutils
                 - addTask(functor or std::ref(functor), args...)
                 注意，经测试QNX的g++4.7.3对C++11特性支持不全，以下情况可能直接在模板内部编译错误而非触发SFINAE特性：
                 - 仿函数作为Fn，但被类似std::reference_wrapper的第三方引用包装传递时
-                - 仿函数作为Fn，但匹配Args...的operator()为私有或受保护的成员时
-                @param func: 任务函数。要求其参数类型不能为右值引用，返回类型必须为void或支持使用自身的右值赋值；如果func是一个函数对象(functor)类型，那么它的去引用类型必须支持使用自身的左值和右值对象进行构造，且不是volatile类型；如果func是成员函数或函数对象，它要保证要调用的函数的cv限定符与对象一致
+                - 仿函数作为Fn，但匹配Args...的operator()为私有或受保护的成员时  
+
+                @param func: 任务函数。要求其参数类型不能为右值引用，返回类型必须为void或支持使用自身的右值赋值；如果func是一个函数对象(functor)类型，那么它的去引用类型必须支持使用自身的左值和右值对象进行构造，且不是volatile类型；如果func是成员函数或函数对象，它要保证要调用的函数的cv限定符与对象一致  
                 @param args...: 任务函数的参数。需要左值引用传递的参数必须用std::ref或std::cref显式引用否则实际为值传递，其他非C数组参数的去引用类型必须支持使用自身的左值和右值对象进行构造
                 @return 任务结果状态，用于查询任务状态、等待任务结束以及获取任务返回值，注意ThreadPool对象析构后任务状态失效  */
-            template<class Fn, class... Args, class Ret = typename mtype::StdBindChecker<Fn, Args...>::ReturnType, typename std::enable_if<std::is_same<Ret, typename mtype::StdBindChecker<Fn, Args...>::ReturnType>::value && (std::is_void<Ret>::value || std::is_move_assignable<typename std::remove_reference<Ret>::type>::value), int>::type = 0>
-            TaskRetState<Ret> addTask(Fn&& func, Args&&... args);
+            template<class Fn, class... Args, class Ret = typename mtype::StdBindTraits<Fn, Args...>::ReturnType, typename std::enable_if<std::is_same<Ret, typename mtype::StdBindTraits<Fn, Args...>::ReturnType>::value && (std::is_void<Ret>::value || std::is_move_assignable<typename std::remove_reference<Ret>::type>::value), int>::type = 0>
+            TaskFuture<Ret> addTask(Fn&& func, Args&&... args);
 
+            //禁止拷贝和移动
             ThreadPool(const ThreadPool& thd_pool) = delete;
             ThreadPool& operator=(const ThreadPool& thd_pool) = delete;
-            ThreadPool(ThreadPool&& thd_pool) = delete;
-            ThreadPool& operator=(ThreadPool&& thd_pool) = delete;
+
             ~ThreadPool();
 
         private:
@@ -157,11 +158,9 @@ namespace mineutils
             std::mutex task_mtx_;
             std::condition_variable cond_var_;
             std::atomic<bool> need_abort_;
-
-        public:
-            //已废弃
-            mdeprecated(R"(Deprecated. The parameter "wakeup_period_ms" is no longer used.)") ThreadPool(int pool_size, long long wakeup_period_ms); 
         };
+
+
 
         //跨线程暂停，使用条件变量实现以代替循环sleep
         class ThreadPauser
@@ -170,11 +169,7 @@ namespace mineutils
             ThreadPauser();
 
             //设置暂停点，当调用ThreadPauser::pause的时候就会在此处暂停；线程安全
-            void setPausePoint();
-
-            /*  设置暂停点，且输入一个状态量，当调用ThreadPauser::pause的时候就会在此处暂停；线程安全
-                @param pause_point_state: 暂停点状态量，当该暂停点被阻塞时，pause_point_state的值被设为true，未阻塞时值被设为false  */
-            void setPausePoint(std::atomic<bool>& pause_point_state);
+            void setPausePoint(uint8_t point_id);
 
             //发出暂停信号，在所有暂停点卡住线程；线程安全
             void pause();
@@ -182,18 +177,21 @@ namespace mineutils
             //发出继续信号，唤醒所有暂停点；线程安全
             void resume();
 
-            //获取当前是否为paused状态，仅代表是否调用了pause函数，不代表暂停点已触发；线程安全
-            bool isPaused();
+            //获取当前某个暂停点是否为paused状态；线程安全
+            bool isPaused(uint8_t point_id);
 
+            //禁止拷贝和移动
             ThreadPauser(const ThreadPauser& tmp) = delete;
             ThreadPauser& operator=(const ThreadPauser& tmp) = delete;
-            ThreadPauser(ThreadPauser&& tmp) = delete;
-            ThreadPauser& operator=(ThreadPauser&& tmp) = delete;
+
             ~ThreadPauser();
+
         private:
             std::mutex mtx_;
             std::condition_variable cond_;
+            SpinLock splk_;
             std::atomic<bool> need_pause_;
+            std::unordered_map<uint8_t, bool> state_map_;
         };
     }
 
@@ -202,43 +200,64 @@ namespace mineutils
 
 
 
+
+
+
+
     /*--------------------------------------------内部实现--------------------------------------------*/
 
-    namespace mthread
+    namespace mthrd
     {
         class SpinLock::Guard
         {
         public:
+            //只允许移动构造，不允许移动赋值和拷贝
             Guard(Guard&& tmp) noexcept
             {
-                this->self_ = tmp.self_;
-                tmp.self_ = nullptr;
+                this->resource_ = tmp.resource_;
+                tmp.resource_ = nullptr;
             }
 
             ~Guard()
             {
-                if (this->self_)
-                    this->self_->unlock();
+                if (this->resource_)
+                    this->resource_->unlock();
             }
 
-            Guard(const Guard& tmp) = delete;
-            Guard& operator=(const Guard& tmp) = delete;
-            Guard& operator=(Guard&& tmp) = delete;
-
-        private:
-            Guard(SpinLock* self)
+            void release()
             {
-                this->self_ = self;
-                this->self_->lock();
+                if (this->resource_)
+                    this->resource_->unlock();
+                this->resource_ = nullptr;
+            }
+        private:
+            Guard(SpinLock* resource)
+            {
+                this->resource_ = resource;
+                this->resource_->lock();
             }
 
-            SpinLock* self_ = nullptr;
+            SpinLock* resource_ = nullptr;
             friend SpinLock;
         };
 
         inline void SpinLock::lock()
         {
-            while (this->lock_flag_.test_and_set(std::memory_order_acquire)) {}
+            int spin_count = 0;
+            const int max_spin_count = 1000; // 设置合理的最大自旋次数
+            while (this->lock_flag_.test_and_set(std::memory_order_acquire)) 
+            {
+                ++spin_count;
+                if (spin_count > 1000)
+                {
+#if defined(__GNUC__) && !_mgccMinVersion(4, 8, 1)  //for qnx660
+                    std::this_thread::sleep_for(std::chrono::nanoseconds(1));
+#else 
+                    std::this_thread::yield(); // 自旋次数过多，让出CPU
+#endif 
+                    spin_count = 0;
+                }
+            }
         }
 
         inline void SpinLock::unlock()
@@ -251,52 +270,97 @@ namespace mineutils
             return SpinLock::Guard(this);
         }
 
+        //class ReadWriteMutex::RGuard
+        //{
+        //public:
+        //    RGuard(RGuard&& tmp) noexcept
+        //    {
+        //        //只会在同一个线程执行，不需要太强的内存屏障
+        //        this->resource_.store(tmp.resource_.load(std::memory_order_relaxed), std::memory_order_relaxed);
+        //        tmp.resource_.store(nullptr, std::memory_order_relaxed);
+        //    }
+        //    ~RGuard()
+        //    {
+        //        ReadWriteMutex* ptr;
+        //        if (ptr = this->resource_.load(std::memory_order_acquire), ptr)
+        //            ptr->unlockRead();
+        //    }
+        //    void release()
+        //    {
+        //        ReadWriteMutex* ptr;
+        //        if (ptr = this->resource_.exchange(nullptr, std::memory_order_acq_rel), ptr)
+        //            ptr->unlockRead();
+        //    }
+        //private:
+        //    RGuard(ReadWriteMutex* resource)
+        //    {
+        //        this->resource_.store(resource, std::memory_order_release);
+        //        this->resource_.load(std::memory_order_acquire)->lockRead();
+        //    }
+
+        //    std::atomic<ReadWriteMutex*> resource_{ nullptr };
+        //    friend ReadWriteMutex;
+        //};
 
         class ReadWriteMutex::RGuard
         {
         public:
+            //只允许移动构造，不允许移动赋值和拷贝
             RGuard(RGuard&& tmp) noexcept
             {
-                this->self_ = tmp.self_;
-                tmp.self_ = nullptr;
+                this->resource_ = tmp.resource_;
+                tmp.resource_ = nullptr;
             }
             ~RGuard()
             {
-                if (this->self_)
-                    this->self_->unlockRead();
+                if (this->resource_)
+                    this->resource_->unlockRead();
+            }
+            void release()
+            {
+                if (this->resource_)
+                    this->resource_->unlockRead();
+                this->resource_ = nullptr;
             }
         private:
-            RGuard(ReadWriteMutex* self)
+            RGuard(ReadWriteMutex* resource)
             {
-                this->self_ = self;
-                this->self_->lockRead();
+                this->resource_ = resource;
+                this->resource_->lockRead();
             }
 
-            ReadWriteMutex* self_ = nullptr;
+            ReadWriteMutex* resource_ = nullptr;
             friend ReadWriteMutex;
         };
 
         class ReadWriteMutex::WGuard
         {
         public:
+            //只允许移动构造，不允许移动赋值和拷贝
             WGuard(WGuard&& tmp) noexcept
             {
-                this->self_ = tmp.self_;
-                tmp.self_ = nullptr;
+                this->resource_ = tmp.resource_;
+                tmp.resource_ = nullptr;
             }
             ~WGuard()
             {
-                if (this->self_)
-                    this->self_->unlockWrite();
+                if (this->resource_)
+                    this->resource_->unlockWrite();
+            }
+            void release()
+            {
+                if (this->resource_)
+                    this->resource_->unlockWrite();
+                this->resource_ = nullptr;
             }
         private:
-            WGuard(ReadWriteMutex* self)
+            WGuard(ReadWriteMutex* resource)
             {
-                this->self_ = self;
-                this->self_->lockWrite();
+                this->resource_ = resource;
+                this->resource_->lockWrite();
             }
 
-            ReadWriteMutex* self_ = nullptr;
+            ReadWriteMutex* resource_ = nullptr;
             friend ReadWriteMutex;
         };
 
@@ -348,32 +412,32 @@ namespace mineutils
 
 
         template<class Ret>
-        inline TaskRetState<Ret>::TaskRetState(std::future<Ret>&& future_state) noexcept
+        inline TaskFuture<Ret>::TaskFuture(std::future<Ret>&& future_state) noexcept
         {
             this->future_state_ = std::move(future_state);
         }
 
         template<class Ret>
-        inline TaskRetState<Ret>::TaskRetState(TaskRetState<Ret>&& tmp_state) noexcept
+        inline TaskFuture<Ret>::TaskFuture(TaskFuture<Ret>&& tmp_state) noexcept
         {
             *this = std::move(tmp_state);
         }
 
         template<class Ret>
-        inline TaskRetState<Ret>& TaskRetState<Ret>::operator=(TaskRetState<Ret>&& tmp_state) noexcept
+        inline TaskFuture<Ret>& TaskFuture<Ret>::operator=(TaskFuture<Ret>&& tmp_state) noexcept
         {
             this->future_state_ = std::move(tmp_state.future_state_);
             return *this;
         }
 
         template<class Ret>
-        inline bool TaskRetState<Ret>::valid()
+        inline bool TaskFuture<Ret>::valid()
         {
             return this->future_state_.valid();
         }
 
         template<class Ret>
-        inline bool TaskRetState<Ret>::finished()
+        inline bool TaskFuture<Ret>::finished()
         {
             if (this->future_state_.valid())
                 return this->future_state_.wait_for(std::chrono::nanoseconds(0)) == std::future_status::ready;
@@ -382,7 +446,7 @@ namespace mineutils
         }
 
         template<class Ret>
-        inline void TaskRetState<Ret>::wait()
+        inline void TaskFuture<Ret>::wait()
         {
             if (this->future_state_.valid())
                 this->future_state_.wait();
@@ -390,7 +454,7 @@ namespace mineutils
         }
 
         template<class Ret>
-        inline Ret TaskRetState<Ret>::get()
+        inline Ret TaskFuture<Ret>::get()
         {
             if (this->future_state_.valid())
                 return this->future_state_.get();
@@ -428,14 +492,14 @@ namespace mineutils
                 if (thd.joinable())
                     thd.join();
             } 
-            mprintfN("Destroyed.\n");
+            mprintfI("Destroyed.\n");
         }
 
-        template<class Fn, class... Args, class Ret, typename std::enable_if<std::is_same<Ret, typename mtype::StdBindChecker<Fn, Args...>::ReturnType>::value && (std::is_void<Ret>::value || std::is_move_assignable<typename std::remove_reference<Ret>::type>::value), int>::type>
-        inline TaskRetState<Ret> ThreadPool::addTask(Fn&& func, Args&&... args)
+        template<class Fn, class... Args, class Ret, typename std::enable_if<std::is_same<Ret, typename mtype::StdBindTraits<Fn, Args...>::ReturnType>::value && (std::is_void<Ret>::value || std::is_move_assignable<typename std::remove_reference<Ret>::type>::value), int>::type>
+        inline TaskFuture<Ret> ThreadPool::addTask(Fn&& func, Args&&... args)
         {
             auto task = std::make_shared<std::packaged_task<Ret()>>(std::bind(std::forward<Fn>(func), std::forward<Args>(args)...));
-            TaskRetState<Ret> state(task->get_future());
+            TaskFuture<Ret> state(task->get_future());
             {
                 std::lock_guard<std::mutex> lk(this->task_mtx_);
                 this->task_queue_.emplace([task]() {(*task)(); });
@@ -457,7 +521,7 @@ namespace mineutils
                     }
                     if (this->need_abort_)
                         break;
-                    task = this->task_queue_.front();
+                    task = std::move(this->task_queue_.front());
                     this->task_queue_.pop();
                 }
                 task();
@@ -475,70 +539,48 @@ namespace mineutils
             this->resume();
         }
 
-        inline void ThreadPauser::setPausePoint()
+        inline void ThreadPauser::setPausePoint(uint8_t point_id)
         {
-            if (this->need_pause_.load(std::memory_order_acquire))
+            if (this->need_pause_.load(std::memory_order_relaxed))
             {
                 std::unique_lock<std::mutex> lk(this->mtx_);
-                while (this->need_pause_.load(std::memory_order_acquire))
+                while (this->need_pause_.load(std::memory_order_relaxed))
                 {
+                    this->splk_.lock();
+                    this->state_map_[point_id] = true;
+                    this->splk_.unlock();
                     this->cond_.wait(lk);
                 }
             }
-        }
-
-        inline void ThreadPauser::setPausePoint(std::atomic<bool>& pause_point_state)
-        {          
-            if (this->need_pause_.load(std::memory_order_acquire))
-            {
-                std::unique_lock<std::mutex> lk(this->mtx_);
-                while (this->need_pause_.load(std::memory_order_acquire))
-                {
-                    pause_point_state.store(true);
-                    this->cond_.wait(lk);  //据说wait内部，先加锁cond_var内部锁，再解锁lk
-                }
-            }
-            pause_point_state.store(false);
+            this->splk_.lock();
+            this->state_map_[point_id] = false;
+            this->splk_.unlock();
         }
 
         inline void ThreadPauser::pause()
         {
-            this->need_pause_.store(true, std::memory_order_release);
+            this->need_pause_.store(true, std::memory_order_relaxed);
         }
 
         inline void ThreadPauser::resume()
         {
             {
                 std::lock_guard<std::mutex> lk(this->mtx_);
-                this->need_pause_.store(false, std::memory_order_release);
+                this->need_pause_.store(false, std::memory_order_relaxed);
             }
             this->cond_.notify_all();  //据说notify内部，先加锁cond_var内部锁，再通知，因此不用担心cond_var在lk解锁后进入wait前，notify触发而导致错过
         }
 
-        inline bool ThreadPauser::isPaused()
+        inline bool ThreadPauser::isPaused(uint8_t point_id)
         {
-            return this->need_pause_.load(std::memory_order_acquire);
-        }
-
-
-        //已废弃
-        inline ThreadPool::ThreadPool(int pool_size, long long wakeup_period_ms)
-        {
-            if (pool_size <= 0)
             {
-                mprintfW("Invalid param value pool_size:%d, which will be set to 1.\n", pool_size);
-                pool_size = 1;
+                auto lk_guard = this->splk_.lockGuard();
+                auto it = this->state_map_.find(point_id);
+                if (it != this->state_map_.end())
+                    return it->second;
             }
-            this->pool_size_ = pool_size;
-            std::queue<std::function<void()>> empty_queue;
-            this->task_queue_.swap(empty_queue);
-            this->need_abort_ = false;
-
-            this->work_thds_.resize(pool_size);
-            for (int i = 0; i < pool_size; ++i)
-            {
-                this->work_thds_[i] = std::thread(&ThreadPool::worker, this);
-            }
+            mprintfW("The param point_id not found, so the function returns value:false!\n");
+            return false;
         }
     }
 
@@ -549,7 +591,7 @@ namespace mineutils
     {
         inline void SpinLockTest()
         {
-            mthread::SpinLock splk;
+            mthrd::SpinLock splk;
             char strs[] = "Hello World";
 
             bool func1_check_ret = true;
@@ -561,6 +603,9 @@ namespace mineutils
                     strs[0] = 'W';
                     strs[1] = 'o';
                     strs[2] = 'r';
+#if !defined(__GNUC__) || (defined(__GNUC__) && _mgccMinVersion(4, 8, 1))  
+                    std::this_thread::yield();
+#endif
                     strs[3] = 'l';
                     strs[4] = 'd';
                     func1_check_ret = func1_check_ret && (std::string("World World") == strs);
@@ -576,6 +621,9 @@ namespace mineutils
                     strs[0] = 'H';
                     strs[1] = 'e';
                     strs[2] = 'l';
+#if !defined(__GNUC__) || (defined(__GNUC__) && _mgccMinVersion(4, 8, 1))  
+                    std::this_thread::yield();
+#endif
                     strs[3] = 'l';
                     strs[4] = 'o';
                     func2_check_ret = func2_check_ret && (std::string("Hello World") == strs);
@@ -592,7 +640,7 @@ namespace mineutils
 
         inline void ReadWriteMutexTest()
         {
-            mthread::ReadWriteMutex rwlk;
+            mthrd::ReadWriteMutex rwlk;
             char strs[] = "Hello World";
 
             bool func1_check_ret = true;
@@ -629,7 +677,8 @@ namespace mineutils
                 std::thread thd2(func2);
                 thd1.join();
                 thd2.join();
-                printf("%s ReadWriteMutexTest Read-Read Lock check.\n", !(func1_check_ret && func2_check_ret) ? "Passed." : "Maybe failed! Try again!");
+                //读-读之间不会加锁，因此两个结果中理应存在false
+                printf("%s ReadWriteMutexTest Read-Read Lock check.\n", !(func1_check_ret && func2_check_ret) ? "Passed." : "Maybe failed this time! Try again!");
             }
 
             memcpy(strs, "Hello World", 11);
@@ -685,12 +734,20 @@ namespace mineutils
             printf("\n");
         }
 
+        inline void ThreadPoolTest()
+        {
+            mthrd::ThreadPool thread_pool(4);
+            mthrd::TaskFuture<void> state = thread_pool.addTask([](int x) {mtime::sleep(1); }, 1);
+            state.wait();
+        }
+
         inline void check()
         {
-            printf("\n--------------------check mthread start--------------------\n\n");
+            printf("\n--------------------check mthrd start--------------------\n\n");
             SpinLockTest();
             ReadWriteMutexTest();
-            printf("--------------------check mthread end--------------------\n\n");
+            ThreadPoolTest();
+            printf("--------------------check mthrd end--------------------\n\n");
         }
     }
 #endif

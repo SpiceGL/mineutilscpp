@@ -1,22 +1,9 @@
 # mineutilscpp
 ## 描述
-* **开发目的**：C++的便利功能封装，用于方便自己编程和锻炼代码文档规范性，文本使用UTF8-SIG编码。   
-+ **开发原则**：代码基于C++11标准，开发优先级大致为：功能实现 > 类型检查 > 接口简洁 > 性能优化 > 可读性，但不会为了少量的高优先级优化牺牲大量的低优先级优化。
-- **命名空间**：除宏外所有功能都在mineutils下，同时根据所属模块分布在次级的命名空间，如mineutils::mstr；基于第三方库的功能统一在mineutils::mext下。
-* **命名风格**：类命名一律大驼峰；函数命名一律小驼峰；对象式宏统一大写，以MINE_作为前缀；函数式宏统一小驼峰命名，以m为前缀。
-+ **线程安全**：所有非成员函数接口都保证自身线程安全；成员函数和函数对象接口除非明确说明，否则不保证线程安全。   
-- **更新规则**：更新遵循大版本号删改接口，中版本号添加新功能接口，小版本号修复和优化的原则；废弃接口仅标记，不会在大版本更新前删除。  
-
-## 兼容性声明
-### 大版本内保证接口的代码级兼容性，但以下情况除外：
-* **未明确指定签名的函数作为参数**：例如std::thread(func, args...)或mtype::FuncChecker<decltype(func)>。由于后续可能增加函数重载，这类情况由于函数签名未明确指出，可能会因为更新导致无法确认指向哪个重载。
-+ **混用类型别名与其内部实现**：例如mtime::TimePoint在不同版本可能对应std::chrono::high_resolution_clock::time_point或std::chrono::steady_clock::time_point。类型别名的内部实现可能变化，如果混用类型别名与它当前的实际类型，未来更新不保证兼容。
-- **使用非安全的手段访问私有资源**：例如使用指针偏移等方式访问类的私有成员，不保证更新后私有成员的签名、类型和内存偏移不发生变动。
-
+C++的便利功能封装，专注于封装逻辑复杂或代码冗长的功能，主要用于方便自己工作、精进技术和提升代码文档规范性。库采用纯头文件实现，文本使用UTF8-SIG编码，代码使用C++11标准。 
 ## 版本信息
-当前库版本：1.16.1   
-文档注释修改日期：20241231     
-
+当前库版本：2.0.0   
+文档注释修改日期：20250206  
 ## 测试平台
 **Windows:**  
 VS2019  
@@ -26,49 +13,64 @@ arm-linux-gnueabihf-g++ 8.3.0
 **QNX660:**    
 arm-unknown-nto-qnx6.6.0eabi-g++ 4.7.3  
 **QNX710:**  
-aarch64-barebone1.1.0-g++ 8.3.0
-
-**注1：** QNX660上编译时需要额外添加g++指令：-D_GLIBCXX_USE_NANOSLEEP  
-**注2：** QNX710上编译时需要指定：-std=gnu++11  
-
-## 使用方法
-* 可以单独导入./mineutilshpp/modules下的模块，如：  
-```
-#include"mineutilshpp/modules/time.hpp"   //导入时间相关功能 
-#include"mineutilshpp/modules/io.hpp"   //导入输入打印相关功能 
-```   
-+ 也可一键导入`mineutilshpp/__*utils__.h`，如：
-```
-#include"mineutilshpp/__stdutils__.h"   //一键导入基于标准库的功能封装  
-#include"mineutilshpp/__cvutils__.h"   //一键导入基于标准库+OpenCV库的功能封装，需要自行添加OpenCV库
-#include"mineutilshpp/__mineutils__.h"   //一键导入所有的功能封装，当前包含OpenCV和NCNN的功能，需要自行添加这两个库
-```   
-- 然后通过`using namespace mineutils`使用命名空间mineutils。由于所有功能都分布在次级的命名空间下，因此不用担心污染全局命名空间。  
-* 最后根据模块使用其中的功能，如`mstr::toStr(123)`。 
-* 在Linux上可以通过`strings xxx | grep version`命令查找应用使用的mineutils库版本。  
-
-**注：** 
-以下划线开头的函数和类不建议外部使用，这些仅用于内部功能实现，可能随时删改。  
+aarch64-barebone1.1.0-g++ 8.3.0 
+## 设计思路   
+### 设计原则
+* **类型检查**：所有模板类功能都进行严格的类型检查，保证非预期类型导致的编译错误出现在调用的入口处
++ **轻量实用**：接口的设计尽量简洁，避免功能重叠，避免过度封装，专注封装逻辑复杂或代码冗长的功能  
+- **线程安全**：所有函数接口都保证线程安全；类的不同对象之间保证线程安全；但类的同一个对象的各个成员函数之间,非明确说明不保证线程安全  
+* **性能优化**：在不提高接口复杂度的情况下，尽可能提升性能降低开销   
+### 命名规则
+* 类型统一大驼峰命名
++ 函数统一小驼峰命名
+- 对象统一小写+下划线命名
+* 枚举类成员统一小写+下划线命名
++ 对象式宏定义统一大写+下划线命名，以`MINE_`作为前缀
+- 函数式宏统一小驼峰命名，以`m`作为前缀
+### 更新规则
+更新遵循大版本号删改接口，中版本号添加新功能接口，小版本号修复和优化的原则；在同一大版本内废弃接口仅标记，不删除。  
+### 兼容性声明
+大版本内保证接口的代码级兼容，但以下情况除外：
+* **未明确指定签名的函数作为参数**：例如对于库内函数`func`，使用`std::thread(func, args...)`或`mtype::FuncChecker<decltype(func)>`的方式传递函数，这类情况由于函数签名未明确指出，可能会因为更新导致编译器无法确认指向哪个重载
++ **使用非安全的手段访问资源**：例如使用指针偏移等方式访问类和结构体的成员，不保证更新后成员的签名、类型和内存偏移不发生变动
+- **依赖了类和结构体的具体size**：类和结构体的size在更新的过程中可能改变，如果代码依赖其当前具体size，可能会在更新后出现非预期的结果
+* **库和可执行文件中混用不同版本mineutils且未隐藏符号**：如果库和可执行文件混用不同版本mineutils，且编译库时未隐藏使用的mineutils库内符号，就有可能因为类型的内存布局变化导致二进制不兼容
 
 ## 模块介绍
-| 模块 | 功能|
-|:--------:|:-------:|   
-**\_\_stdutils\_\_.h** | 基于C/C++标准库实现的mineutils库部分功能。
-**\_\_cvutils\_\_.h** | 基于C/C++标准库和OpenCV库实现的mineutils库部分功能。
-**\_\_mineutils\_\_.h** | mineutils库的全部功能，目前依赖OpenCV和NCNN。
-**base.hpp** | mineutils库的版本信息及完整实现需要的基本工具。包含于mineutils::mbase。  
-**str.hpp**| std::string字符串的便捷操作，如转换为字符串、分割字符串等。包含于mineutils::mstr。    
-**time.hpp**| 时间相关的便捷操作，如计时、休眠等。包含于mineutils::mtime。    
-**type.hpp**| 类型相关操作，提供可用于模板推导的类型检查功能。包含于mineutils::mtype。    
-**log.hpp**| 运行日志相关操作，目前包含生成统一格式的运行信息等。包含于mineutils::mlog。    
-**file.hpp**| 文件操作，目前包含ini文件的读写等。包含于mineutils::mfile。    
-**path.hpp**| 路径相关操作，如exists、listDir、join、makeDirs等便捷功能。包含于mineutils::mpath。    
-**math.hpp**| 数学相关的操作，目前包含索引标准化、矩形框操作等。包含mineutils::mmath。    
-**io.hpp**|  输入输出相关功能，目前包含print函数和main函数参数解析工具。包含于mineutils::mio。    
-**cv.hpp**|  OpenCV相关便捷功能，如快捷显示、快捷绘制矩形框、打印cv::Mat数据等。包含于mineutils::mext和mineutils::mio。    
-**ncnn.hpp**|  NCNN相关便捷功能，如快捷运行网络、打印ncnn::Mat数据等。包含于mineutils::mext和mineutils::mio。    
-
-**注：** 除了函数和类接口之外，还存在宏定义实现的功能。对象式宏统一大写，以MINE_作为前缀；函数式宏统一小驼峰命名，以m为前缀。
+### 基本信息
+| 文件夹 | 模块 | 功能 |
+|:--------:|:--------:|:-------:|   
+-- | **\_\_stdutils\_\_.h** | 基于C/C++标准库实现的mineutils库核心功能
+core | **base.hpp** | mineutils库的版本信息及基础宏定义。包含于mineutils::mbase  
+core | **time.hpp** | 时间相关的便捷操作，如计时、休眠等。包含于mineutils::mtime    
+core | **type.hpp** | 类型相关操作，提供可用于模板推导的类型检查功能。包含于mineutils::mtype
+core | **math.hpp** | 数学相关的操作，目前包含矩形框操作等。包含于mineutils::mmath    
+core | **path.hpp** | 路径相关操作，如exists、listDir、join、makeDirs等便捷功能。包含于mineutils::mpath    
+core | **str.hpp** | std::string字符串的便捷操作，如转换为字符串、分割字符串等。包含于mineutils::mstr     
+core | **thread.hpp** | 线程相关操作，包括线程池、自旋锁、读写锁等。包含于mineutils::mthrd
+core | **file.hpp** | 文件操作，目前包含ini文件的读写等。包含于mineutils::mfile     
+core | **io.hpp** |  输入输出相关功能，目前包含print函数和main函数参数解析工具等。包含于mineutils::mio    
+extra | **cv.hpp** |  OpenCV3相关便捷功能，如快捷显示、快捷绘制矩形框、打印cv::Mat数据等。包含于mineutils::mext    
+extra | **ncnn.hpp** |  NCNN相关便捷功能，如快捷运行模型、打印ncnn::Mat数据等。包含于mineutils::mext    
+### 使用方法
+* 可以单独导入./mineutilshpp下的模块，如：  
+```
+#include"mineutilshpp/core/time.hpp"   //导入时间相关功能 
+#include"mineutilshpp/core/io.hpp"   //导入输入打印相关功能 
+#include"mineutilshpp/extra/cv.hpp"   //导入OpenCV相关便利功能 
+```   
++ 也可一键导入`mineutilshpp/__stdutils__.h`，如：
+```
+#include"mineutilshpp/__stdutils__.h"   //一键导入基于标准库的核心功能封装  
+```   
+- 然后通过`using namespace mineutils`使用命名空间mineutils。由于所有功能都分布在次级的命名空间下，因此不用担心污染全局命名空间  
+* 最后根据模块使用其中的功能，如`mstr::toStr(123)` 
++ 版本号写在`base.hpp`里，在Linux上可以通过`strings xxx | grep version`命令查找应用使用的mineutils库版本  
+### 注意事项
+* 以下划线开头的函数和类不应外部使用，这些仅用于内部功能实现，随时可能删改 
++ `mineutilshpp/extra`里的功能都是基于第三方库的封装，带有一定妥协性质，不会像`mineutilshpp/core`中的代码设计严格
+- QNX660的g++ 4.7.3对C++11标准支持不完善，编译时需要额外指定-D_GLIBCXX_USE_NANOSLEEP，且在该编译器上的类型检查可能导致编译错误出现在检查条件内部
+* 使用QNX710上的g++ 8.3.0编译时需要指定：-std=gnu++11 
 
 ## 模块功能示例  
 
@@ -78,8 +80,9 @@ aarch64-barebone1.1.0-g++ 8.3.0
 
 int main()
 {
-    std::string version = mbase::getVersion();   //获取mineutils库版本
+    const char* version = mbase::getVersion();    //获取mineutils库版本
     
+    mprintfE("do something failed!\n");    //打印错误信息
     ...
 }
 ```   
@@ -93,26 +96,30 @@ int main()
     auto start_t = mtime::now();
     ...  //do something
     auto end_t = mtine::now();
-    long long cost_time = mtime::ms(end_t - start_t);
+    long long cost_time = end_t.since<mtime::ms>(start_t);
+
+    //打印当前时间
+    std::cout << mtine::now().localTime() << std::endl;
     
     //统计并打印代码段平均耗时
-    mtime::MeanTimeCounter time_counter(10);
+    mtime::MeanTimeCounter time_counter{10, __func__, mtime::ms};
     while(true)
     {
-        time_counter.addStart("part1");
+        time_counter.markStart("part1");
         ...  // do something1
-        time_counter.addEnd("part1");
+        time_counter.markEnd("part1");
         
-        time_counter.addStart("part2");
-        ...  // do something2
-        time_counter.addEnd("part2");
+        {
+            auto guard = time_counter.markGuard("part2");
+            ...  // do something2
+        }
         
-        time_counter.printAllMeanTimeCost(mtime::Unit::ms);   //每10次循环计算并打印一次平均耗时
+        time_counter.printOnTargetCount<mtime::ms>();   //每10次循环计算并打印一次平均耗时
     }
     
     //快速统计并打印代码段耗时
     {
-        LocalTimeCounter local_counter("part3", mtime::Unit::ms);
+        TimeCounterGuard<mtime::ms> guard("part3");
         ...  // do something3
     }   //离开作用域时统计并打印耗时
     
@@ -152,28 +159,12 @@ int main()
 
 int main()
 {
-    //填充数字
-    std::string s2 = mstr::zfillInt(5, 3, '0');   //返回"005"
-    
     //参数填入字符串
-    std::string s3 = mstr::fstr("{} has {} billion people.", "China", "1.4");   //返回"China has 1.4 billion people."
+    std::string s3 = mstr::fmtStr("{} has {} billion people.", "China", "1.4");   //返回"China has 1.4 billion people."
     
     //字符串分割
     std::string s4 = " hello world! ";
     std::vector res = mstr::split(s4);   //返回vector{"hello", "world!"};
-    
-    ...
-}
-```   
-### log.hpp:
-```
-...
-
-int main()
-{
-    //创建警告或错误信息
-    std::string strw = mmsg("Be careful, {}!", "Bob");   //返回"!Warning! "fileXX"[funcXX](line XX): Be careful, Bob!"
-    mprintfE("Dangerous, %s!", "Bob");   //打印"!!!Error!!! "fileXX"[funcXX](line XX): Dangerous, Bob!"
     
     ...
 }
@@ -230,15 +221,10 @@ int main()
 
 int main()
 {
-    //标准化索引值，Python风格转为C++风格
-    int arr[5] = { 0,1,2,3,4 };
-    int py_idx = -3;
-    int cpp_idx = mmath::normIdx(py_idx, 5);   //返回 2
 
     //创建不同类型的矩形框并相互转换
-    mmath::LTRB ltrb(0, 0, 100, 100);   //{left, top, right, bottom}
-    mmath::XYWH xywh = ltrb.toXYWH();   //{center_x, center_y, width, height}
-    mmath::LTWH ltwh = ltrb.toLTWH();   //{left, top, width, height}
+    mmath::RectLTRB<int> ltrb(0, 0, 100, 100);   //{left, top, right, bottom}
+    mmath::RectXYWH<int> xywh = ltrb.toXYWH();   //{center_x, center_y, width, height}
     
     ...
 }
@@ -273,7 +259,7 @@ public:
 
 int main()
 {
-    mthread::ThreadPool thd_pool(2, 100);
+    mthrd::ThreadPool thd_pool(2, 100);
     
     while(true)
     {
@@ -281,11 +267,11 @@ int main()
         Args args2;
         TestFunc2 test_func2;
 
-        auto task_state1 = thd_pool.addTask(testFunc1, std::ref(args1));
-        auto task_state2 = thd_pool.addTask(&TestFunc2::testFunc2, &test_func2, &args2);
+        auto task_future1 = thd_pool.addTask(testFunc1, std::ref(args1));
+        auto task_future2 = thd_pool.addTask(&TestFunc2::testFunc2, &test_func2, &args2);
 
-        task_state1.wait();
-        task_state2.wait();
+        task_future1.wait();
+        task_future2.wait();
         
         ...
     } 
@@ -305,18 +291,13 @@ int main()
     std::string c = "ccc";
     int d[3] = { 0, 1, 2 };
     std::vector<int> vec = { 1,2,3 };
-    auto cvmat = cv::Mat::zeros(3, 5, CV_8UC3);
     cv::Rect2d rect0(0, 0, 100, 200);
     MyClass mc;
     void* p = &mc;
-    mio::print(a, b, c, d, vec, cvmat, rect0, mc, p);
+    mio::print(a, b, c, d, vec, rect0, mc, p);
     
     /*    打印内容如下：
-    10 10.5 ccc {0 1 2} {1 2 3}
-    cv::Mat{[(0 0 0) (0 0 0) (0 0 0) (0 0 0) (0 0 0)]
-            [(0 0 0) (0 0 0) (0 0 0) (0 0 0) (0 0 0)]
-            [(0 0 0) (0 0 0) (0 0 0) (0 0 0) (0 0 0)]}
-     [100 x 200 from (0, 0)] <class MyClass: 0x0000008E111BF528> 0000008E111BF528
+    10 10.5 ccc {0 1 2} {1 2 3} [100 x 200 from (0, 0)] <class MyClass: 0x0000008E111BF528> 0000008E111BF528
     */
     
     ...
@@ -329,11 +310,11 @@ int main()
 int main()
 {
     //快捷设置一个{720, 480}尺寸，左上角在{0, 0}处的窗口
-    setWindowCV("win", {720, 480}, {0, 0}, cv::WINDOW_FREERATIO) 
+    cvSetWindow("win", {720, 480}, {0, 0}, cv::WINDOW_FREERATIO) 
     
     //快捷设置窗口并显示
     cv::Mat img = cv::imread("001.jpg");
-    int k = mext::quickShowCV("win", img, 1, false, {720, 480}, {0, 0}, cv::WINDOW_FREERATIO);
+    int k = mext::cvQuickShow("win", img, 1, false, {720, 480}, {0, 0}, cv::WINDOW_FREERATIO);
     if (k == 27)
     {
         cv::destroyWindow("win");
@@ -341,10 +322,10 @@ int main()
     }
     
     //快捷绘制标签
-    mext::putBoxCV(img, {10, 10, 60, 100}, "car");
+    mext::cvPutBox(img, {10, 10, 60, 100}, "car");
     
     //输出cv::Mat 20-24列、50-51行、第0通道区域的值
-    mext::printMat(img, {20, 25}, {50, 52}, {0, 1});
+    mext::cvPrintMat(img, {20, 25}, {50, 52}, {0, 1});
     
     ...
 }
@@ -357,30 +338,37 @@ int main()
 {
     //快捷加载ncnn模型
     ncnn::Net net;
-    int ret = mext::loadNcnn(net, "net.param", "net.bin");
+    int ret = mext::ncnnLoad(net, "net.param", "net.bin");
     if (ret != 0)
         return -1;
         
     //快捷运行ncnn网络推理
     cv::Mat img = cv::imread("001.jpg");
     ncnn::Mat inp = ncnn::Mat::from_pixels(img.data, ncnn::Mat::PIXEL_BGR2RGB, img.cols, img.rows);
-    std::vector<ncnn::Mat> outputs = mext::quickRunNcnn(net, inp, "x", {"y1", "y2", "y3"});
+    std::vector<ncnn::Mat> outputs = mext::ncnnQuickRun(net, inp, "x", {"y1", "y2", "y3"});
     
     //输出ncnn::Mat 20-24列、50-51行、第0通道区域的值
-    mext::printMat(inp, {20, 25}, {50, 52}, {0, 1});
+    mext::ncnnPrintMat(inp, {20, 25}, {50, 52}, {0, 1});
     
     ...
 }
 ```  
 
 ## 版本更新日志
+**v2.0.0**  
+* 20250206  
+1. 在新的一年重新审视库内接口，删除冗余的接口和模块，保持库的轻量性；
+2. 重新调整目录结构，将基于标准库实现的功能放到`core`下，将基于第三方库实现的功能放到`extra`下；
+3. 重新设计和命名部分接口，在不影响便利性的前提下进一步优化性能；
+4. 本次更新为非兼容更新。
+
 **v1.16.1**  
 * 20241231  
 1. 修复MINE_FUNCNAME宏在VS2019上无法正确解析的问题，并极大降低MINE_FUNCNAME开销，因此mprintfN和mdprintfN宏得到相应优化。  
 
 **v1.16.0**  
 * 20241225  
-1. mthread下添加SpinLock自旋锁和ReadWriteMutex读写锁；
+1. mthrd下添加SpinLock自旋锁和ReadWriteMutex读写锁；
 2. 为了与惯例保持一致，将使用RAII方式管理资源的接口统一在命名中加入Guard，为此mtime下的MeanTimeCounter::addLocal更名为MeanTimeCounter::addGuard，LocalTimeCounter更名为TimeCounterGuard，LocalTimeController更名为TimeControllerGuard，并将原命名标记为废弃。
 
 **v1.15.0**  
@@ -394,35 +382,35 @@ int main()
 2. 添加一个新的mstr::zfillFlt重载，并将旧的标记为废弃；
 3. 显著优化mstr下接口的整体性能，并修复mstr::toStr和基于它的接口可能以非预期的方式表示数字的问题；
 4. 修复mtype::StdBindChecker对C数组参数的检查结果；
-5. 优化mthread::ThreadPool在析构时的逻辑。
+5. 优化mthrd::ThreadPool在析构时的逻辑。
 
 **v1.13.0**  
 * 20241126  
 1. mtime::MeanTimeCounter现在包含mtime::MultiMeanTimeCounter的完整功能，同时将mtime::MultiMeanTimeCounter标记为废弃；
-2. mthread::ThreadPool修复在析构时可能触发异常的bug；
+2. mthrd::ThreadPool修复在析构时可能触发异常的bug；
 3. 修复mstr::fstr无法只接受1个参数的bug；
 4. 尽可能将所有标记为废弃的接口都添加静态警告或运行时警告。
 
 **v1.12.0**  
 * 20241125  
 1. mpath下添加isFileMatchExts函数，并将isImage和isVideo函数标记为废弃；
-2. mthread::ThreadPauser添加一个setPausePoint的新重载，并优化逻辑和性能；  
-3. mthread::ThreadPool简化实现，优化性能，添加一个新的构造函数，并将带wakeup_period_ms参数的构造函数标记为废弃；
+2. mthrd::ThreadPauser添加一个setPausePoint的新重载，并优化逻辑和性能；  
+3. mthrd::ThreadPool简化实现，优化性能，添加一个新的构造函数，并将带wakeup_period_ms参数的构造函数标记为废弃；
 4. mio::ArgumentParser少量优化printPresetOptions和printParsedOptions打印的格式； 
 5. mtime::TimePoint将对high_resolution_clock的依赖替换为对steady_clock的依赖；   
 6. 宏定义MINE_THREAD_LOCAL更名为MINE_THREAD_LOCAL_IF_HAVE，原命名废弃。  
 
 **v1.11.2**  
 * 20241112  
-1. mthread::ThreadPauser少量性能优化；
-2. mthread::TaskRetState改用std::shared_future来实现，以便多次get；  
+1. mthrd::ThreadPauser少量性能优化；
+2. mthrd::TaskRetState改用std::shared_future来实现，以便多次get；  
 3. mio::print消除打印函数时的警告；  
 4. mio::ArgumentParser少量逻辑优化。   
 
 **v1.11.1**  
 * 20241105  
-1. mtype::StdBindChecker可以更准确地处理具有多个operator()重载的仿函数以及std::ref包装的函数和仿函数了，因此mthread::ThreadPool::addTask得到同样的优化；  
-2. mtype::StdBindChecker明确限制仿函数和成员函数均满足对象和函数的cv限定符匹配，为此mthread::ThreadPool::addTask得到同样的限制；  
+1. mtype::StdBindChecker可以更准确地处理具有多个operator()重载的仿函数以及std::ref包装的函数和仿函数了，因此mthrd::ThreadPool::addTask得到同样的优化；  
+2. mtype::StdBindChecker明确限制仿函数和成员函数均满足对象和函数的cv限定符匹配，为此mthrd::ThreadPool::addTask得到同样的限制；  
 3. QNX的gcc4.7.3对部分SFINAE特性支持不全，如`std::declval<ObjT>()->*std::declval<Func>()`判断失败会直接报错等等，因此修改了部分mtype下类型检查器的实现；  
 3. mtype::FuncChecker处理有多个operator()重载的仿函数时，mtype::FuncChecker<Fn>::value为false；   
 5. mio::print支持打印函数和成员函数。   
@@ -444,7 +432,7 @@ int main()
 * 20241028
 1. mbase添加mlikely和munlikely宏，用于在GCC中使用分支预测优化； 
 2. mtype添加RvalueRefMaker、EachLvalueConstructibleChecker等结构体，用于模板检查和类型处理；  
-3. mtype::StdBindChecker内部添加更严格的类型检查；mthread::addTask添加更严格的参数类型检查；  
+3. mtype::StdBindChecker内部添加更严格的类型检查；mthrd::addTask添加更严格的参数类型检查；  
 4. MINE_DEPRECATED宏重命名为mdeprecated，保持宏命名风格一致性；mtypename宏废弃，使用mtype::getTypeName函数替换；  
 5. mio::ArgumentParser类稍微修改了printPresetOptions和printParsedOptions成员函数打印的格式；  
 6. mmath::BaseBox及其子类改为struct，以符合其成员变量公开的设定；  
@@ -475,20 +463,20 @@ int main()
 
 **v1.7.1**  
 * 20240819   
-1. 修复mthread::ThreadPool的wakeup_period_ms参数未生效的bug；  
+1. 修复mthrd::ThreadPool的wakeup_period_ms参数未生效的bug；  
 2. 对部分接口的参数取值范围进行限制； 
 3. 修改mtime::sleep系列函数的输入类型为unsigned long。      
 
 **v1.7.0**  
 * 20240815   
 1. 统一函数式宏定义使用m开头，对象式宏定义使用MINE_开头，如printfE现在为mprintfE；  
-2. mthread::TaskRetState添加valid()接口；   
+2. mthrd::TaskRetState添加valid()接口；   
 3. 优化mmath::BaseBox及其派生类的模板类型限制方式，标记mmath::BaseBox<T>::belongToIntSeries为废弃。  
 
 **v1.6.0**  
 * 20240729   
-1. 添加mthread::TaskRetState<T>类，上个版本的mthread::TaskState现在等于mthread::TaskRetState<void>；
-2. mthread::ThreadPool::addTask现在返回mthread::TaskRetState<T>，支持获取任务的返回值；
+1. 添加mthrd::TaskRetState<T>类，上个版本的mthrd::TaskState现在等于mthrd::TaskRetState<void>；
+2. mthrd::ThreadPool::addTask现在返回mthrd::TaskRetState<T>，支持获取任务的返回值；
 3. mmath::align修复对非2的幂计算错误的问题；
 4. 添加mtype::StdBeginEndChecker<T>结构体，用于检查类型T是否具有类似于STL容器的begin()和end()接口；
 5. mio::print现在支持所有C++11中的正式STL容器的打印了，并修复了打印不支持类型时的编译错误；
@@ -501,7 +489,7 @@ int main()
 
 **v1.5.0**  
 * 20240701  
-1. 添加thread.hpp模块和线程池类型mthread::ThreadPool类；  
+1. 添加thread.hpp模块和线程池类型mthrd::ThreadPool类；  
 2. 优化mio::print的实现方式，并修复缺少无参构造函数的类型无法正确打印的问题；  
 3. 标记mbase中的BOOL_CASE_TAGS及相关类型为废弃，建议使用std::integral_constant<bool, value>代替。  
 
