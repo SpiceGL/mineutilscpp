@@ -20,8 +20,8 @@
 
 #define MINEUTILS_MAJOR_VERSION "2"   //主版本号，对应不向下兼容的API或文件改动
 #define MINEUTILS_MINOR_VERSION "0"   //次版本号，对应不影响现有API使用的新功能增加
-#define MINEUTILS_PATCH_VERSION "0"   //修订版本号，对应不改变API的BUG修复或效能优化
-#define MINEUTILS_DATE_VERSION "20250206-release"   //日期版本号，对应文档和注释级别的改动和测试阶段
+#define MINEUTILS_PATCH_VERSION "1"   //修订版本号，对应不改变API的BUG修复或效能优化
+#define MINEUTILS_DATE_VERSION "20250211-release"   //日期版本号，对应文档和注释级别的改动和测试阶段
 
 #ifdef __GNUC__ 
 #define MINE_FUNCSIG __PRETTY_FUNCTION__
@@ -84,8 +84,10 @@ namespace mineutils
 
 #if defined(__GNUC__) && !_mgccMinVersion(4, 8, 1)  //for qnx660，在不支持thread_local的编译器中，仅相当于普通变量，没有线程内只有一份实例的作用
 #define _MINE_THREAD_LOCAL_IF_HAVE
+#define _MINE_REF_WHEN_THREAD_LOCAL
 #else 
 #define _MINE_THREAD_LOCAL_IF_HAVE thread_local   
+#define _MINE_REF_WHEN_THREAD_LOCAL &
 #endif 
 
 #ifdef __GNUC__ 
@@ -93,16 +95,20 @@ namespace mineutils
 #define _MINE_EXPORT __attribute__ ((visibility ("default")))
 #define _MINE_HIDDEN __attribute__ ((visibility ("hidden")))
 #define _MINE_NOINLINE __attribute__((noinline))
+#define _MINE_NOREMOVE __attribute__((used)) static
+
 #elif defined(_MSC_VER)
 #define _mdeprecated(msg) __declspec(deprecated(msg))
 #define _MINE_EXPORT __declspec(dllexport)
 #define _MINE_HIDDEN
 #define _MINE_NOINLINE __declspec(noinline)
+#define _MINE_NOREMOVE __declspec(selectany)
 #else
 #define _mdeprecated(msg)
 #define _MINE_EXPORT
 #define _MINE_HIDDEN
 #define _MINE_NOINLINE
+#define _MINE_NOREMOVE volatile
 #endif 
 
 
@@ -111,28 +117,30 @@ namespace mineutils
             static std::string str = "[WARNING][%s: line %d] ";
             return str;
         }
+        _MINE_NOREMOVE const std::string& _deprecated_warning_str = mbase::_getDeprecatedWarningStr();
 
         _MINE_NOINLINE inline const char* _immutableGetDynamicVersion()
         {
             return MINEUTILS_MAJOR_VERSION "." MINEUTILS_MINOR_VERSION "." MINEUTILS_PATCH_VERSION "-" MINEUTILS_DATE_VERSION;
         }
 
+        //如果lib库将mineutils内接口设置为可见的，那么就需要检查库和可执行文件内的版本是否一致，因为内存布局可能变化
         _MINE_HIDDEN inline const char* _checkLibExeVersion()
         {
             if (strcmp(MINEUTILS_MAJOR_VERSION "." MINEUTILS_MINOR_VERSION "." MINEUTILS_PATCH_VERSION "-" MINEUTILS_DATE_VERSION, _immutableGetDynamicVersion()) != 0)
             {
-                printf(R"([WARNING] The project contains visible symbols from two ver%s of mineutils (mineutils-%s and mineutils-%s), which is unsafe behavior. Please check the library files and the executable file!)""\n", "sions", MINEUTILS_MAJOR_VERSION "." MINEUTILS_MINOR_VERSION "." MINEUTILS_PATCH_VERSION "-" MINEUTILS_DATE_VERSION, _immutableGetDynamicVersion());
+                printf(R"([WARNING][MINEUTILS] This project contains visible symbols from two ver%s of mineutils (mineutils-%s and mineutils-%s), which is unsafe behavior. Please check the library files and the executable file!)""\n", "sions", MINEUTILS_MAJOR_VERSION "." MINEUTILS_MINOR_VERSION "." MINEUTILS_PATCH_VERSION "-" MINEUTILS_DATE_VERSION, _immutableGetDynamicVersion());
             }
             return "";
         }
-        static volatile const char* _tmp_checkLibExeVersion = mbase::_checkLibExeVersion();
+        _MINE_NOREMOVE const char* _check_libexever = mbase::_checkLibExeVersion();
 
         inline volatile const char* _keepVersionString()
         {
             static volatile const char MINEUTILS_VERSION[64] = "using mineutils version: " MINEUTILS_MAJOR_VERSION "." MINEUTILS_MINOR_VERSION "." MINEUTILS_PATCH_VERSION "-" MINEUTILS_DATE_VERSION;
             return MINEUTILS_VERSION;
         }
-        static volatile const char* _tmp_keepVersionString = mbase::_keepVersionString();
+        static volatile const char* _keep_verstr = mbase::_keepVersionString();
 
 
         inline const char* getVersion()
@@ -176,14 +184,22 @@ namespace mineutils
         //    return s_func_sig;
         //}
 
-        inline const char* _splitFuncName(const char* func_sig, const char* func_name)
+        //用于保证map的生命周期总是长于用户的使用时期
+        inline std::unordered_map<const char*, std::string> _MINE_REF_WHEN_THREAD_LOCAL _createFuncNameMap()
         {
             _MINE_THREAD_LOCAL_IF_HAVE std::unordered_map<const char*, std::string> func_name_map;
+            return func_name_map;
+        }
+        _MINE_NOREMOVE const std::unordered_map<const char*, std::string> _MINE_REF_WHEN_THREAD_LOCAL _func_name_map = _createFuncNameMap();
+
+        inline const char* _splitFuncName(const char* func_sig, const char* func_name)
+        {
+            std::unordered_map<const char*, std::string> _MINE_REF_WHEN_THREAD_LOCAL func_name_map = _createFuncNameMap();
             const char* tmp = func_name;
             auto it = func_name_map.find(func_sig);
             if (it != func_name_map.end())
                 return it->second.c_str();
-            if (func_sig == func_name)
+            if (strcmp(func_sig, func_name) == 0)
                 return func_name;
             
             std::string s_func_sig = func_sig;
@@ -207,8 +223,8 @@ namespace mineutils
 
         inline const std::string& _getFmtI()
         {
-            static std::string warning_message(R"([INFO][%s] )");
-            return warning_message;
+            static std::string info_message(R"([INFO][%s] )");
+            return info_message;
         }
         inline const std::string& _getFmtW()
         {
@@ -220,6 +236,9 @@ namespace mineutils
             static std::string error_message(R"([ERROR][%s][%s: line %d] )");
             return error_message;
         }
+        _MINE_NOREMOVE const std::string& _info_message = _getFmtI();
+        _MINE_NOREMOVE const std::string& _warning_message = _getFmtW();
+        _MINE_NOREMOVE const std::string& _error_message = _getFmtE();
 
         template<class... Ts>
         inline void _printfI(const char* fmt_chars, const char* funcname, Ts ...args)

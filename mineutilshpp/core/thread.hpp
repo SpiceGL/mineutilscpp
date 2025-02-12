@@ -16,7 +16,6 @@
 #include<vector>
 
 #include"base.hpp"
-#include"time.hpp"
 #include"type.hpp"
 
 namespace mineutils
@@ -737,7 +736,7 @@ namespace mineutils
         inline void ThreadPoolTest()
         {
             mthrd::ThreadPool thread_pool(4);
-            mthrd::TaskFuture<void> state = thread_pool.addTask([](int x) {mtime::sleep(1); }, 1);
+            mthrd::TaskFuture<void> state = thread_pool.addTask([](int x) {std::this_thread::sleep_for(std::chrono::seconds(1)); }, 1);
             state.wait();
         }
 

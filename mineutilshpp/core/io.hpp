@@ -28,8 +28,6 @@
 
 #include"base.hpp"
 #include"type.hpp"
-#include"math.hpp"
-#include"thread.hpp"
 
 
 namespace mineutils
@@ -210,6 +208,7 @@ namespace mineutils
             static std::mutex lk;
             return lk;
         }
+        _MINE_NOREMOVE const std::mutex& _print_mtx = _immutableGetPrintlock();
 
         template<class T, class... Args>
         inline void print(const T& arg, const Args&... args)

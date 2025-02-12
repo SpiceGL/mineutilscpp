@@ -4,6 +4,7 @@
 #ifndef TIME_HPP_MINEUTILS
 #define TIME_HPP_MINEUTILS
 
+#include<array>
 #include<chrono>
 #include<iostream>
 #include<list>
@@ -63,12 +64,12 @@ namespace mineutils
             //创建一个0时刻的时间点
             TimePoint() = default;
 
-            DateTime localTime();
-            DateTime utcTime();
+            DateTime localTime() const;
+            DateTime utcTime() const;
 
             //根据unit计算从tp到当前时间点之间的时长
             template<Unit unit>
-            long long since(const TimePoint& tp);
+            long long since(const TimePoint& tp) const;
 
             //在当前时间点上增加时间段，正负皆可，在qnx660上实际精度为1000ns以上
             template<Unit unit>
@@ -231,9 +232,17 @@ namespace mineutils
 
     namespace mtime
     {
+        inline std::array<char, 32> _MINE_REF_WHEN_THREAD_LOCAL _createFmtDateTime()
+        {
+            _MINE_THREAD_LOCAL_IF_HAVE std::array<char, 32> fmt_date;
+            return fmt_date;
+        }
+        _MINE_NOREMOVE const auto _MINE_REF_WHEN_THREAD_LOCAL _fmt_datetime = _createFmtDateTime();
+
         inline std::ostream& operator<<(std::ostream& cout_obj, const DateTime& date_time)
         {
-            _MINE_THREAD_LOCAL_IF_HAVE char fmt_date[32];
+            auto _MINE_REF_WHEN_THREAD_LOCAL fmt_date = _createFmtDateTime();
+
             const char* fmt = nullptr;
             if (!date_time.valid)
                 fmt = "%04d-%02d-%02d %02d:%02d:%02d Invalid";
@@ -243,13 +252,13 @@ namespace mineutils
                 fmt = "%04d-%02d-%02d %02d:%02d:%02d DST";
             else fmt = "%04d-%02d-%02d %02d:%02d:%02d STD";
 
-            snprintf(fmt_date, sizeof(fmt_date), fmt, date_time.year, date_time.month, date_time.mday, date_time.hour, date_time.minute, date_time.second);
-            cout_obj << fmt_date;
+            snprintf(fmt_date.data(), sizeof(fmt_date), fmt, date_time.year, date_time.month, date_time.mday, date_time.hour, date_time.minute, date_time.second);
+            cout_obj << fmt_date.data();
             return cout_obj;
         }
 
 
-        inline DateTime TimePoint::localTime()
+        inline DateTime TimePoint::localTime() const
         {
             auto& now = this->system_tp_;
             time_t now_time_t = std::chrono::system_clock::to_time_t(now);
@@ -286,7 +295,7 @@ namespace mineutils
             return date_time;
         }
 
-        inline DateTime TimePoint::utcTime()
+        inline DateTime TimePoint::utcTime() const
         {
             auto& now = this->system_tp_;
             auto time_t_now = std::chrono::system_clock::to_time_t(now);
@@ -324,7 +333,7 @@ namespace mineutils
         }
 
         template<Unit unit>
-        inline long long TimePoint::since(const TimePoint& tp)
+        inline long long TimePoint::since(const TimePoint& tp) const
         {
             switch (unit)
             {
@@ -447,6 +456,7 @@ namespace mineutils
             static std::atomic<bool> g_timecounter_on(true);
             return g_timecounter_on;
         }
+        _MINE_NOREMOVE const std::atomic<bool>& _g_timecounter_on = _getGlobalTimeCounterEnabled();
 
         inline void enableGlobalTimeCounter(bool enabled)
         {

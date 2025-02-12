@@ -9,9 +9,9 @@
 #include"core/math.hpp"   //based on base.hpp
 #include"core/path.hpp"   //based on base.hpp
 #include"core/str.hpp"   //based on base.hpp && type.hpp
-#include"core/thread.hpp"   //based on base.hpp, time.hpp && type.hpp
+#include"core/thread.hpp"   //based on base.hpp && type.hpp
 #include"core/file.hpp"   //based on base.hpp && str.hpp 
-#include"core/io.hpp"   //based on base.hpp, type.hpp, math.hpp && thread.hpp, and extended by cv.hpp & ncnn.hpp
+#include"core/io.hpp"   //based on base.hpp && type.hpp
 
 #endif
 
