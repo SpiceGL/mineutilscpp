@@ -806,7 +806,7 @@ namespace mineutils
                     auto guard = time_counter.markGuard("Guard 1");
                     mtime::msleep(60);
                 }
-                printf("User check! Expected output: \n\"MeanTimeCounterTest\": Guard 2 mean cost time 60ms in 10 counts  \n\"MeanTimeCounterTest\": Guard 1 mean cost time 60ms in 10 counts\n");
+                printf("User check! Expected output: \nMeanTimeCounterTest: Guard 2 mean cost time 60ms in 10 counts  \nMeanTimeCounterTest: Guard 1 mean cost time 60ms in 10 counts\n");
                 printf("Actual output:\n");
                 time_counter.printOnTargetCount<mtime::ms>();
 
@@ -821,7 +821,7 @@ namespace mineutils
             //mtime::TimePoint<mtime::Unit::us> start_t1 = start_t;
             //mtime::TimePoint<mtime::Unit::us> end_t1 = end_t;
 
-            printf("User check! Got result:%lldms(60ms)\n", end_t.since<mtime::ms>(start_t));
+            printf("User check! Got result(60ms):%lldms\n", end_t.since<mtime::ms>(start_t));
             //printf("User check! Got result:%lldus(60000us)\n", end_t1 - start_t1);
             auto start_t2 = mtime::now();
             {
@@ -831,13 +831,13 @@ namespace mineutils
                 }
             }
             auto end_t2 = mtime::now();
-            printf("User check! Got result:%lldms(120ms)\n", end_t2.since<mtime::ms>(start_t2));
+            printf("User check! Got result(120ms):%lldms\n", end_t2.since<mtime::ms>(start_t2));
 
             auto now_tp = mtime::now();
             mtime::DateTime now_time = now_tp.localTime();
             mtime::DateTime now_utc_time = now_tp.utcTime();
             mtime::DateTime now_time_add_60s = now_tp.add<mtime::s>(60).localTime();
-            printf("User checks netx date format below!\n");
+            printf("User checks next date format below!\n");
             std::cout << now_time << std::endl;
             std::cout << now_utc_time << std::endl;
             std::cout << now_time_add_60s << std::endl;
@@ -852,7 +852,7 @@ namespace mineutils
             printf("\n--------------------check mtime start--------------------\n\n");
             MeanTimeCounterTest();
             nowTest();
-            printf("--------------------check mtime end--------------------\n\n");
+            printf("---------------------check mtime end---------------------\n\n");
         }
     }
 #endif

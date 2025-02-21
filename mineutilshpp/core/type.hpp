@@ -932,7 +932,7 @@ namespace mineutils
             EachLRvalueConstructibleChecker();
             FunctionCheckerTest();
             StdBindTraitsTest();
-            printf("--------------------check mtype end--------------------\n\n");
+            printf("---------------------check mtype end---------------------\n\n");
         }
     }
 #endif

@@ -285,61 +285,58 @@ namespace mineutils
     }
 
 
+
 #ifdef MINEUTILS_TEST_MODULES
     namespace _mstrcheck
     {
-        inline void toOrdinalTest()
+        inline void ordinalizeTest()
         {
             bool ret1;
             ret1 = (mstr::ordinalize(1) == "1st" && mstr::ordinalize(2) == "2nd" && mstr::ordinalize(3) == "3rd" && mstr::ordinalize(10) == "10th");
-            printf("%s ordinalize check.\n", ret1 ? "Passed." : "Failed!");
+            if (!ret1) mprintfE(R"(Failed when check: mstr::ordinalize(1) == "1st" && mstr::ordinalize(2) == "2nd" && mstr::ordinalize(3) == "3rd" && mstr::ordinalize(10) == "10th")""\n");
             printf("\n");
         }
         inline void toStrTest()
         {
             bool ret1;
-            ret1 = (mstr::ordinalize(1) == "1st" && mstr::ordinalize(2) == "2nd" && mstr::ordinalize(3) == "3rd" && mstr::ordinalize(10) == "10th");
-            printf("%s ordinalize check:%d.\n", ret1 ? "Passed." : "Failed!", ret1);
             ret1 = (mstr::toStr(1.112) == "1.112000");
-            printf("%s toStr(1.112):%s\n", ret1 ? "Passed." : "Failed!", mstr::toStr(1.112).c_str());
+            if (!ret1) mprintfE(R"(Failed when check: mstr::toStr(1.112) == "1.112000")""\n");
             printf("\n");
         }
-
-        //inline void zfillTest()
-        //{
-        //    bool ret1;
-        //    ret1 = (mstr::paddingInt(123, 3, '0') == "123" && mstr::paddingInt(123, 5, '0') == "00123" && mstr::paddingInt(123, 2, '0') == "123");
-        //    printf("%s paddingInt(123, 3, '0'):%s  paddingInt(123, 5, '0'):%s  paddingInt(123, 2, '0'):%s\n", ret1 ? "Passed." : "Failed!", 
-        //        mstr::paddingInt(123, 3, '0').c_str(), mstr::paddingInt(123, 5, '0').c_str(), mstr::paddingInt(123, 2, '0').c_str());
-        //    ret1 = (mstr::paddingFloat(12, 3, 0, '0') == "012" && mstr::paddingFloat(12, 3, 3, '0') == "012.000" && mstr::paddingFloat(12.111111, 3, 3, '0') == "012.111" && mstr::paddingFloat(1234.111111, 3, 3, '0') == "1234.111");
-        //    printf("%s mstr::paddingFloat(12, 3, 0, '0'):%s  mstr::paddingFloat(12, 3, 3, '0'):%s  mstr::paddingFloat(12.111111, 3, 3, '0'):%s  mstr::paddingFloat(1234.111111, 3, 3, '0'):%s\n", ret1 ? "Passed." : "Failed!",
-        //        mstr::paddingFloat(12, 3, 0, '0').c_str(), mstr::paddingFloat(12, 3, 3, '0').c_str(), mstr::paddingFloat(12.111111, 3, 3, '0').c_str(), mstr::paddingFloat(1234.111111, 3, 3, '0').c_str());
-        //    printf("\n");
-        //}
 
         inline void formatTest()
         {
             bool ret1;
-            ret1 = (mstr::format("I need {} and {}  ", 1, 2) == "I need 1 and 2  " && mstr::format("I need {}, {} and {}  ", 1, 2) == "I need 1, 2 and {}  " && mstr::format("I need {}  ", 1, 2) == "I need 1  ");
-            printf("%s mstr::format check\n", ret1 ? "Passed." : "Failed!");
+            ret1 = (mstr::format("I need {} and {}  ", 1, 2) == "I need 1 and 2  ");
+            if (!ret1) mprintfE(R"(Failed when check: mstr::format("I need {} and {}  ", 1, 2) == "I need 1 and 2  ")""\n");
+            ret1 = (mstr::format("I need {}, {} and {}  ", 1, 2) == "I need 1, 2 and {}  ");
+            if (!ret1) mprintfE(R"(Failed when check: mstr::format("I need {}, {} and {}  ", 1, 2) == "I need 1, 2 and {}  "")""\n");
+            ret1 = (mstr::format("I need {}  ", 1, 2) == "I need 1  ");
+            if (!ret1) mprintfE(R"(Failed when check: mstr::format("I need {}  ", 1, 2) == "I need 1  ")""\n");
             printf("\n");
         }
 
         inline void splitTest()
         {
             bool ret1;
-            ret1 = (mstr::split("I need {} and {}  ") == std::vector<std::string>({ "I", "need", "{}", "and", "{}" }) && mstr::split("I need {} and {}  ", "{}") == std::vector<std::string>({ "I need ", " and ", "  " }));
-            printf("%s mstr::split check1\n", ret1 ? "Passed." : "Failed!");
+            ret1 = (mstr::split("I need {} and {}  ") == std::vector<std::string>({ "I", "need", "{}", "and", "{}" }));
+            if (!ret1) mprintfE(R"(Failed when check: mstr::split("I need {} and {}  ") == std::vector<std::string>({ "I", "need", "{}", "and", "{}" }))""\n");
+            ret1 = (mstr::split("I need {} and {}  ", "{}") == std::vector<std::string>({ "I need ", " and ", "  " }));
+            if (!ret1) mprintfE(R"(Failed when check: mstr::split("I need {} and {}  ", "{}") == std::vector<std::string>({ "I need ", " and ", "  " }))""\n");
 
-            ret1 = (mstr::split("I need {} and {}  ", "x") == std::vector<std::string>({ "I need {} and {}  " }) && mstr::split("I need {} and {}  ", "{}", 1) == std::vector<std::string>({ "I need ", " and {}  " }));
-            printf("%s mstr::split check2\n", ret1 ? "Passed." : "Failed!");
+            ret1 = (mstr::split("I need {} and {}  ", "x") == std::vector<std::string>({ "I need {} and {}  " }));
+            if (!ret1) mprintfE(R"(Failed when check: mstr::split("I need {} and {}  ", "x") == std::vector<std::string>({ "I need {} and {}  " }))""\n");
+            ret1 = (mstr::split("I need {} and {}  ", "{}", 1) == std::vector<std::string>({ "I need ", " and {}  " }));
+            if (!ret1) mprintfE(R"(Failed when check: mstr::split("I need {} and {}  ", "{}", 1) == std::vector<std::string>({ "I need ", " and {}  " }))""\n");
 
 
             ret1 = (mstr::rsplit("I need {} and {}  ", "{}") == std::vector<std::string>({ "I need ", " and ", "  " }) );
-            printf("%s mstr::rsplit check1\n", ret1 ? "Passed." : "Failed!");
+            if (!ret1) mprintfE(R"(Failed when check: mstr::rsplit("I need {} and {}  ", "{}") == std::vector<std::string>({ "I need ", " and ", "  " }))""\n");
 
-            ret1 = (mstr::rsplit("I need {} and {}  ", "x") == std::vector<std::string>({ "I need {} and {}  " }) && mstr::rsplit("I need {} and {}  ", "{}", 1) == std::vector<std::string>({ "I need {} and ", "  " }));
-            printf("%s mstr::rsplit check2\n", ret1 ? "Passed." : "Failed!");
+            ret1 = (mstr::rsplit("I need {} and {}  ", "x") == std::vector<std::string>({ "I need {} and {}  " }));
+            if (!ret1) mprintfE(R"(Failed when check: mstr::rsplit("I need {} and {}  ", "x") == std::vector<std::string>({ "I need {} and {}  " }))""\n");
+            ret1 = (mstr::rsplit("I need {} and {}  ", "{}", 1) == std::vector<std::string>({ "I need {} and ", "  " }));
+            if (!ret1) mprintfE(R"(Failed when check: mstr::rsplit("I need {} and {}  ", "{}", 1) == std::vector<std::string>({ "I need {} and ", "  " }))""\n");
             printf("\n");
         }
 
@@ -347,24 +344,24 @@ namespace mineutils
         {
             bool ret1;
             ret1 = (mstr::trim(" \n\t 123 \v\r") == "123" && mstr::trim(" \n\t 123") == "123", mstr::trim("123 \v\r") == "123");
-            printf("%s mstr::trim check\n", ret1 ? "Passed." : "Failed!");
+            if (!ret1) mprintfE(R"(Failed when check: mstr::trim(" \n\t 123 \v\r") == "123" && mstr::trim(" \n\t 123") == "123", mstr::trim("123 \v\r") == "123")""\n");
 
             ret1 = (mstr::ltrim(" \n\t 123 \v\r") == "123 \v\r" && mstr::ltrim(" \n\t 123") == "123", mstr::ltrim("123 \v\r") == "123 \v\r");
-            printf("%s mstr::ltrim check\n", ret1 ? "Passed." : "Failed!");
+            if (!ret1) mprintfE(R"(Failed when check: mstr::ltrim(" \n\t 123 \v\r") == "123 \v\r" && mstr::ltrim(" \n\t 123") == "123", mstr::ltrim("123 \v\r") == "123 \v\r")""\n");
 
             ret1 = (mstr::rtrim(" \n\t 123 \v\r") == " \n\t 123" && mstr::rtrim(" \n\t 123") == " \n\t 123", mstr::rtrim("123 \v\r") == "123");
-            printf("%s mstr::rtrim check\n", ret1 ? "Passed." : "Failed!");
+            if (!ret1) mprintfE(R"(Failed when check: mstr::rtrim(" \n\t 123 \v\r") == " \n\t 123" && mstr::rtrim(" \n\t 123") == " \n\t 123", mstr::rtrim("123 \v\r") == "123")""\n");
             printf("\n");
         }
 
         inline void check()
         {
             printf("\n--------------------check mstr start--------------------\n\n");
-            toOrdinalTest();
+            ordinalizeTest();
             toStrTest();
             splitTest();
             trimTest();
-            printf("--------------------check mstr end--------------------\n\n");
+            printf("---------------------check mstr end---------------------\n\n");
         }
     }
 #endif

@@ -50,6 +50,9 @@ namespace mineutils
             template<class T, typename std::enable_if<mtype::StdCoutEachChecker<T>::value, int>::type = 0>
             void setValue(const std::string& key, const T& value);
 
+            //打印读取的文件内容
+            void printContents();
+
             //禁止拷贝和移动
             IniFile(const IniFile& file) = delete;
             IniFile& operator=(const IniFile& file) = delete;
@@ -61,7 +64,7 @@ namespace mineutils
 
             bool searchSection(const std::string& line, SectionInfo& section_info);
             bool searchKey(const std::string& line, KeyInfo& key_info);
-            int saveContent();
+            int saveContents();
 
             std::string file_path_;
             std::fstream file_;
@@ -200,7 +203,7 @@ namespace mineutils
         {
             if (this->rwstatus_ == 'w' && this->file_.is_open())
             {
-                if (this->saveContent() != 0)
+                if (this->saveContents() != 0)
                     return -1;
             }
             this->content_list_.clear();
@@ -295,6 +298,16 @@ namespace mineutils
             }
         }
 
+        inline void IniFile::printContents()
+        {
+            printf("IniFile %s:\n", this->file_path_.c_str());
+            for (auto& line : this->content_list_)
+            {
+                printf("    %s\n", line.c_str());
+            }
+            printf("\n");
+        }
+
         template<class T, typename std::enable_if<mtype::StdCoutEachChecker<T>::value, int>::type>
         inline void IniFile::setValue(const std::string& key, const T& value)
         {
@@ -377,7 +390,7 @@ namespace mineutils
         }
 
 
-        inline int IniFile::saveContent()
+        inline int IniFile::saveContents()
         {
             this->file_.close();
             this->file_.open(file_path_, std::ios::binary | std::ios::trunc | std::ios::out);

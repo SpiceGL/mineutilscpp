@@ -143,8 +143,8 @@ namespace mineutils
     {
         inline long _align(long value, long alignment, int align_mode = 1)
         {
-            long long rem = value % alignment;
-            long long quot = value / alignment;
+            long rem = value % alignment;
+            long quot = value / alignment;
 
             if (align_mode > 0)
             {
@@ -477,13 +477,13 @@ namespace mineutils
             mmath::RectLTRB<int> rect(0, 0, 100, 200);
             bool ret1;
             ret1 = (mmath::RectLTRB<int>(0, 0, 100, 200).toLTWH() == mmath::RectLTWH<int>(0, 0, 101, 201));
-            printf("%s RectLTRB check1:%d.\n", ret1 ? "Passed." : "Failed!", ret1);
+            if (!ret1) mprintfE("Failed when check: mmath::RectLTRB<int>(0, 0, 100, 200).toLTWH() == mmath::RectLTWH<int>(0, 0, 101, 201)\n");
 
             ret1 = (mmath::RectLTWH<int>(0, 0, 100, 200).toXYWH() == mmath::RectXYWH<int>(50, 100, 100, 200));
-            printf("%s RectLTWH check1:%d.\n", ret1 ? "Passed." : "Failed!", ret1);
+            if (!ret1) mprintfE("Failed when check: mmath::RectLTWH<int>(0, 0, 100, 200).toXYWH() == mmath::RectXYWH<int>(50, 100, 100, 200)\n");
 
             ret1 = (mmath::RectLTWH<double>(0.1, 0.9, 100.5, 200.3).toPixel<int>() == mmath::RectLTWH<int>(0, 0, 100, 200));
-            printf("%s RectLTWH check2:%d.\n", ret1 ? "Passed." : "Failed!", ret1);
+            if (!ret1) mprintfE("Failed when check: mmath::RectLTWH<double>(0.1, 0.9, 100.5, 200.3).toPixel<int>() == mmath::RectLTWH<int>(0, 0, 100, 200)\n");
 
 
             printf("\n");
@@ -493,7 +493,7 @@ namespace mineutils
         {
             printf("\n--------------------check mmath start--------------------\n\n");
             RectTest();
-            printf("--------------------check mmath end--------------------\n\n");
+            printf("---------------------check mmath end---------------------\n\n");
         }
     }
 #endif

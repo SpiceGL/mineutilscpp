@@ -14,7 +14,6 @@
 #include<stdexcept>
 #include<thread>
 #include<vector>
-
 #include"base.hpp"
 #include"type.hpp"
 
@@ -633,7 +632,7 @@ namespace mineutils
             thd1.join();
             thd2.join();
 
-            printf("%s SpinLock check.\n", func1_check_ret && func2_check_ret ? "Passed." : "Failed!");
+            if (!(func1_check_ret && func2_check_ret)) mprintfE(R"(Failed when check SpinLock)""\n");
             printf("\n");
         }
 
@@ -676,8 +675,8 @@ namespace mineutils
                 std::thread thd2(func2);
                 thd1.join();
                 thd2.join();
-                //读-读之间不会加锁，因此两个结果中理应存在false
-                printf("%s ReadWriteMutexTest Read-Read Lock check.\n", !(func1_check_ret && func2_check_ret) ? "Passed." : "Maybe failed this time! Try again!");
+                //读-读之间不会加锁，因此两个结果中可能存在false
+                if (func1_check_ret && func2_check_ret) mprintfW(R"(Maybe failed this time when check: ReadWriteMutexTest Read-Read Lock. Try again!)""\n");
             }
 
             memcpy(strs, "Hello World", 11);
@@ -718,7 +717,8 @@ namespace mineutils
                 std::thread thd4(func4);
                 thd1.join();
                 thd4.join();
-                printf("%s ReadWriteMutexTest Read-Write Lock check.\n", func1_check_ret && func4_check_ret ? "Passed." : "Failed!");
+
+                if (!(func1_check_ret && func4_check_ret)) mprintfE(R"(Failed when check: ReadWriteMutexTest Read-Write Lock)""\n");
             }
 
             {
@@ -728,7 +728,7 @@ namespace mineutils
                 std::thread thd4(func4);
                 thd3.join();
                 thd4.join();
-                printf("%s ReadWriteMutexTest Write-Write Lock check.\n", func3_check_ret && func4_check_ret ? "Passed." : "Failed!");
+                if (!(func3_check_ret && func4_check_ret)) mprintfE(R"(Failed when check: ReadWriteMutexTest Write-Write Lock)""\n");
             }
             printf("\n");
         }
@@ -746,7 +746,7 @@ namespace mineutils
             SpinLockTest();
             ReadWriteMutexTest();
             ThreadPoolTest();
-            printf("--------------------check mthrd end--------------------\n\n");
+            printf("---------------------check mthrd end---------------------\n\n");
         }
     }
 #endif

@@ -543,7 +543,7 @@ namespace mineutils
                 size_t now_size;
                 if (boolop[0].empty() || boolop[1].empty())
                     now_size = boolop[0].size() + boolop[1].size();
-                else now_size = boolop[0].size() + boolop[1].size() + 1;
+                else now_size = boolop[0].size() + boolop[1].size() + 2;
                 this->max_boolopt_size_ = now_size > this->max_boolopt_size_ ? now_size : this->max_boolopt_size_;
             }
 
@@ -560,7 +560,7 @@ namespace mineutils
                 size_t now_size;
                 if (valueop[0].empty() || valueop[1].empty())
                     now_size = valueop[0].size() + valueop[1].size();
-                else now_size = valueop[0].size() + valueop[1].size() + 1;
+                else now_size = valueop[0].size() + valueop[1].size() + 2;
                 this->max_valueopt_size_ = now_size > this->max_valueopt_size_ ? now_size : this->max_valueopt_size_;
             }
 
@@ -642,6 +642,7 @@ namespace mineutils
                 //second_part.resize(this->max_valueopt_size_ + 6, ' ');
                 printf("    %s    %s    %s\n", flag_part.c_str(), valueop[2].empty() ? "" : ("DESCRIPTION: " + valueop[2]).c_str(), valueop[3].empty() ? "REQUIRED" : ("DEFAULT VALUE: " + valueop[3]).c_str());
             }
+            printf("\n");
         }
 
         inline void ArgumentParser::printParsed()
@@ -671,6 +672,7 @@ namespace mineutils
                 std::string flag = valueop[0].empty() ? valueop[1] : valueop[0];
                 printf("    %s    %s\n", flag_part.c_str(), this->valueopts_parsed_[flag].empty() ? "No value parsed!" : ("Parsed value: " + this->valueopts_parsed_[flag]).c_str());
             }
+            printf("\n");
         }
 
         inline int ArgumentParser::checkPresetsAreValid(const std::vector<BooleanOption>& boolopts_preset, const std::vector<ValueOption>& valueopts_preset)
@@ -810,31 +812,32 @@ namespace mineutils
                 { {"-b1", "--BB1", "bool switch1"}, {"-b2", "", "bool switch2"}, {"", "--BB3", "bool switch3"}, {"-b4", "--BB4", "bool switch4"} },
                 { {"-a1", "--AA1", "value1", "111"}, {"-a2", "--AA2", "value2", "222"}, {"-a3", "--AA3", "value3", "333"}, {"-a4", "--AA4", "value4", ""} });
 
-            printf("%s ArgumentParser::init:%d.\n", ret0 == 0 ? "Passed." : "Failed!", ret0);
+            if (!(ret0 == 0)) mprintfE(R"(Failed when check: parser.parse)""\n");
+
 
             bool ret1 = parser.getParsedBoolOpt("-b1");
-            printf("%s ArgumentParser::getParsedBoolOpt(\"-b1\"):%d.\n", ret1 ? "Passed." : "Failed!", ret1);
+            if (!ret1) mprintfE(R"(Failed when check: parser.getParsedBoolOpt("-b1"):%d)""\n", ret1);
             ret1 = parser.getParsedBoolOpt("--BB1");
-            printf("%s ArgumentParser::getParsedBoolOpt(\"--BB1\"):%d.\n", ret1 ? "Passed." : "Failed!", ret1);
+            if (!ret1) mprintfE(R"(Failed when check: ArgumentParser::getParsedBoolOpt("-b1"):%d)""\n", ret1);
             ret1 = parser.getParsedBoolOpt("-b2");
-            printf("%s ArgumentParser::getParsedBoolOpt(\"-b2\"):%d.\n", ret1 ? "Passed." : "Failed!", ret1);
+            if (!ret1) mprintfE(R"(Failed when check: parser.getParsedBoolOpt("-b2"):%d)""\n", ret1);
             ret1 = parser.getParsedBoolOpt("");
-            printf("%s ArgumentParser::getParsedBoolOpt(\"\"):%d.\n", !ret1 ? "Passed." : "Failed!", ret1);
+            if (ret1) mprintfE(R"(Failed when check: parser.getParsedBoolOpt(""):%d)""\n", ret1);
 
             ret1 = parser.getParsedBoolOpt("--BBX");
-            printf("%s ArgumentParser::getParsedBoolOpt(\"--BBX\"):%d.\n", !ret1 ? "Passed." : "Failed!", ret1);
+            if (ret1) mprintfE(R"(Failed when check: parser.getParsedBoolOpt("--BBX"):%d)""\n", ret1);
 
             ret1 = parser.getParsedBoolOpt("--BB3");
-            printf("%s ArgumentParser::getParsedBoolOpt(\"--BB3\"):%d.\n", ret1 ? "Passed." : "Failed!", ret1);
+            if (!ret1) mprintfE(R"(Failed when check: parser.getParsedBoolOpt("--BB3"):%d)""\n", ret1);
 
             std::string ret2 = parser.getParsedValueOpt("-a1");
-            printf("%s ArgumentParser::getParsedValueOpt(\"-a1\"):%s.\n", ret2 == "1" ? "Passed." : "Failed!", ret2.c_str());
+            if (!(ret2 == "1")) mprintfE(R"(Failed when check: parser.getParsedValueOpt("-a1"):%d)""\n", ret2.c_str());
 
             ret2 = parser.getParsedValueOpt("--AA2");
-            printf("%s ArgumentParser::getParsedValueOpt(\"--AA2\"):%s.\n", ret2 == "2" ? "Passed." : "Failed!", ret2.c_str());
+            if (!(ret2 == "2")) mprintfE(R"(Failed when check: parser.getParsedValueOpt("--AA2"):%d)""\n", ret2.c_str());
 
             ret2 = parser.getParsedValueOpt("-a3");
-            printf("%s ArgumentParser::getParsedValueOpt(\"-a3\"):%s.\n", ret2 == "3" ? "Passed." : "Failed!", ret2.c_str());
+            if (!(ret2 == "3")) mprintfE(R"(Failed when check: parser.getParsedValueOpt("-a3"):%d)""\n", ret2.c_str());
 
             printf("User check:\n");
             parser.printPreset();
@@ -847,7 +850,7 @@ namespace mineutils
             printf("\n--------------------check mio start--------------------\n\n");
             printTest();
             parseArgsTest();
-            printf("--------------------check mio end--------------------\n\n");
+            printf("---------------------check mio end---------------------\n\n");
         }
     }
 #endif

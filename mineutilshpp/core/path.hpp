@@ -30,7 +30,7 @@ namespace mineutils
     //输入的路径应为合法格式
     namespace mpath
     {
-        //将windows路径中的\\变为标准的/分隔符，并将路径标准化，只能正确处理本身合法的路径
+        //将windows路径中的\\变为标准的/分隔符，去除末尾/分隔符，并将路径标准化，只能正确处理本身合法的路径
         std::string normPath(std::string path);
 
         //判断路径是否存在
@@ -45,10 +45,10 @@ namespace mineutils
         //判断路径是否为绝对路径
         bool isAbs(std::string path);
 
-        //判断路径是否为存在的目录
+        //判断路径是否为存在的目录(将目录的软链接视为目录，但目录的快捷方式不会被视为目录)
         bool isDir(std::string path);
 
-        //判断路径是否为存在的文件
+        //判断路径是否为存在的普通文件
         bool isFile(std::string path);
 
         //判断路径是否为存在的文件且拥有给定的后缀名之一
@@ -69,9 +69,6 @@ namespace mineutils
 
         //返回路径字符串对应的父目录
         std::string parent(std::string path);
-
-        //删除文件或目录，操作完成后path不存在则返回true
-        bool remove(std::string path);
 
         //遍历目录下的所有文件，出错时返回空vector
         std::vector<std::string> walk(std::string path, bool return_path = true);
@@ -167,7 +164,7 @@ namespace mineutils
             else
             {
                 auto start_pos = path.rfind('/') + 1;
-                auto end_pos = path.rfind('.', 1);
+                auto end_pos = path.rfind('.');
                 if (end_pos > start_pos)
                     name = path.substr(start_pos, end_pos - start_pos);
                 else name = path.substr(start_pos);
@@ -405,23 +402,6 @@ namespace mineutils
 #endif
         }
 
-        inline bool remove(std::string path)
-        {
-            return mpath::_remove(mpath::normPath(std::move(path)));
-        }
-        inline bool _remove(const std::string& path)
-        {
-            if (mpath::_isDir(path))
-            {
-                mpath::_removeDir(path);
-            }
-            else if (mpath::_isFile(path))
-            {
-                ::remove(path.c_str());
-            }
-            return !mpath::_exists(path);
-        }
-
         inline std::vector<std::string> walk(std::string path, bool return_path)
         {
             return mpath::_walk(mpath::normPath(std::move(path)), return_path);
@@ -447,6 +427,75 @@ namespace mineutils
             }
             return filenames;
         }
+
+
+
+        _mdeprecated("Deprecated! Please use the system api instead.") inline bool remove(std::string path)
+        {
+            return mpath::_remove(mpath::normPath(std::move(path)));
+        }
+        inline bool _remove(const std::string& path)
+        {
+            if (mpath::_isDir(path))
+            {
+                mpath::_removeDir(path);
+            }
+            else if (mpath::_isFile(path))
+            {
+                ::remove(path.c_str());
+            }
+            return !mpath::_exists(path);
+        }
     }
+
+
+
+#ifdef MINEUTILS_TEST_MODULES
+    namespace _mpathcheck
+    {
+        inline void mpathTest()
+        {
+            bool ret;
+            ret = mpath::normPath("./abc") == "abc";
+            if (!ret) mprintfE(R"(Failed when check: mpath::normPath("./abc"):%s == "abc")""\n", mpath::normPath("./abc").c_str());
+            ret = mpath::normPath("./abc/../") == "abc/..";
+            if (!ret) mprintfE(R"(Failed when check: mpath::normPath("./abc/../"):%s == "abc/..")""\n", mpath::normPath("./abc/../").c_str());
+
+            ret = mpath::splitName("./abc/file.txt", true) == "file.txt";
+            if (!ret) mprintfE(R"(Failed when check: mpath::splitName("./abc/file.txt", true):%s == "file.txt")""\n", mpath::splitName("./abc/file.txt", true).c_str());
+            ret = mpath::splitName("./abc/file.txt", false) == "file";
+            if (!ret) mprintfE(R"(Failed when check: mpath::splitName("./abc/file.txt", false):%s == "file")""\n", mpath::splitName("./abc/file.txt", false).c_str());
+
+            ret = mpath::splitExt("./abc/file.txt") == "txt";
+            if (!ret) mprintfE(R"(Failed when check: mpath::splitExt("./abc/file.txt"):%s == "txt")""\n", mpath::splitExt("./abc/file.txt").c_str());
+            ret = mpath::splitExt("txt") == "";
+            if (!ret) mprintfE(R"(Failed when check: mpath::splitExt("txt"):%s == "")""\n", mpath::splitExt("txt").c_str());
+            ret = mpath::splitExt("abc.aa/txt") == "";
+            if (!ret) mprintfE(R"(Failed when check: mpath::splitExt("abc.aa/txt"):%s == "")""\n", mpath::splitExt("abc.aa/txt").c_str());
+
+            ret = mpath::isAbs("/aa/bb/cc");
+            if (!ret) mprintfE(R"(Failed when check: mpath::isAbs("/aa/bb/cc"):%d)""\n", mpath::isAbs("/aa/bb/cc"));
+
+            ret = mpath::join("aa", "bb/", "cc") == "aa/bb/cc";
+            if (!ret) mprintfE(R"(Failed when check: mpath::join("aa", "bb/", "cc"):%s == "aa/bb/cc";)""\n", mpath::join("aa", "bb/", "cc").c_str());
+
+            ret = mpath::parent("./aa/bb") == "aa";
+            if (!ret) mprintfE(R"(Failed when check: mpath::parent("./aa/bb"):%s == "aa";)""\n", mpath::parent("./aa/bb").c_str());
+
+            ret = mpath::parent("./aa/../bb") == "aa/..";
+            if (!ret) mprintfE(R"(Failed when check: mpath::parent("./aa/../bb"):%s == "aa/..";)""\n", mpath::parent("./aa/../bb").c_str());
+
+            printf("\n");
+        }
+
+        inline void check()
+        {
+
+            printf("\n--------------------check mpath start--------------------\n\n");
+            mpathTest();
+            printf("---------------------check mpath end---------------------\n\n");
+        }
+    }
+#endif
 }
 #endif // !PATH_HPP_MINEUTILS
