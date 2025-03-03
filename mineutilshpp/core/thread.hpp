@@ -108,11 +108,8 @@ namespace mineutils
             TaskFuture& operator=(TaskFuture<Ret>&& future_state) noexcept;
 
         private:
-            //从std::future右值对象构造
-            explicit TaskFuture(std::future<Ret>&& future_state) noexcept;
-
             std::shared_future<Ret> future_state_;
-            friend class ThreadPool;
+            friend class mthrd::ThreadPool;
         };
 
 
@@ -129,7 +126,7 @@ namespace mineutils
                 - addTask(function or &function, args...)
                 - addTask(&class::mem_function, &class_obj, args...)
                 - addTask(&class::static_mem_function, args...)
-                - addTask(functor or std::ref(functor), args...)
+                - addTask(functor, args...)
                 注意，经测试QNX的g++4.7.3对C++11特性支持不全，以下情况可能直接在模板内部编译错误而非触发SFINAE特性：
                 - 仿函数作为Fn，但被类似std::reference_wrapper的第三方引用包装传递时
                 - 仿函数作为Fn，但匹配Args...的operator()为私有或受保护的成员时  
@@ -408,13 +405,6 @@ namespace mineutils
             return ReadWriteMutex::WGuard(this);
         }
 
-
-        template<class Ret>
-        inline TaskFuture<Ret>::TaskFuture(std::future<Ret>&& future_state) noexcept
-        {
-            this->future_state_ = std::move(future_state);
-        }
-
         template<class Ret>
         inline TaskFuture<Ret>::TaskFuture(TaskFuture<Ret>&& tmp_state) noexcept
         {
@@ -497,7 +487,8 @@ namespace mineutils
         inline TaskFuture<Ret> ThreadPool::addTask(Fn&& func, Args&&... args)
         {
             auto task = std::make_shared<std::packaged_task<Ret()>>(std::bind(std::forward<Fn>(func), std::forward<Args>(args)...));
-            TaskFuture<Ret> state(task->get_future());
+            TaskFuture<Ret> state;
+            state.future_state_ = task->get_future();
             {
                 std::lock_guard<std::mutex> lk(this->task_mtx_);
                 this->task_queue_.emplace([task]() {(*task)(); });

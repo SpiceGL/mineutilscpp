@@ -73,12 +73,6 @@ namespace mineutils
 
     namespace mstr
     {
-        template<class T, typename std::enable_if<mtype::ConstructibleFromEachChecker<std::string, const T&>::value, int>::type = 0>
-        inline std::string _toStr(std::streamsize, const T& arg)
-        {
-            return arg;
-        }
-
 #if !defined(__GNUC__) || _mgccMinVersion(4, 8, 1)
         inline std::ostringstream& _createToStrOss()
         {
@@ -96,11 +90,16 @@ namespace mineutils
 #else
             std::ostringstream str_buf;
 #endif
-
             str_buf.str("");
             str_buf.clear();
             str_buf << std::fixed << std::setprecision(float_precision) << arg;
             return str_buf.str();
+        }
+
+        template<class T, typename std::enable_if<mtype::ConstructibleFromEachChecker<std::string, const T&>::value, int>::type = 0>
+        inline std::string _toStr(uint8_t, const T& arg)
+        {
+            return arg;
         }
 
         template<uint8_t float_precision, class T, typename std::enable_if<mtype::StdCoutEachChecker<const T&>::value, int>::type>
@@ -112,13 +111,15 @@ namespace mineutils
         template<class T, typename std::enable_if<std::is_integral<T>::value, int>::type>
         inline std::string ordinalize(T number)
         {
-            auto num = number + 0;
-            if (number == 1)
-                return "1st";
-            else if (number == 2)
-                return "2nd";
-            else if (number == 3)
-                return "3rd";
+            auto num = number + 0;   //将字符型当作整型
+            const int abs_num = std::abs(num);
+
+            if ((abs_num % 10 == 1) && (abs_num % 100 != 11))
+                return mstr::toStr(num).append("st");
+            else if ((abs_num % 10 == 2) && (abs_num % 100 != 12))
+                return mstr::toStr(num).append("nd");
+            else if ((abs_num % 10 == 3) && (abs_num % 100 != 13))
+                return mstr::toStr(num).append("rd");
             else return mstr::toStr(num).append("th");
         }
 
@@ -294,6 +295,10 @@ namespace mineutils
             bool ret1;
             ret1 = (mstr::ordinalize(1) == "1st" && mstr::ordinalize(2) == "2nd" && mstr::ordinalize(3) == "3rd" && mstr::ordinalize(10) == "10th");
             if (!ret1) mprintfE(R"(Failed when check: mstr::ordinalize(1) == "1st" && mstr::ordinalize(2) == "2nd" && mstr::ordinalize(3) == "3rd" && mstr::ordinalize(10) == "10th")""\n");
+            ret1 = (mstr::ordinalize(21) == "21st" && mstr::ordinalize(22) == "22nd" && mstr::ordinalize(-23) == "-23rd");
+            if (!ret1) mprintfE(R"(Failed when check: mmstr::ordinalize(21) == "21st" && mstr::ordinalize(22) == "22nd" && mstr::ordinalize(-23) == "-23rd")""\n");
+            ret1 = (mstr::ordinalize(11) == "11th" && mstr::ordinalize(12) == "12th" && mstr::ordinalize(-13) == "-13th");
+            if (!ret1) mprintfE(R"(Failed when check: mstr::ordinalize(11) == "11th" && mstr::ordinalize(12) == "12th" && mstr::ordinalize(-13) == "-13th")""\n");
             printf("\n");
         }
         inline void toStrTest()
