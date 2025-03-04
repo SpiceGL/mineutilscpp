@@ -203,12 +203,11 @@ namespace mineutils
         void _print(const T& arg);
 
 
-        inline _MINE_EXPORT std::mutex& _immutableGetPrintlock()
+        _MINE_EXPORT inline std::mutex& _immutableGetPrintlock()
         {
             static std::mutex lk;
             return lk;
         }
-        _MINE_NOREMOVE const std::mutex& _print_mtx = _immutableGetPrintlock();
 
         template<class T, class... Args>
         inline void print(const T& arg, const Args&... args)
@@ -564,6 +563,11 @@ namespace mineutils
                 this->max_valueopt_size_ = now_size > this->max_valueopt_size_ ? now_size : this->max_valueopt_size_;
             }
 
+            if (argc < 1)
+            {
+                mprintfW("Wrong value of argc:%d!\n", argc);
+                return 1;
+            }
             for (int i = 1; i < argc; i++)
             {
                 if (boolop_keys.find(argv[i]) != boolop_keys.end())

@@ -232,16 +232,9 @@ namespace mineutils
 
     namespace mtime
     {
-        inline std::array<char, 32> _MINE_REF_WHEN_THREAD_LOCAL _createFmtDateTime()
-        {
-            _MINE_THREAD_LOCAL_IF_HAVE std::array<char, 32> fmt_date;
-            return fmt_date;
-        }
-        _MINE_NOREMOVE const auto _MINE_REF_WHEN_THREAD_LOCAL _fmt_datetime = _createFmtDateTime();
-
         inline std::ostream& operator<<(std::ostream& cout_obj, const DateTime& date_time)
         {
-            auto _MINE_REF_WHEN_THREAD_LOCAL fmt_date = _createFmtDateTime();
+            _MINE_THREAD_LOCAL_IF_HAVE char fmt_date[32];
 
             const char* fmt = nullptr;
             if (!date_time.valid)
@@ -252,8 +245,8 @@ namespace mineutils
                 fmt = "%04d-%02d-%02d %02d:%02d:%02d DST";
             else fmt = "%04d-%02d-%02d %02d:%02d:%02d STD";
 
-            snprintf(fmt_date.data(), sizeof(fmt_date), fmt, date_time.year, date_time.month, date_time.mday, date_time.hour, date_time.minute, date_time.second);
-            cout_obj << fmt_date.data();
+            snprintf(fmt_date, sizeof(fmt_date), fmt, date_time.year, date_time.month, date_time.mday, date_time.hour, date_time.minute, date_time.second);
+            cout_obj << fmt_date;
             return cout_obj;
         }
 
@@ -456,7 +449,6 @@ namespace mineutils
             static std::atomic<bool> g_timecounter_on(true);
             return g_timecounter_on;
         }
-        _MINE_NOREMOVE const std::atomic<bool>& _g_timecounter_on = _getGlobalTimeCounterEnabled();
 
         inline void enableGlobalTimeCounter(bool enabled)
         {

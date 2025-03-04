@@ -73,23 +73,10 @@ namespace mineutils
 
     namespace mstr
     {
-#if !defined(__GNUC__) || _mgccMinVersion(4, 8, 1)
-        inline std::ostringstream& _createToStrOss()
-        {
-            _MINE_THREAD_LOCAL_IF_HAVE std::ostringstream str_buf;
-            return str_buf;
-        }
-        _MINE_NOREMOVE const std::ostringstream& _to_str_oss = _createToStrOss();
-#endif
-
         template<class T, typename std::enable_if<!mtype::ConstructibleFromEachChecker<std::string, const T&>::value, int>::type = 0>
         inline std::string _toStr(uint8_t float_precision, const T& arg)
         {
-#if !defined(__GNUC__) || _mgccMinVersion(4, 8, 1)
-            std::ostringstream& str_buf = _createToStrOss();
-#else
-            std::ostringstream str_buf;
-#endif
+            _MINE_THREAD_LOCAL_IF_HAVE std::ostringstream str_buf;
             str_buf.str("");
             str_buf.clear();
             str_buf << std::fixed << std::setprecision(float_precision) << arg;
@@ -144,23 +131,11 @@ namespace mineutils
             }
         }
 
-#if !defined(__GNUC__) || _mgccMinVersion(4, 8, 1)
-        inline std::ostringstream& _createFormatOss()
-        {
-            _MINE_THREAD_LOCAL_IF_HAVE std::ostringstream str_buf;
-            return str_buf;
-        }
-        _MINE_NOREMOVE const std::ostringstream& _format_oss = _createFormatOss();
-#endif
 
         template<uint8_t float_precision, class... Args, typename std::enable_if<mtype::StdCoutEachChecker<int, const Args&...>::value, int>::type>
         std::string format(const std::string& f_string, const Args& ...args)
         {
-#if !defined(__GNUC__) || _mgccMinVersion(4, 8, 1)
-            std::ostringstream& oss = _createFormatOss();
-#else
-            std::ostringstream oss;
-#endif
+            _MINE_THREAD_LOCAL_IF_HAVE std::ostringstream oss;
             oss.str("");
             oss.clear();
             oss << std::fixed << std::setprecision(float_precision);

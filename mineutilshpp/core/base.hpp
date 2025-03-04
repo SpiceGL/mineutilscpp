@@ -20,8 +20,8 @@
 
 #define MINEUTILS_MAJOR_VERSION "2"   //主版本号，对应不向下兼容的API或文件改动
 #define MINEUTILS_MINOR_VERSION "1"   //次版本号，对应不影响现有API使用的新功能增加
-#define MINEUTILS_PATCH_VERSION "1"   //修订版本号，对应不改变API的BUG修复或效能优化
-#define MINEUTILS_DATE_VERSION "20250301-release"   //日期版本号，对应文档和注释级别的改动和测试阶段
+#define MINEUTILS_PATCH_VERSION "2"   //修订版本号，对应不改变API的BUG修复或效能优化
+#define MINEUTILS_DATE_VERSION "20250304-release"   //日期版本号，对应文档和注释级别的改动和测试阶段
 
 #ifdef __GNUC__ 
 #define MINE_FUNCSIG __PRETTY_FUNCTION__
@@ -117,7 +117,6 @@ namespace mineutils
             static std::string str = "[WARNING][%s: line %d] ";
             return str;
         }
-        _MINE_NOREMOVE const std::string& _deprecated_warning_str = mbase::_getDeprecatedWarningStr();
 
         _MINE_NOINLINE inline const char* _immutableGetDynamicVersion()
         {
@@ -184,17 +183,10 @@ namespace mineutils
         //    return s_func_sig;
         //}
 
-        //用于保证map的生命周期总是长于用户的使用时期
-        inline std::unordered_map<const char*, std::string> _MINE_REF_WHEN_THREAD_LOCAL _createFuncNameMap()
-        {
-            _MINE_THREAD_LOCAL_IF_HAVE std::unordered_map<const char*, std::string> func_name_map;
-            return func_name_map;
-        }
-        _MINE_NOREMOVE const std::unordered_map<const char*, std::string> _MINE_REF_WHEN_THREAD_LOCAL _func_name_map = _createFuncNameMap();
 
         inline const char* _splitFuncName(const char* func_sig, const char* func_name)
         {
-            std::unordered_map<const char*, std::string> _MINE_REF_WHEN_THREAD_LOCAL func_name_map = _createFuncNameMap();
+            _MINE_THREAD_LOCAL_IF_HAVE std::unordered_map<const char*, std::string> func_name_map;
             const char* tmp = func_name;
             auto it = func_name_map.find(func_sig);
             if (it != func_name_map.end())
@@ -236,9 +228,6 @@ namespace mineutils
             static std::string error_message(R"([ERROR][%s][%s: line %d] )");
             return error_message;
         }
-        _MINE_NOREMOVE const std::string& _info_message = _getFmtI();
-        _MINE_NOREMOVE const std::string& _warning_message = _getFmtW();
-        _MINE_NOREMOVE const std::string& _error_message = _getFmtE();
 
         template<class... Ts>
         inline void _printfI(const char* fmt_chars, const char* funcname, Ts ...args)

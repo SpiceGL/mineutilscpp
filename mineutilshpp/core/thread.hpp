@@ -480,7 +480,7 @@ namespace mineutils
                 if (thd.joinable())
                     thd.join();
             } 
-            mprintfI("Destroyed.\n");
+            //printf("[INFO][%s] Destroyed.\n", MINE_FUNCSIG);
         }
 
         template<class Fn, class... Args, class Ret, typename std::enable_if<std::is_same<Ret, typename mtype::StdBindTraits<Fn, Args...>::ReturnType>::value && (std::is_void<Ret>::value || std::is_move_assignable<typename std::remove_reference<Ret>::type>::value), int>::type>
