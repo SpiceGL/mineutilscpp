@@ -480,7 +480,6 @@ namespace mineutils
                 if (thd.joinable())
                     thd.join();
             } 
-            //printf("[INFO][%s] Destroyed.\n", MINE_FUNCSIG);
         }
 
         template<class Fn, class... Args, class Ret, typename std::enable_if<std::is_same<Ret, typename mtype::StdBindTraits<Fn, Args...>::ReturnType>::value && (std::is_void<Ret>::value || std::is_move_assignable<typename std::remove_reference<Ret>::type>::value), int>::type>
@@ -624,7 +623,6 @@ namespace mineutils
             thd2.join();
 
             if (!(func1_check_ret && func2_check_ret)) mprintfE(R"(Failed when check SpinLock)""\n");
-            printf("\n");
         }
 
         inline void ReadWriteMutexTest()
@@ -721,7 +719,6 @@ namespace mineutils
                 thd4.join();
                 if (!(func3_check_ret && func4_check_ret)) mprintfE(R"(Failed when check: ReadWriteMutexTest Write-Write Lock)""\n");
             }
-            printf("\n");
         }
 
         inline void ThreadPoolTest()
@@ -733,7 +730,7 @@ namespace mineutils
 
         inline void check()
         {
-            printf("\n--------------------check mthrd start--------------------\n\n");
+            printf("\n--------------------check mthrd start--------------------\n");
             SpinLockTest();
             ReadWriteMutexTest();
             ThreadPoolTest();

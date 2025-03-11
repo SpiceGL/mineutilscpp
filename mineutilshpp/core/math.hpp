@@ -25,18 +25,22 @@ namespace mineutils
         template<class T>
         class RectXYWH;
 
-        /*左上角-右下角：l、t、r、b排列的rect坐标，T只支持整型和浮点型，且不能为const、引用和volatile  */
+        /*  左上角-右下角：l、t、r、b排列的rect坐标，T只支持整型和浮点型，且不能为const、引用和volatile
+            - 若T为整数类型，表示数据为像素类型，为连续数值
+            - 数据为像素类型时的计算规则和连续数值不一样
+            - 数据为像素类型时，若L>R或T>B，Rect无效
+            - 数据为连续数值时，若L>=R或T>=B，Rect无效  
+            - 存在溢出时不保证结果正确  */
         template<class T>
         class RectLTRB
         {
         public:
             template<class U = T, typename std::enable_if<!std::is_const<U>::value && !std::is_reference<U>::value && !std::is_volatile<U>::value && std::is_same<U, T>::value && (std::is_integral<U>::value || std::is_floating_point<U>::value), int>::type = 0>
-            RectLTRB() {};
+            RectLTRB();
 
             template<class U = T, typename std::enable_if<!std::is_const<U>::value && !std::is_reference<U>::value && !std::is_volatile<U>::value && std::is_same<U, T>::value && (std::is_integral<U>::value || std::is_floating_point<U>::value), int>::type = 0>
             RectLTRB(T left_x, T top_y, T right_x, T bottom_y);
 
-            template<class U = T, typename std::enable_if<!std::is_const<U>::value && !std::is_reference<U>::value && !std::is_volatile<U>::value && std::is_same<U, T>::value && (std::is_integral<U>::value || std::is_floating_point<U>::value), int>::type = 0>
             RectLTRB(const RectLTRB<T>& rect);
 
             RectLTRB<T>& operator=(const RectLTRB<T>& rect);
@@ -46,6 +50,8 @@ namespace mineutils
             T& operator[](int idx);
             const T& operator[](int idx) const;
 
+            //判断当前Rect数据是否有效
+            bool valid() const;
             //将坐标转化为像素坐标，向下取整
             template<class PixT = int, typename std::enable_if<!std::is_const<PixT>::value && !std::is_reference<PixT>::value && !std::is_volatile<PixT>::value && std::is_integral<PixT>::value, int>::type = 0>
             RectLTRB<PixT> toPixel() const;
@@ -53,23 +59,30 @@ namespace mineutils
             RectXYWH<T> toXYWH() const;
             //若自身数据为整数类型，则按像素运算，否则按连续数值运算
             RectLTWH<T> toLTWH() const;
+            //裁剪自身位于另一个rect内的部分。若结果为无效代表无交集
+            RectLTRB<T> clipTo(const RectLTRB<T>& other) const;
+            //计算面积，注意T的范围避免溢出
+            T area() const;
 
         private:
             std::array<T, 4> data_;
         };
 
-        /*左上角-宽高：l、t、data_[2]、data_[3]排列的rect坐标，T只支持整型和浮点型，且不能为const、引用和volatile  */
+        /*  左上角-宽高：l、t、w、h排列的rect坐标，T只支持整型和浮点型，且不能为const、引用和volatile
+            - 若T为整数类型，表示数据为像素类型，为连续数
+            - 数据为像素类型时的计算规则和连续数值不一样
+            - W<=0或H<=0时，Rect无效
+            - 存在溢出时不保证结果正确  */
         template<class T>
         class RectLTWH
         {
         public:
             template<class U = T, typename std::enable_if<!std::is_const<U>::value && !std::is_reference<U>::value && !std::is_volatile<U>::value && std::is_same<U, T>::value && (std::is_integral<U>::value || std::is_floating_point<U>::value), int>::type = 0>
-            RectLTWH() {};
+            RectLTWH();
 
             template<class U = T, typename std::enable_if<!std::is_const<U>::value && !std::is_reference<U>::value && !std::is_volatile<U>::value && std::is_same<U, T>::value && (std::is_integral<U>::value || std::is_floating_point<U>::value), int>::type = 0>
             RectLTWH(T left_x, T top_y, T width, T height);
 
-            template<class U = T, typename std::enable_if<!std::is_const<U>::value && !std::is_reference<U>::value && !std::is_volatile<U>::value && std::is_same<U, T>::value && (std::is_integral<U>::value || std::is_floating_point<U>::value), int>::type = 0>
             RectLTWH(const RectLTWH<T>& rect);
 
             RectLTWH<T>& operator=(const RectLTWH<T>& rect);
@@ -79,6 +92,8 @@ namespace mineutils
             T& operator[](int idx);
             const T& operator[](int idx) const;
 
+            //判断当前Rect数据是否有效
+            bool valid() const;
             //将坐标转化为像素坐标，向下取整
             template<class PixT = int, typename std::enable_if<!std::is_const<PixT>::value && !std::is_reference<PixT>::value && !std::is_volatile<PixT>::value && std::is_integral<PixT>::value, int>::type = 0>
             RectLTWH<PixT> toPixel() const;
@@ -86,23 +101,30 @@ namespace mineutils
             RectLTRB<T> toLTRB() const;
             //若自身数据为整数类型，则按像素运算，否则按连续数值运算
             RectXYWH<T> toXYWH() const;
+            //裁剪自身位于另一个rect内的部分。若结果为无效代表无交集
+            RectLTWH<T> clipTo(const RectLTWH<T>& other) const;
+            //计算面积，注意T的范围避免溢出
+            T area() const;
 
         private:
             std::array<T, 4> data_;
         };
 
-        /*中心-宽高：data_[0]、data_[1]、data_[2]、data_[3]排列的rect坐标，T只支持整型和浮点型，且不能为const、引用和volatile  */
+        /*  中心-宽高：x、y、w、h排列的rect坐标，T只支持整型和浮点型，且不能为const、引用和volatile 
+            - 若T为整数类型，表示数据为像素类型，为连续数值`
+            - 数据为像素类型时的计算规则和连续数值不一样
+            - W<=0或H<=0时，Rect无效
+            - 存在溢出时不保证结果正确  */
         template<class T>
         class RectXYWH
         {
         public:
             template<class U = T, typename std::enable_if<!std::is_const<U>::value && !std::is_reference<U>::value && !std::is_volatile<U>::value && std::is_same<U, T>::value && (std::is_integral<U>::value || std::is_floating_point<U>::value), int>::type = 0>
-            RectXYWH() {};
+            RectXYWH();
 
             template<class U = T, typename std::enable_if<!std::is_const<U>::value && !std::is_reference<U>::value && !std::is_volatile<U>::value && std::is_same<U, T>::value && (std::is_integral<U>::value || std::is_floating_point<U>::value), int>::type = 0>
             RectXYWH(T center_x, T center_y, T width, T height);
 
-            template<class U = T, typename std::enable_if<!std::is_const<U>::value && !std::is_reference<U>::value && !std::is_volatile<U>::value && std::is_same<U, T>::value && (std::is_integral<U>::value || std::is_floating_point<U>::value), int>::type = 0>
             RectXYWH(const RectXYWH<T>& rect);
 
             RectXYWH<T>& operator=(const RectXYWH<T>& rect);
@@ -112,6 +134,8 @@ namespace mineutils
             T& operator[](int idx);
             const T& operator[](int idx) const;
 
+            //判断当前Rect数据是否有效
+            bool valid() const;
             //将坐标转化为像素坐标，向下取整
             template<class PixT = int, typename std::enable_if<!std::is_const<PixT>::value && !std::is_reference<PixT>::value && !std::is_volatile<PixT>::value && std::is_integral<PixT>::value, int>::type = 0>
             RectXYWH<PixT> toPixel() const;
@@ -119,6 +143,10 @@ namespace mineutils
             RectLTRB<T> toLTRB() const;
             //若自身数据为整数类型，则按像素运算，否则按连续数值运算
             RectLTWH<T> toLTWH() const;
+            //裁剪自身位于另一个rect内的部分。若结果为无效代表无交集
+            RectXYWH<T> clipTo(const RectXYWH<T>& other) const;
+            //计算面积，注意T的范围避免溢出
+            T area() const;
 
         private:
             std::array<T, 4> data_;
@@ -178,6 +206,15 @@ namespace mineutils
 
 
         /*------------------------------LTRB-----------------------------*/
+        template<class T>
+        template<class U, typename std::enable_if<!std::is_const<U>::value && !std::is_reference<U>::value && !std::is_volatile<U>::value&& std::is_same<U, T>::value && (std::is_integral<U>::value || std::is_floating_point<U>::value), int>::type>
+        inline RectLTRB<T>::RectLTRB()
+        {
+            this->data_[0] = 1;
+            this->data_[1] = 1;
+            this->data_[2] = 0;
+            this->data_[3] = 0;
+        }
 
         template<class T>
         template<class U, typename std::enable_if<!std::is_const<U>::value && !std::is_reference<U>::value && !std::is_volatile<U>::value && std::is_same<U, T>::value && (std::is_integral<U>::value || std::is_floating_point<U>::value), int>::type>
@@ -190,7 +227,6 @@ namespace mineutils
         }
 
         template<class T>
-        template<class U, typename std::enable_if<!std::is_const<U>::value && !std::is_reference<U>::value && !std::is_volatile<U>::value && std::is_same<U, T>::value && (std::is_integral<U>::value || std::is_floating_point<U>::value), int>::type>
         inline RectLTRB<T>::RectLTRB(const RectLTRB<T>& rect)
         {
             *this = rect;
@@ -222,6 +258,14 @@ namespace mineutils
             return this->data_[idx];
         }
 
+        template<class T>
+        inline bool RectLTRB<T>::valid() const
+        {
+            if (std::is_integral<T>::value)
+                return (this->data_[0] <= this->data_[2]) && (this->data_[1] <= this->data_[3]);
+            else return (this->data_[0] < this->data_[2]) && (this->data_[1] < this->data_[3]);
+        }
+
         //将坐标转化为像素坐标
         template<class T> 
         template<class PixT, typename std::enable_if<!std::is_const<PixT>::value && !std::is_reference<PixT>::value && !std::is_volatile<PixT>::value && std::is_integral<PixT>::value, int>::type>
@@ -235,7 +279,6 @@ namespace mineutils
         {
             if (std::is_integral<T>::value)
             {
-
                 T w = this->data_[2] - this->data_[0] + 1;
                 T h = this->data_[3] - this->data_[1] + 1;
                 T x = this->data_[0] + std::ceil((w - 1) / 2.f);
@@ -265,7 +308,48 @@ namespace mineutils
             return { this->data_[0], this->data_[1], w, h };
         }
 
+        template<class T>
+        inline RectLTRB<T> RectLTRB<T>::clipTo(const RectLTRB<T>& other) const
+        {
+            if (!this->valid() && !other.valid())   //如果比较的双方有一个无效，返回无效的结果
+                return { 1, 1, 0, 0 };
+            RectLTRB<T> tmp = *this;
+
+            if (tmp.data_[0] > other.data_[2] || tmp.data_[2] < other.data_[0] || tmp.data_[1] > other.data_[3] || tmp.data_[3] < other.data_[1])
+                return { 1, 1, 0, 0 };   //如果两者不相交，返回无效的结果
+            if (tmp.data_[0] < other.data_[0])
+                tmp.data_[0] = other.data_[0];
+            if (tmp.data_[1] < other.data_[1])
+                tmp.data_[1] = other.data_[1];
+            if (tmp.data_[2] > other.data_[2])
+                tmp.data_[2] = other.data_[2];
+            if (tmp.data_[3] > other.data_[3])
+                tmp.data_[3] = other.data_[3];
+            return tmp;
+        }
+
+        template<class T>
+        inline T RectLTRB<T>::area() const
+        {
+            if (!this->valid())
+                return 0;
+            if (std::is_integral<T>::value)
+                return (this->data_[2] - this->data_[0] + 1) * (this->data_[3] - this->data_[1] + 1);
+            else return (this->data_[2] - this->data_[0]) * (this->data_[3] - this->data_[1]);
+        }
+
         /*------------------------------LTWH-----------------------------*/
+
+
+        template<class T>
+        template<class U, typename std::enable_if<!std::is_const<U>::value && !std::is_reference<U>::value && !std::is_volatile<U>::value&& std::is_same<U, T>::value && (std::is_integral<U>::value || std::is_floating_point<U>::value), int>::type>
+        inline RectLTWH<T>::RectLTWH()
+        {
+            this->data_[0] = 1;
+            this->data_[1] = 1;
+            this->data_[2] = 0;
+            this->data_[3] = 0;
+        }
 
         template<class T>
         template<class U, typename std::enable_if<!std::is_const<U>::value && !std::is_reference<U>::value && !std::is_volatile<U>::value && std::is_same<U, T>::value && (std::is_integral<U>::value || std::is_floating_point<U>::value), int>::type>
@@ -278,7 +362,6 @@ namespace mineutils
         }
 
         template<class T>
-        template<class U, typename std::enable_if<!std::is_const<U>::value && !std::is_reference<U>::value && !std::is_volatile<U>::value && std::is_same<U, T>::value && (std::is_integral<U>::value || std::is_floating_point<U>::value), int>::type>
         inline RectLTWH<T>::RectLTWH(const RectLTWH<T>& rect)
         {
             *this = rect;
@@ -308,6 +391,12 @@ namespace mineutils
         inline const T& RectLTWH<T>::operator[](int idx) const
         {
             return this->data_[idx];
+        }
+
+        template<class T>
+        inline bool RectLTWH<T>::valid() const
+        {
+            return this->data_[2] > 0 && this->data_[3] > 0;
         }
 
         /*将坐标转化为像素坐标，向下取整*/
@@ -347,7 +436,35 @@ namespace mineutils
             }
         }
 
+        template<class T>
+        inline RectLTWH<T> RectLTWH<T>::clipTo(const RectLTWH<T>& other) const
+        {
+            if (!this->valid() && !other.valid())   //如果比较的双方有一个无效，返回无效的结果
+                return { 1, 1, 0, 0 };
+            RectLTRB<T> tmp = this->toLTRB();
+            RectLTRB<T> tmp_other = other.toLTRB();
+            return tmp.clipTo(tmp_other).toLTWH();
+        }
+
+        template<class T>
+        inline T RectLTWH<T>::area() const
+        {
+            if (!this->valid())
+                return 0;
+            return this->data_[2] * this->data_[3];
+        }
+
         /*------------------------------XYWH-----------------------------*/
+
+        template<class T>
+        template<class U, typename std::enable_if<!std::is_const<U>::value && !std::is_reference<U>::value && !std::is_volatile<U>::value&& std::is_same<U, T>::value && (std::is_integral<U>::value || std::is_floating_point<U>::value), int>::type>
+        inline RectXYWH<T>::RectXYWH()
+        {
+            this->data_[0] = 1;
+            this->data_[1] = 1;
+            this->data_[2] = 0;
+            this->data_[3] = 0;
+        }
 
         template<class T>
         template<class U, typename std::enable_if<!std::is_const<U>::value && !std::is_reference<U>::value && !std::is_volatile<U>::value && std::is_same<U, T>::value && (std::is_integral<U>::value || std::is_floating_point<U>::value), int>::type>
@@ -360,7 +477,6 @@ namespace mineutils
         }
 
         template<class T>
-        template<class U, typename std::enable_if<!std::is_const<U>::value && !std::is_reference<U>::value && !std::is_volatile<U>::value && std::is_same<U, T>::value && (std::is_integral<U>::value || std::is_floating_point<U>::value), int>::type>
         inline RectXYWH<T>::RectXYWH(const RectXYWH<T>& rect)
         {
             *this = rect;
@@ -390,6 +506,12 @@ namespace mineutils
         inline const T& RectXYWH<T>::operator[](int idx) const
         {
             return this->data_[idx];
+        }
+
+        template<class T>
+        inline bool RectXYWH<T>::valid() const
+        {
+            return this->data_[2] > 0 && this->data_[3] > 0;
         }
 
         //将坐标转化为像素坐标
@@ -437,6 +559,24 @@ namespace mineutils
             }
         }
 
+        template<class T>
+        inline RectXYWH<T> RectXYWH<T>::clipTo(const RectXYWH<T>& other) const
+        {
+            if (!this->valid() && !other.valid())   //如果比较的双方有一个无效，返回无效的结果
+                return { 1, 1, 0, 0 };
+            RectLTRB<T> tmp = this->toLTRB();
+            RectLTRB<T> tmp_other = other.toLTRB();
+            return tmp.clipTo(tmp_other).toXYWH();
+        }
+
+        template<class T>
+        inline T RectXYWH<T>::area() const
+        {
+            if (!this->valid())
+                return 0;
+            return this->data_[2] * this->data_[3];
+        }
+
         /*------------------------------------------------------------------------------*/
 
         //为Rect系列对象添加对operator<< 的支持
@@ -474,24 +614,48 @@ namespace mineutils
     {
         inline void RectTest()
         {
-            mmath::RectLTRB<int> rect(0, 0, 100, 200);
-            bool ret1;
-            ret1 = (mmath::RectLTRB<int>(0, 0, 100, 200).toLTWH() == mmath::RectLTWH<int>(0, 0, 101, 201));
-            if (!ret1) mprintfE("Failed when check: mmath::RectLTRB<int>(0, 0, 100, 200).toLTWH() == mmath::RectLTWH<int>(0, 0, 101, 201)\n");
+            bool ret0;
+            ret0 = (mmath::RectLTRB<int>(0, 0, 100, 200).toLTWH() == mmath::RectLTWH<int>(0, 0, 101, 201));
+            if (!ret0) mprintfE("Failed when check: mmath::RectLTRB<int>(0, 0, 100, 200).toLTWH() == mmath::RectLTWH<int>(0, 0, 101, 201)\n");
 
-            ret1 = (mmath::RectLTWH<int>(0, 0, 100, 200).toXYWH() == mmath::RectXYWH<int>(50, 100, 100, 200));
-            if (!ret1) mprintfE("Failed when check: mmath::RectLTWH<int>(0, 0, 100, 200).toXYWH() == mmath::RectXYWH<int>(50, 100, 100, 200)\n");
+            ret0 = (mmath::RectLTWH<int>(0, 0, 100, 200).toXYWH() == mmath::RectXYWH<int>(50, 100, 100, 200));
+            if (!ret0) mprintfE("Failed when check: mmath::RectLTWH<int>(0, 0, 100, 200).toXYWH() == mmath::RectXYWH<int>(50, 100, 100, 200)\n");
 
-            ret1 = (mmath::RectLTWH<double>(0.1, 0.9, 100.5, 200.3).toPixel<int>() == mmath::RectLTWH<int>(0, 0, 100, 200));
-            if (!ret1) mprintfE("Failed when check: mmath::RectLTWH<double>(0.1, 0.9, 100.5, 200.3).toPixel<int>() == mmath::RectLTWH<int>(0, 0, 100, 200)\n");
+            ret0 = (mmath::RectLTWH<double>(0.1, 0.9, 100.5, 200.3).toPixel<int>() == mmath::RectLTWH<int>(0, 0, 100, 200));
+            if (!ret0) mprintfE("Failed when check: mmath::RectLTWH<double>(0.1, 0.9, 100.5, 200.3).toPixel<int>() == mmath::RectLTWH<int>(0, 0, 100, 200)\n");
 
+            mmath::RectLTRB<int> rect0(0, 0, 100, 200);
+            mmath::RectLTRB<int> rect1(100, 200, 200, 300);
+            mmath::RectLTRB<int> rect2(50, 51, 200, 300);
+            ret0 = rect0.clipTo(rect1).valid();
+            if (!ret0) mprintfE("Failed when check: rect0.clipTo(rect1).valid()\n");
+            ret0 = rect0.clipTo(rect2) == mmath::RectLTRB<int>(50, 51, 100, 200);
+            if (!ret0) mprintfE("Failed when check: rect0.clipTo(rect2) == mmath::RectLTRB<int>(50, 51, 100, 200)\n");
 
-            printf("\n");
+            mmath::RectLTWH<int> rect3(0, 0, 100, 200);
+            mmath::RectLTWH<int> rect4(100, 200, 100, 100);
+            mmath::RectLTWH<int> rect5(50, 51, 150, 249);
+            ret0 = !rect3.clipTo(rect4).valid();
+            //printf("rect3.clipTo(rect4):{%d, %d, %d, %d}\n", rect3.clipTo(rect4)[0], rect3.clipTo(rect4)[1], rect3.clipTo(rect4)[2], rect3.clipTo(rect4)[3]);
+            if (!ret0) mprintfE("Failed when check: !rect3.clipTo(rect4).valid()\n");
+            ret0 = rect3.clipTo(rect5) == mmath::RectLTWH<int>(50, 51, 50, 149);
+            if (!ret0) mprintfE("Failed when check: rect3.clipTo(rect5) == mmath::RectLTWH<int>(50, 51, 50, 149)\n");
+
+            mmath::RectXYWH<int> rect6(50, 50, 100, 100);
+            mmath::RectXYWH<int> rect7(149, 149, 100, 100);
+            mmath::RectXYWH<int> rect8(50, 51, 150, 249);
+            //printf("rect6.clipTo(rect7):{%d, %d, %d, %d}\n", rect6.clipTo(rect7)[0], rect6.clipTo(rect7)[1], rect6.clipTo(rect7)[2], rect6.clipTo(rect7)[3]);
+            ret0 = rect6.clipTo(rect7).valid();
+            if (!ret0) mprintfE("Failed when check: rect6.clipTo(rect7).valid()\n");
+            ret0 = rect6.clipTo(rect7) == mmath::RectXYWH<int>(99, 99, 1, 1);
+            if (!ret0) mprintfE("Failed when check: rect6.clipTo(rect7) == mmath::RectXYWH<int>(99, 99, 1, 1)\n");
+            ret0 = rect6.clipTo(rect8).valid();
+            if (!ret0) mprintfE("Failed when check: rect6.clipTo(rect7).valid()\n");
         }
 
         inline void check()
         {
-            printf("\n--------------------check mmath start--------------------\n\n");
+            printf("\n--------------------check mmath start--------------------\n");
             RectTest();
             printf("---------------------check mmath end---------------------\n\n");
         }

@@ -410,6 +410,22 @@ namespace mineutils
             return 0;
         }
     }
+
+
+#ifdef MINEUTILS_TEST_MODULES
+    namespace _miocheck
+    {
+        inline void IniFileTest()
+        {
+            
+        }
+
+
+    }
+
+
+
+#endif
 }
 
 #endif // !FILE_HPP_MINEUTILS

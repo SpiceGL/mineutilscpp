@@ -42,9 +42,8 @@ namespace mineutils
 
 
         /*  检查T、Ts中的每一个类型是否都支持std::cout<<，支持模板SFINAE特性
-            - 每一个T、Ts类型的对象都正确重载了operator<<(std::ostream&, const T&)
-            - 对于每一个T、Ts类型的对象obj，std::cout<< obj的返回值类型为std::ostream&
-            - 对每一个T、Ts类型查找operator<<的范围为std命名空间、当前T所在命名空间及其关联命名空间，以及全局命名空间
+            - 每一个T、Ts类型的对象都重载了std::ostream& operator<<(std::ostream&, const T&)
+            - 对每一个T、Ts类型查找operator<<的范围为std命名空间、类型T所在命名空间及其关联命名空间，以及全局命名空间
             用法：StdCoutEachChecker<T, Ts...>::value, 类型为constexpr bool   */
         template<class T, class... Ts>
         struct StdCoutEachChecker;
@@ -262,9 +261,8 @@ namespace mineutils
 
 
         /*  检查T、Ts中的每一个类型是否都支持std::cout<<，支持模板SFINAE特性
-            - 每一个T、Ts类型的对象都正确重载了operator<<(std::ostream&, const T&)
-            - 对于每一个T、Ts类型的对象obj，std::cout<< obj的返回值类型为std::ostream&
-            - 对每一个T、Ts类型查找operator<<的范围为std命名空间、当前T所在命名空间及其关联命名空间，以及全局命名空间
+            - 每一个T、Ts类型的对象都重载了std::ostream& operator<<(std::ostream&, const T&)
+            - 对每一个T、Ts类型查找operator<<的范围为std命名空间、类型T所在命名空间及其关联命名空间，以及全局命名空间
             用法：StdCoutEachChecker<T, Ts...>::value, 类型为constexpr bool   */
         template<class T, class... Ts>
         struct StdCoutEachChecker
@@ -852,7 +850,6 @@ namespace mineutils
             using type1 = mtype::FuncTraits<decltype(&_MyClass3::func3)>::ReturnType;
             num_args = mtype::FuncTraits<decltype(&_MyClass3::func3)>::num_args;
             printf("User Check! FuncTraits<decltype(&_MyClass3::func3)>::ReturnType(int):%s, num_args(1):%d.\n", mtype::getTypeName<type1>(), num_args);
-            printf("\n");
         }
 
         class _Functor3
@@ -918,12 +915,11 @@ namespace mineutils
 
             using type1 = mtype::StdBindTraits<decltype(&_MyClass3::func2), const _MyClass3*, int>::ReturnType;
             printf("User Check! StdBindTraits<decltype(&_MyClass3::func2), const _MyClass3*, int>::ReturnType(int):%s.\n", mtype::getTypeName<type1>());
-            printf("\n");
         }
 
         inline void check()
         {
-            printf("\n--------------------check mtype start--------------------\n\n");
+            printf("\n--------------------check mtype start--------------------\n");
             SameTypesCheckerTest();
             InTypesCheckerTest();
             _StdBeginEndCheckerTest();

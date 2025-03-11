@@ -11,7 +11,7 @@
 #include"core/str.hpp"   //based on base.hpp && type.hpp
 #include"core/thread.hpp"   //based on base.hpp && type.hpp
 #include"core/file.hpp"   //based on base.hpp && str.hpp 
-#include"core/io.hpp"   //based on base.hpp && type.hpp
+#include"core/io.hpp"   //based on base.hpp, type.hpp && str.hpp
 
 #endif
 

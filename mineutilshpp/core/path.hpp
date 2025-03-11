@@ -484,14 +484,12 @@ namespace mineutils
 
             ret = mpath::parent("./aa/../bb") == "aa/..";
             if (!ret) mprintfE(R"(Failed when check: mpath::parent("./aa/../bb"):%s == "aa/..";)""\n", mpath::parent("./aa/../bb").c_str());
-
-            printf("\n");
         }
 
         inline void check()
         {
 
-            printf("\n--------------------check mpath start--------------------\n\n");
+            printf("\n--------------------check mpath start--------------------\n");
             mpathTest();
             printf("---------------------check mpath end---------------------\n\n");
         }

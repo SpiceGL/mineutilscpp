@@ -834,14 +834,13 @@ namespace mineutils
             std::cout << now_utc_time << std::endl;
             std::cout << now_time_add_60s << std::endl;
             std::cout << mtime::DateTime() << std::endl;
-            printf("\n");
         }
 
 
 
         inline void check()
         {
-            printf("\n--------------------check mtime start--------------------\n\n");
+            printf("\n--------------------check mtime start--------------------\n");
             MeanTimeCounterTest();
             nowTest();
             printf("---------------------check mtime end---------------------\n\n");
