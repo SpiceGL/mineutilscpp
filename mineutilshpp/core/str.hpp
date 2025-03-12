@@ -193,12 +193,10 @@ namespace mineutils
             return mstr::_toStrDispath<float_precision>(arg);
         }
 
-        template<class T, typename std::enable_if<std::is_integral<T>::value, int>::type>
-        inline std::string ordinalize(T number)
+        template<class T, typename std::enable_if<std::is_signed<T>::value, int>::type = 0>
+        inline std::string _ordinalize(T num)
         {
-            auto num = number + 0;   //将字符型当作整型
-            const int abs_num = std::abs(num);
-
+            const auto abs_num = abs(num);
             if ((abs_num % 10 == 1) && (abs_num % 100 != 11))
                 return mstr::toStr(num).append("st");
             else if ((abs_num % 10 == 2) && (abs_num % 100 != 12))
@@ -206,6 +204,24 @@ namespace mineutils
             else if ((abs_num % 10 == 3) && (abs_num % 100 != 13))
                 return mstr::toStr(num).append("rd");
             else return mstr::toStr(num).append("th");
+        }
+
+        template<class T, typename std::enable_if<!std::is_signed<T>::value, int>::type = 0>
+        inline std::string _ordinalize(T num)
+        {
+            if ((num % 10 == 1) && (num % 100 != 11))
+                return mstr::toStr(num).append("st");
+            else if ((num % 10 == 2) && (num % 100 != 12))
+                return mstr::toStr(num).append("nd");
+            else if ((num % 10 == 3) && (num % 100 != 13))
+                return mstr::toStr(num).append("rd");
+            else return mstr::toStr(num).append("th");
+        }
+
+        template<class T, typename std::enable_if<std::is_integral<T>::value, int>::type>
+        inline std::string ordinalize(T number)
+        {
+            return mstr::_ordinalize(number + 0);   //将字符型当作整型
         }
 
 
@@ -395,7 +411,7 @@ namespace mineutils
             if (n > 0)
             {
                 auto bg = arr.begin();
-                for (int i = 0; i < n - 1; ++i)
+                for (size_t i = 0; i < n - 1; ++i)
                 {
                     mstr::_osInput(oss, *bg);
                     oss << ", ";
