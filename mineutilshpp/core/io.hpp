@@ -73,23 +73,27 @@ namespace mineutils
         };
 
 
-        //main函数的参数解析工具，先parse，再调用其他接口
+        /*  main函数的参数解析工具
+            - 先调用parse，再调用其他方法
+            - 短标志以单横线 - 起始，接单字母，如 -s
+            - 长标志以双横线 -- 起始，如 --flag
+            - 支持短标志合并，但值选项只能作为合并的最后一位，如 -v value -b -B 合并为 -bBv value  */
         class ArgumentParser
         {
         public:
             ArgumentParser();
 
             /*  解析main函数接收的参数
-                @param boolopts_preset: 预设的布尔选项参数，格式为{{"-shortflag", "--longflag", "description"}, ...}，短标志和长标志至少需要给出一个
-                @param valueopts_preset: 预设的值选项参数，格式为{{"-shortflag", "--longflag", "description", "default value"}, ...}，短标志和长标志至少需要给出一个，默认值可以为空
+                @param boolopts_preset: 预设的布尔选项参数，格式为{{"-s", "--longflag", "description"}, ...}，短标志和长标志至少需要给出一个
+                @param valueopts_preset: 预设的值选项参数，格式为{{"-s", "--longflag", "description", "default value"}, ...}，短标志和长标志至少需要给出一个，默认值可以为空
                 @return 0代表成功，其他代表失败   */
             int parse(int argc, char* argv[], std::vector<BooleanOption> boolopts_preset, std::vector<ValueOption> valueopts_preset);
 
-            //获取解析的参数中是否指定了的布尔选项flag，注意flag必须带有"-"，即"-b"或"--bool"形式
-            bool getParsedBoolOpt(const std::string& flag);
+            //获取布尔选项flag的解析结果，注意flag必须带有"-"，即"-b"或"--bool"形式
+            bool getBoolOpt(const std::string& flag);
 
-            //获取解析的参数中指定的值选项flag的值，生命周期为销毁或重新parse之前。如果未指定则获得预设的默认值。注意flag必须带有"-"，即"-a"或"--arg"形式
-            const char* getParsedValueOpt(const std::string& flag);
+            //获取值选项flag的解析结果，生命周期为ArgumentParser对象销毁或重新parse之前。注意flag必须带有"-"，即"-a"或"--arg"形式
+            const char* getValueOpt(const std::string& flag);
 
             /*  按一定格式打印预设的选项与描述
                 Preset Boolean Options:
@@ -116,14 +120,19 @@ namespace mineutils
             ArgumentParser& operator=(const ArgumentParser& tmp) = delete;
 
         private:
-            int checkPresetsAreValid(const std::vector<BooleanOption>& boolopts_preset, const std::vector<ValueOption>& valueopts_preset);
+            bool checkPresetsAreValid(const std::vector<BooleanOption>& boolopts_preset, const std::vector<ValueOption>& valueopts_preset);
 
             std::vector<BooleanOption> boolopts_preset_;
             std::vector<ValueOption> valueopts_preset_;
             std::unordered_set<std::string> boolopts_parsed_;
             std::unordered_map<std::string, std::string> valueopts_parsed_;
             size_t max_flag_size_;
-            size_t max_desc_size_;
+        public:
+            //获取解析的参数中是否指定了的布尔选项flag，注意flag必须带有"-"，即"-b"或"--bool"形式
+            _mdeprecated("Deprecated! Please use getBoolOpt instead.") bool getParsedBoolOpt(const std::string& flag);
+
+            //获取值选项flag的解析结果值，生命周期为ArgumentParser对象销毁或重新parse之前。注意flag必须带有"-"，即"-a"或"--arg"形式
+            _mdeprecated("Deprecated! Please use getValueOpt instead.") const char* getParsedValueOpt(const std::string& flag);
         };
     }
 
@@ -262,15 +271,28 @@ namespace mineutils
             }
             for (int i = 1; i < argc; i++)
             {
-                if (boolop_keys.find(argv[i]) != boolop_keys.end())
+                std::string flag_maybe = argv[i];
+                if (flag_maybe.size() < 2)
+                    continue;
+                if (flag_maybe.data()[0] == '-' && flag_maybe.data()[1] != '-' && flag_maybe.size() > 2)
                 {
-                    *boolop_keys[argv[i]] = 1;
+                    for (size_t j = 1; j < flag_maybe.size() - 1; j++)
+                    {
+                        std::string sflag = std::string("-").append(flag_maybe.substr(j, 1));
+                        if (boolop_keys.find(sflag) != boolop_keys.end())
+                            *boolop_keys[sflag] = 1;          
+                    }
+                    flag_maybe = std::string("-").append(flag_maybe.substr(flag_maybe.size() - 1, 1));
                 }
-                else if (valueop_keys.find(argv[i]) != valueop_keys.end())
+                if (boolop_keys.find(flag_maybe) != boolop_keys.end())
+                {
+                    *boolop_keys[flag_maybe] = 1;
+                }
+                else if (valueop_keys.find(flag_maybe) != valueop_keys.end())
                 {
                     //如果value option是最后一个argv，或value option的下一个argv是另一个opthion，init失败
                     if (i < argc - 1 && boolop_keys.find(argv[i + 1]) == boolop_keys.end() && valueop_keys.find(argv[i + 1]) == valueop_keys.end())
-                        *valueop_keys[argv[i]] = argv[i + 1];
+                        *valueop_keys[flag_maybe] = argv[i + 1];
                     else return -1;
                 }
             }
@@ -289,7 +311,7 @@ namespace mineutils
             return 0;
         }
 
-        inline bool ArgumentParser::getParsedBoolOpt(const std::string& flag)
+        inline bool ArgumentParser::getBoolOpt(const std::string& flag)
         {
             if (flag.empty())
             {
@@ -299,7 +321,22 @@ namespace mineutils
             return this->boolopts_parsed_.find(flag) != this->boolopts_parsed_.end();
         }
 
-        inline const char* ArgumentParser::getParsedValueOpt(const std::string& flag)
+        inline bool ArgumentParser::getParsedBoolOpt(const std::string& flag)
+        {
+            return this - getBoolOpt(flag);
+        }
+
+        //inline const char* ArgumentParser::getPresetValueOpt(const std::string& flag)
+        //{
+        //    for (const auto& v_preset : this->valueopts_preset_)
+        //    {
+        //        if (v_preset[0] == flag || v_preset[1] == flag)
+        //            return v_preset[3].c_str();
+        //    }
+        //    return "";
+        //}
+
+        inline const char* ArgumentParser::getValueOpt(const std::string& flag)
         {
             if (flag.empty())
             {
@@ -309,6 +346,11 @@ namespace mineutils
             if (this->valueopts_parsed_.find(flag) != this->valueopts_parsed_.end())
                 return this->valueopts_parsed_[flag].c_str();
             return "";
+        }
+
+        inline const char* ArgumentParser::getParsedValueOpt(const std::string& flag)
+        {
+            return this->getValueOpt(flag);
         }
 
         inline void ArgumentParser::printPreset()
@@ -370,22 +412,23 @@ namespace mineutils
             printf("\n");
         }
 
-        inline int ArgumentParser::checkPresetsAreValid(const std::vector<BooleanOption>& boolopts_preset, const std::vector<ValueOption>& valueopts_preset)
+        inline bool ArgumentParser::checkPresetsAreValid(const std::vector<BooleanOption>& boolopts_preset, const std::vector<ValueOption>& valueopts_preset)
         {
             std::unordered_set<std::string> bool_flags;
             bool_flags.reserve(boolopts_preset.size() * 2);
             for (auto& boolop : boolopts_preset)
             {
-                if (boolop[0].size() < 2 && boolop[1].size() < 3)
+                if (boolop[0].empty() && boolop[1].empty())
                 {
-                    mprintfE("{%s, %s} is invalid!\n", boolop[0].c_str(), boolop[1].c_str());
+                    mprintfE("Both short flag and long flag are empty()!\n");
                     return false;
                 }
+
                 if (!boolop[0].empty())
                 {
-                    if (boolop[0][0] != '-' or boolop[0][1] == '-')
+                    if (boolop[0].size() != 2 || boolop[0][0] != '-' || boolop[0][1] == '-' || mstr::split(boolop[0])[0] != boolop[0])
                     {
-                        mprintfE("%s is invalid short option!\n", boolop[0].c_str());
+                        mprintfE("Invalid short flag:%s!\n", boolop[0].c_str());
                         return false;
                     }
                     if (bool_flags.find(boolop[0]) != bool_flags.end())
@@ -395,11 +438,12 @@ namespace mineutils
                     }
                     bool_flags.emplace(boolop[0]);
                 }
+
                 if (!boolop[1].empty())
                 {
-                    if (boolop[1].substr(0, 2) != "--" or boolop[1][2] == '-')
+                    if (boolop[1].size() < 3 || boolop[1].substr(0, 2) != "--" || boolop[1][2] == '-' || mstr::split(boolop[1])[0] != boolop[1])
                     {
-                        mprintfE("%s is invalid long option!\n", boolop[1].c_str());
+                        mprintfE("Invalid long flag:%s!\n", boolop[1].c_str());
                         return false;
                     }
                     if (bool_flags.find(boolop[1]) != bool_flags.end())
@@ -415,16 +459,17 @@ namespace mineutils
             value_flags.reserve(valueopts_preset.size() * 2);
             for (auto& value_op : valueopts_preset)
             {
-                if (value_op[0].size() < 2 && value_op[1].size() < 3)
+                if (value_op[0].empty() && value_op[1].empty())
                 {
-                    mprintfE("The option {%s, %s} is invalid!\n", value_op[0].c_str(), value_op[1].c_str());
+                    mprintfE("Both short flag and long flag are empty()!\n");
                     return false;
                 }
+
                 if (!value_op[0].empty())
                 {
-                    if (value_op[0][0] != '-' or value_op[0][1] == '-')
+                    if (value_op[0].size() != 2 || value_op[0][0] != '-' || value_op[0][1] == '-' || mstr::split(value_op[0])[0] != value_op[0])
                     {
-                        mprintfE("%s is invalid short option!\n", value_op[0].c_str());
+                        mprintfE("Invalid short flag:%s!\n", value_op[0].c_str());
                         return false;
                     }
                     if (bool_flags.find(value_op[0]) != bool_flags.end())
@@ -439,11 +484,12 @@ namespace mineutils
                     }
                     value_flags.emplace(value_op[0]);
                 }
+
                 if (!value_op[1].empty())
                 {
-                    if (value_op[1].substr(0, 2) != "--" or value_op[1][2] == '-')
+                    if (value_op[1].size() < 3 || value_op[1].substr(0, 2) != "--" || value_op[1][2] == '-' || mstr::split(value_op[1])[0] != value_op[1])
                     {
-                        mprintfE("%s is invalid long option!\n", value_op[1].c_str());
+                        mprintfE("Invalid long flag:%s!\n", value_op[1].c_str());
                         return false;
                     }
                     if (bool_flags.find(value_op[1]) != bool_flags.end())
@@ -490,53 +536,65 @@ namespace mineutils
             std::vector<char*> argv_vec;
             argv_vec.resize(11);
             argv_vec[0] = (char*)"demo";
-            argv_vec[1] = (char*)"-b1";
-            argv_vec[2] = (char*)"--BBX";
-            argv_vec[3] = (char*)"-b2";
-            argv_vec[4] = (char*)"--BB3";
+            argv_vec[1] = (char*)"-a";
+            argv_vec[2] = (char*)"nothing";
+            argv_vec[3] = (char*)"-cdD";
+            argv_vec[4] = (char*)"4";
 
-            argv_vec[5] = (char*)"-a1";
+            argv_vec[5] = (char*)"-A";
             argv_vec[6] = (char*)"1";
-            argv_vec[7] = (char*)"--AA2";
+            argv_vec[7] = (char*)"--BB";
             argv_vec[8] = (char*)"2";
-            argv_vec[9] = (char*)"--AA3";
+            argv_vec[9] = (char*)"--CC";
             argv_vec[10] = (char*)"3";
             mio::ArgumentParser parser;
             std::vector<std::array<std::string, 3>> bool_opts;
             int ret0 = parser.parse(argv_vec.size(), argv_vec.data(),
-                { {"-b1", "--BB1", "bool switch1"}, {"-b2", "", "bool switch2"}, {"", "--BB3", "bool switch3"}, {"-b4", "--BB4", "bool switch4"} },
-                { {"-a1", "--AA1", "value1", "111"}, {"-a2", "--AA2", "value02", "222"}, {"-a3", "--AA3", "value003", "333"}, {"-a4", "--AA0004", "value4", ""} });
+                { {"-a", "--aa", "bool switch1"}, {"-b", "--bb", "bool switch2"}, {"-c", "--cc", "bool switch3"}, {"-d", "--dd", "bool switch4"}},
+                { {"-A", "--AA", "value1", "111"}, {"-B", "--BB", "value02", "222"}, {"", "--CC", "value003", "333"}, {"-D", "--DD", "value4", ""} });
 
             if (!(ret0 == 0)) mprintfE(R"(Failed when check: parser.parse)""\n");
 
 
-            bool ret1 = parser.getParsedBoolOpt("-b1");
-            if (!ret1) mprintfE(R"(Failed when check: parser.getParsedBoolOpt("-b1"):%d)""\n", ret1);
-            ret1 = parser.getParsedBoolOpt("--BB1");
-            if (!ret1) mprintfE(R"(Failed when check: ArgumentParser::getParsedBoolOpt("-b1"):%d)""\n", ret1);
-            ret1 = parser.getParsedBoolOpt("-b2");
-            if (!ret1) mprintfE(R"(Failed when check: parser.getParsedBoolOpt("-b2"):%d)""\n", ret1);
-            ret1 = parser.getParsedBoolOpt("");
-            if (ret1) mprintfE(R"(Failed when check: parser.getParsedBoolOpt(""):%d)""\n", ret1);
+            bool ret1 = parser.getBoolOpt("-a");
+            if (!ret1) mprintfE(R"(Failed when check: parser.getBoolOpt("-a"):%d)""\n", ret1);
+            ret1 = parser.getBoolOpt("--aa");
+            if (!ret1) mprintfE(R"(Failed when check: ArgumentParser::getBoolOpt("--aa"):%d)""\n", ret1);
+            ret1 = parser.getBoolOpt("-b");
+            if (ret1) mprintfE(R"(Failed when check: parser.getBoolOpt("-"):%d)""\n", ret1);
+            ret1 = parser.getBoolOpt("--bb");
+            if (ret1) mprintfE(R"(Failed when check: parser.getBoolOpt("--bb"):%d)""\n", ret1);
+            ret1 = parser.getBoolOpt("");
+            if (ret1) mprintfE(R"(Failed when check: parser.getBoolOpt(""):%d)""\n", ret1);
 
-            ret1 = parser.getParsedBoolOpt("--BBX");
-            if (ret1) mprintfE(R"(Failed when check: parser.getParsedBoolOpt("--BBX"):%d)""\n", ret1);
+            ret1 = parser.getBoolOpt("--cc");
+            if (!ret1) mprintfE(R"(Failed when check: parser.getBoolOpt("--cc"):%d)""\n", ret1);
+            ret1 = parser.getBoolOpt("-d");
+            if (!ret1) mprintfE(R"(Failed when check: parser.getBoolOpt("-d"):%d)""\n", ret1);
 
-            ret1 = parser.getParsedBoolOpt("--BB3");
-            if (!ret1) mprintfE(R"(Failed when check: parser.getParsedBoolOpt("--BB3"):%d)""\n", ret1);
+            std::string ret2 = parser.getValueOpt("-A");
+            if (!(ret2 == "1")) mprintfE(R"(Failed when check: parser.getValueOpt("-A"):%s)""\n", ret2.c_str());
 
-            std::string ret2 = parser.getParsedValueOpt("-a1");
-            if (!(ret2 == "1")) mprintfE(R"(Failed when check: parser.getParsedValueOpt("-a1"):%d)""\n", ret2.c_str());
+            ret2 = parser.getValueOpt("--BB");
+            if (!(ret2 == "2")) mprintfE(R"(Failed when check: parser.getValueOpt("--BB"):%s)""\n", ret2.c_str());
 
-            ret2 = parser.getParsedValueOpt("--AA2");
-            if (!(ret2 == "2")) mprintfE(R"(Failed when check: parser.getParsedValueOpt("--AA2"):%d)""\n", ret2.c_str());
-
-            ret2 = parser.getParsedValueOpt("-a3");
-            if (!(ret2 == "3")) mprintfE(R"(Failed when check: parser.getParsedValueOpt("-a3"):%d)""\n", ret2.c_str());
-
-            printf("User check:\n");
+            ret2 = parser.getValueOpt("--CC");
+            if (!(ret2 == "3")) mprintfE(R"(Failed when check: parser.getValueOpt("--CC"):%s)""\n", ret2.c_str());
+            ret2 = parser.getValueOpt("-D");
+            if (!(ret2 == "4")) mprintfE(R"(Failed when check: parser.getValueOpt("-D"):%s)""\n", ret2.c_str());
+            
+            printf("User check:\n");      
             parser.printPreset();
             parser.printParsed();
+            printf("User check:\n");
+            ret0 = parser.parse(argv_vec.size(), argv_vec.data(), { }, { {"-A ", "--AA", "value1", "111"} });
+            if (ret0 == 0) mprintfE(R"(Failed when check: parser.parse(argv_vec.size(), argv_vec.data(), { }, { {"-A ", "--AA", "value1", "111"} }))""\n");
+            ret0 = parser.parse(argv_vec.size(), argv_vec.data(), { }, { {"- ", "--AA", "value1", "111"} });
+            if (ret0 == 0) mprintfE(R"(Failed when check: parser.parse(argv_vec.size(), argv_vec.data(), { }, { {"- ", "--AA", "value1", "111"} }))""\n");
+            ret0 = parser.parse(argv_vec.size(), argv_vec.data(), { }, { {"-A", "--A A", "value1", "111"} });
+            if (ret0 == 0) mprintfE(R"(Failed when check: parser.parse(argv_vec.size(), argv_vec.data(), { }, { {"-A ", "--A A", "value1", "111"} }))""\n");
+            ret0 = parser.parse(argv_vec.size(), argv_vec.data(), { }, { {"-A", "-AA", "value1", "111"} });
+            if (ret0 == 0) mprintfE(R"(Failed when check: parser.parse(argv_vec.size(), argv_vec.data(), { }, { {"-A ", "-AA", "value1", "111"} }))""\n");
         }
 
         inline void check()

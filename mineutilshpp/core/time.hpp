@@ -546,23 +546,23 @@ namespace mineutils
                     {
                     case Unit::s:
                         mean_time_cost = std::chrono::duration_cast<std::chrono::seconds>(this->time_cost_).count() / this->addend_times_;
-                        msg = "%s mean cost time %llds in %d counts\n";
+                        msg = "%s mean cost time %llds in %d counts.\n";
                         break;
                     case Unit::ms:
                         mean_time_cost = std::chrono::duration_cast<std::chrono::milliseconds>(this->time_cost_).count() / this->addend_times_;
-                        msg = "%s mean cost time %lldms in %d counts\n";
+                        msg = "%s mean cost time %lldms in %d counts.\n";
                         break;
                     case Unit::us:
                         mean_time_cost = std::chrono::duration_cast<std::chrono::microseconds>(this->time_cost_).count() / this->addend_times_;
-                        msg = "%s mean cost time %lldus in %d counts\n";
+                        msg = "%s mean cost time %lldus in %d counts.\n";
                         break;
                     case Unit::ns:
                         mean_time_cost = std::chrono::duration_cast<std::chrono::nanoseconds>(this->time_cost_).count() / this->addend_times_;
-                        msg = "%s mean cost time %lldns in %d counts\n";
+                        msg = "%s mean cost time %lldns in %d counts.\n";
                         break;
                     default:
                         mean_time_cost = std::chrono::duration_cast<std::chrono::milliseconds>(this->time_cost_).count() / this->addend_times_;
-                        msg = "%s mean cost time %lldms in %d counts\n";
+                        msg = "%s mean cost time %lldms in %d counts.\n";
                         break;
                     }
                     printf(msg, this->final_tag_.c_str(), mean_time_cost, this->addend_times_);
@@ -798,10 +798,9 @@ namespace mineutils
                     auto guard = time_counter.markGuard("Guard 1");
                     mtime::msleep(60);
                 }
-                printf("User check! Expected output: \nMeanTimeCounterTest: Guard 2 mean cost time 60ms in 10 counts  \nMeanTimeCounterTest: Guard 1 mean cost time 60ms in 10 counts\n");
+                printf("User check! Expected output: \nMeanTimeCounterTest: Guard 2 mean cost time 60ms in 10 counts  \nMeanTimeCounterTest: Guard 1 mean cost time 60ms in 10 counts.\n");
                 printf("Actual output:\n");
                 time_counter.printOnTargetCount<mtime::ms>();
-
             }
         }
 
