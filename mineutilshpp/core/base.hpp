@@ -1,16 +1,16 @@
-﻿/*  mineutils库的版本信息及完整实现需要的基本工具
- *  项目名称: mineutilscpp
- *  GitHub 地址: https://github.com/SpiceGL/mineutilscpp    */
+/*  mineutils库的版本信息及完整实现需要的基本工具  */
 #pragma once
 #ifndef BASE_HPP_MINEUTILS
 #define BASE_HPP_MINEUTILS
 
 #include<atomic>
+#include<chrono>
 #include<stdio.h>
 #include<stdint.h>
 #include<string>
 #include<string.h>
 #include<thread>
+#include<time.h>
 #include<typeinfo>
 #include<type_traits>
 #include<unordered_map>
@@ -19,9 +19,9 @@
 #endif
 
 #define MINEUTILS_MAJOR_VERSION "2"   //主版本号，对应不向下兼容的API或文件改动
-#define MINEUTILS_MINOR_VERSION "3"   //次版本号，对应不影响现有API使用的新功能增加
+#define MINEUTILS_MINOR_VERSION "4"   //次版本号，对应不影响现有API使用的新功能增加
 #define MINEUTILS_PATCH_VERSION "0"   //修订版本号，对应不改变API的BUG修复或效能优化
-#define MINEUTILS_DATE_VERSION "20250314-release"   //日期版本号，对应文档和注释级别的改动和测试阶段
+#define MINEUTILS_DATE_VERSION "20250430-release"   //日期版本号，对应文档和注释级别的改动和测试阶段
 
 #ifdef __GNUC__ 
 #define MINE_FUNCSIG __PRETTY_FUNCTION__
@@ -37,7 +37,8 @@
 #define munlikely(condition) (condition)
 #endif 
 
-//命名空间::类名::函数名格式的const char*字符串
+
+ //命名空间::类名::函数名格式的const char*字符串
 #define MINE_FUNCNAME mineutils::mbase::_splitFuncName(MINE_FUNCSIG, __func__)
 
 //按printf的格式调用，打印带函数名的普通提示信息
@@ -69,7 +70,7 @@ namespace mineutils
 
 
 
-        
+
 
 
     /*--------------------------------------------内部实现--------------------------------------------*/
@@ -193,7 +194,7 @@ namespace mineutils
                 return it->second.c_str();
             if (strcmp(func_sig, func_name) == 0)
                 return func_name;
-            
+
             std::string s_func_sig = func_sig;
             size_t name_pos = s_func_sig.find(func_name + std::string("("));
             if (name_pos == std::string::npos)
@@ -220,12 +221,12 @@ namespace mineutils
         }
         inline const std::string& _getFmtW()
         {
-            static std::string warning_message(R"([WARNING][%s][%s: line %d] )");
+            static std::string warning_message(R"([%02d:%02d:%02d %s][WARNING][%s][%s: line %d] )");
             return warning_message;
         }
         inline const std::string& _getFmtE()
         {
-            static std::string error_message(R"([ERROR][%s][%s: line %d] )");
+            static std::string error_message(R"([%02d:%02d:%02d %s][ERROR][%s][%s: line %d] )");
             return error_message;
         }
 
@@ -238,13 +239,27 @@ namespace mineutils
         template<class... Ts>
         inline void _printfW(const char* fmt_chars, const char* funcname, const char* filename, int line, Ts ...args)
         {
-            printf((mbase::_getFmtW() + fmt_chars).c_str(), funcname, filename, line, args...);
+            time_t now_time_t = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+            tm buf;
+#if defined(_MSC_VER)
+            localtime_s(&buf, &now_time_t);
+#else
+            localtime_r(&now_time_t, &buf);
+#endif
+            fprintf(stderr, (mbase::_getFmtW() + fmt_chars).c_str(), buf.tm_hour, buf.tm_min, buf.tm_sec, buf.tm_isdst ? "DST" : "STD", funcname, filename, line, args...);
         }
 
         template<class... Ts>
         inline void _printfE(const char* fmt_chars, const char* funcname, const char* filename, int line, Ts ...args)
         {
-            printf((mbase::_getFmtE() + fmt_chars).c_str(), funcname, filename, line, args...);
+            time_t now_time_t = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+            tm buf;
+#if defined(_MSC_VER)
+            localtime_s(&buf, &now_time_t);
+#else
+            localtime_r(&now_time_t, &buf);
+#endif
+            fprintf(stderr, (mbase::_getFmtE() + fmt_chars).c_str(), buf.tm_hour, buf.tm_min, buf.tm_sec, buf.tm_isdst ? "DST" : "STD", funcname, filename, line, args...);
         }
 
         inline std::pair<unsigned int, unsigned int> _normRange(std::pair<unsigned int, unsigned int> range, unsigned int len)
@@ -255,6 +270,8 @@ namespace mineutils
                 range.second = len;
             return range;
         }
+
+
     }
 
 }

@@ -1,4 +1,4 @@
-﻿//mineutils库的终端输入输出相关
+//mineutils库的终端输入输出相关
 #pragma once
 #ifndef IO_HPP_MINEUTILS
 #define IO_HPP_MINEUTILS
@@ -227,7 +227,7 @@ namespace mineutils
             this->max_flag_size_ = 0;
             this->boolopts_preset_ = std::move(boolopts_preset);
             this->valueopts_preset_ = std::move(valueopts_preset);
-  
+
             std::vector<int> boolop_values;   //存放布尔开关的值
             boolop_values.reserve(this->boolopts_preset_.size());
             std::unordered_map<std::string, int*> boolop_keys;   //存放布尔开关的键
@@ -239,7 +239,7 @@ namespace mineutils
                 boolop_values.push_back(0);
                 boolop_keys[boolop[0]] = &boolop_values.back();
                 boolop_keys[boolop[1]] = &boolop_values.back();
-                
+
                 if (boolop[0].empty() || boolop[1].empty())
                     now_vsize = boolop[0].size() + boolop[1].size();
                 else now_vsize = boolop[0].size() + boolop[1].size() + 2;
@@ -280,7 +280,7 @@ namespace mineutils
                     {
                         std::string sflag = std::string("-").append(flag_maybe.substr(j, 1));
                         if (boolop_keys.find(sflag) != boolop_keys.end())
-                            *boolop_keys[sflag] = 1;          
+                            *boolop_keys[sflag] = 1;
                     }
                     flag_maybe = std::string("-").append(flag_maybe.substr(flag_maybe.size() - 1, 1));
                 }
@@ -323,7 +323,7 @@ namespace mineutils
 
         inline bool ArgumentParser::getParsedBoolOpt(const std::string& flag)
         {
-            return this - getBoolOpt(flag);
+            return this->getBoolOpt(flag);
         }
 
         //inline const char* ArgumentParser::getPresetValueOpt(const std::string& flag)
@@ -377,7 +377,7 @@ namespace mineutils
                     flag_part = valueop[0] + valueop[1];
                 else flag_part = valueop[0] + ", " + valueop[1];
                 flag_part.resize(this->max_flag_size_, ' ');
-                printf("    %s    %s %s\n", flag_part.c_str(), valueop[2].empty() ? "" : ("[Description] " + valueop[2]).c_str(), valueop[3].empty() ? "(Required)" : ("(Default: " + valueop[3]+")").c_str());
+                printf("    %s    %s %s\n", flag_part.c_str(), valueop[2].empty() ? "" : ("[Description] " + valueop[2]).c_str(), valueop[3].empty() ? "(Required)" : ("(Default: " + valueop[3] + ")").c_str());
             }
             printf("\n");
         }
@@ -525,7 +525,7 @@ namespace mineutils
             std::initializer_list<int> initl({ 1, 2, 3 });
 
             printf("User check! Expected output: {0:0.1, 0:1.1} {5, 6, 7, 8, 8, 7, 6} {6.1, 5.3, 5.1} {3.3, 2.2, 1.1} {{1.1, 2.2, 3.3}, {1.1, 2.2, 3.3}} {1, 2, 3} {1, 2, 3}\n");
-            mio::print("              Actual output:", m1, list1, std::stack<double>({5.1, 5.3, 6.1}), qe2, vecvec, fl, initl);
+            mio::print("              Actual output:", m1, list1, std::stack<double>({ 5.1, 5.3, 6.1 }), qe2, vecvec, fl, initl);
             printf("User check! Expected output: void (int) \n");
             mio::print(func1);
         }
@@ -550,7 +550,7 @@ namespace mineutils
             mio::ArgumentParser parser;
             std::vector<std::array<std::string, 3>> bool_opts;
             int ret0 = parser.parse(argv_vec.size(), argv_vec.data(),
-                { {"-a", "--aa", "bool switch1"}, {"-b", "--bb", "bool switch2"}, {"-c", "--cc", "bool switch3"}, {"-d", "--dd", "bool switch4"}},
+                { {"-a", "--aa", "bool switch1"}, {"-b", "--bb", "bool switch2"}, {"-c", "--cc", "bool switch3"}, {"-d", "--dd", "bool switch4"} },
                 { {"-A", "--AA", "value1", "111"}, {"-B", "--BB", "value02", "222"}, {"", "--CC", "value003", "333"}, {"-D", "--DD", "value4", ""} });
 
             if (!(ret0 == 0)) mprintfE(R"(Failed when check: parser.parse)""\n");
@@ -582,8 +582,8 @@ namespace mineutils
             if (!(ret2 == "3")) mprintfE(R"(Failed when check: parser.getValueOpt("--CC"):%s)""\n", ret2.c_str());
             ret2 = parser.getValueOpt("-D");
             if (!(ret2 == "4")) mprintfE(R"(Failed when check: parser.getValueOpt("-D"):%s)""\n", ret2.c_str());
-            
-            printf("User check:\n");      
+
+            printf("User check:\n");
             parser.printPreset();
             parser.printParsed();
             printf("User check:\n");

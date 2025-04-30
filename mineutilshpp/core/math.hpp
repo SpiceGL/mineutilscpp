@@ -1,4 +1,4 @@
-﻿//mineutils库的数学相关功能
+//mineutils库的数学相关功能
 #pragma once
 #ifndef MATH_HPP_MINEUTILS
 #define MATH_HPP_MINEUTILS
@@ -7,8 +7,11 @@
 #include<cmath>
 #include<cstdlib>
 #include<iostream>
+#include<numeric>
+#include<set>
 #include<string>
 #include<string.h>
+#include<vector>
 
 #include"base.hpp"
 
@@ -18,6 +21,7 @@ namespace mineutils
     /*--------------------------------------------用户接口--------------------------------------------*/
     namespace mmath
     {
+
         template<class T>
         class RectLTRB;
         template<class T>
@@ -25,20 +29,21 @@ namespace mineutils
         template<class T>
         class RectXYWH;
 
-        /*  左上角-右下角：l、t、r、b排列的rect坐标，T只支持整型和浮点型，且不能为const、引用和volatile
+        /*  在图像坐标系(y轴朝下)中l、t、r、b排列的rect坐标，T只支持整型和浮点型，且不能为const、引用和volatile
+            - L-T(左上角)、R-B(右下角)是按照图像坐标系(y轴朝下)定义，对应标准坐标系的左下角和右上角
             - 若T为整数类型，表示数据为像素类型，为连续数值
             - 数据为像素类型时的计算规则和连续数值不一样
             - 数据为像素类型时，若L>R或T>B，Rect无效
-            - 数据为连续数值时，若L>=R或T>=B，Rect无效  
+            - 数据为连续数值时，若L>=R或T>=B，Rect无效
             - 存在溢出时不保证结果正确  */
         template<class T>
         class RectLTRB
         {
         public:
-            template<class U = T, typename std::enable_if<!std::is_const<U>::value && !std::is_reference<U>::value && !std::is_volatile<U>::value && std::is_same<U, T>::value && (std::is_integral<U>::value || std::is_floating_point<U>::value), int>::type = 0>
+            template<class U = T, typename std::enable_if<std::is_same<U, T>::value&& mtype::_mpriv::RectElemChecker<U>::value, int>::type = 0>
             RectLTRB();
 
-            template<class U = T, typename std::enable_if<!std::is_const<U>::value && !std::is_reference<U>::value && !std::is_volatile<U>::value && std::is_same<U, T>::value && (std::is_integral<U>::value || std::is_floating_point<U>::value), int>::type = 0>
+            template<class U = T, typename std::enable_if<std::is_same<U, T>::value&& mtype::_mpriv::RectElemChecker<U>::value, int>::type = 0>
             RectLTRB(T left_x, T top_y, T right_x, T bottom_y);
 
             RectLTRB(const RectLTRB<T>& rect);
@@ -53,7 +58,7 @@ namespace mineutils
             //判断当前Rect数据是否有效
             bool valid() const;
             //将坐标转化为像素坐标，向下取整
-            template<class PixT = int, typename std::enable_if<!std::is_const<PixT>::value && !std::is_reference<PixT>::value && !std::is_volatile<PixT>::value && std::is_integral<PixT>::value, int>::type = 0>
+            template<class PixT = int, typename std::enable_if<!mtype::_mpriv::AnyCVRefChecker<PixT>::value&& std::is_integral<PixT>::value, int>::type = 0>
             RectLTRB<PixT> toPixel() const;
             //若自身数据为整数类型，则按像素运算，否则按连续数值运算
             RectXYWH<T> toXYWH() const;
@@ -68,7 +73,8 @@ namespace mineutils
             std::array<T, 4> data_;
         };
 
-        /*  左上角-宽高：l、t、w、h排列的rect坐标，T只支持整型和浮点型，且不能为const、引用和volatile
+        /*  在图像坐标系(y轴朝下)中l、t、w、h排列的rect坐标，T只支持整型和浮点型，且不能为const、引用和volatile
+            - L-T(左上角)是按照图像坐标系(y轴朝下)定义，对应标准坐标系的左下角
             - 若T为整数类型，表示数据为像素类型，为连续数
             - 数据为像素类型时的计算规则和连续数值不一样
             - W<=0或H<=0时，Rect无效
@@ -77,10 +83,10 @@ namespace mineutils
         class RectLTWH
         {
         public:
-            template<class U = T, typename std::enable_if<!std::is_const<U>::value && !std::is_reference<U>::value && !std::is_volatile<U>::value && std::is_same<U, T>::value && (std::is_integral<U>::value || std::is_floating_point<U>::value), int>::type = 0>
+            template<class U = T, typename std::enable_if<std::is_same<U, T>::value&& mtype::_mpriv::RectElemChecker<U>::value, int>::type = 0>
             RectLTWH();
 
-            template<class U = T, typename std::enable_if<!std::is_const<U>::value && !std::is_reference<U>::value && !std::is_volatile<U>::value && std::is_same<U, T>::value && (std::is_integral<U>::value || std::is_floating_point<U>::value), int>::type = 0>
+            template<class U = T, typename std::enable_if<std::is_same<U, T>::value&& mtype::_mpriv::RectElemChecker<U>::value, int>::type = 0>
             RectLTWH(T left_x, T top_y, T width, T height);
 
             RectLTWH(const RectLTWH<T>& rect);
@@ -95,7 +101,7 @@ namespace mineutils
             //判断当前Rect数据是否有效
             bool valid() const;
             //将坐标转化为像素坐标，向下取整
-            template<class PixT = int, typename std::enable_if<!std::is_const<PixT>::value && !std::is_reference<PixT>::value && !std::is_volatile<PixT>::value && std::is_integral<PixT>::value, int>::type = 0>
+            template<class PixT = int, typename std::enable_if<!mtype::_mpriv::AnyCVRefChecker<PixT>::value&& std::is_integral<PixT>::value, int>::type = 0>
             RectLTWH<PixT> toPixel() const;
             //若自身数据为整数类型，则按像素运算，否则按连续数值运算
             RectLTRB<T> toLTRB() const;
@@ -110,7 +116,7 @@ namespace mineutils
             std::array<T, 4> data_;
         };
 
-        /*  中心-宽高：x、y、w、h排列的rect坐标，T只支持整型和浮点型，且不能为const、引用和volatile 
+        /*  中心-宽高：x、y、w、h排列的rect坐标，T只支持整型和浮点型，且不能为const、引用和volatile
             - 若T为整数类型，表示数据为像素类型，为连续数值`
             - 数据为像素类型时的计算规则和连续数值不一样
             - W<=0或H<=0时，Rect无效
@@ -119,10 +125,10 @@ namespace mineutils
         class RectXYWH
         {
         public:
-            template<class U = T, typename std::enable_if<!std::is_const<U>::value && !std::is_reference<U>::value && !std::is_volatile<U>::value && std::is_same<U, T>::value && (std::is_integral<U>::value || std::is_floating_point<U>::value), int>::type = 0>
+            template<class U = T, typename std::enable_if<std::is_same<U, T>::value&& mtype::_mpriv::RectElemChecker<U>::value, int>::type = 0>
             RectXYWH();
 
-            template<class U = T, typename std::enable_if<!std::is_const<U>::value && !std::is_reference<U>::value && !std::is_volatile<U>::value && std::is_same<U, T>::value && (std::is_integral<U>::value || std::is_floating_point<U>::value), int>::type = 0>
+            template<class U = T, typename std::enable_if<std::is_same<U, T>::value&& mtype::_mpriv::RectElemChecker<U>::value, int>::type = 0>
             RectXYWH(T center_x, T center_y, T width, T height);
 
             RectXYWH(const RectXYWH<T>& rect);
@@ -137,7 +143,7 @@ namespace mineutils
             //判断当前Rect数据是否有效
             bool valid() const;
             //将坐标转化为像素坐标，向下取整
-            template<class PixT = int, typename std::enable_if<!std::is_const<PixT>::value && !std::is_reference<PixT>::value && !std::is_volatile<PixT>::value && std::is_integral<PixT>::value, int>::type = 0>
+            template<class PixT = int, typename std::enable_if<!mtype::_mpriv::AnyCVRefChecker<PixT>::value&& std::is_integral<PixT>::value, int>::type = 0>
             RectXYWH<PixT> toPixel() const;
             //若自身数据为整数类型，则按像素运算，否则按连续数值运算
             RectLTRB<T> toLTRB() const;
@@ -154,11 +160,33 @@ namespace mineutils
 
         //为operator<<添加对RectBase及其子类的支持
         template<class T>
-        std::ostream& operator<<(std::ostream& cout_obj, const RectLTRB<T>& rect);        
+        std::ostream& operator<<(std::ostream& cout_obj, const RectLTRB<T>& rect);
         template<class T>
-        std::ostream& operator<<(std::ostream& cout_obj, const RectLTWH<T>& rect);        
+        std::ostream& operator<<(std::ostream& cout_obj, const RectLTWH<T>& rect);
         template<class T>
         std::ostream& operator<<(std::ostream& cout_obj, const RectXYWH<T>& rect);
+
+
+        //多项式拟合平面函数
+        class PolynomialFitter2D
+        {
+        public:
+            /*  拟合操作，目前采用最小二乘法
+                @param x_list: 自变量集合，不可重复，元素数量必须与y_list相等
+                @param y_list: 因变量集合，可重复，元素数量必须与x_list相等
+                @param degree: 多项式最高阶数
+                @return 多项式系数列表，vector[i]对应第i阶的系数  */
+            const std::vector<double>& fit(const std::set<double>& x_list, const std::vector<double>& y_list, uint8_t degree);
+
+            //预估自变量对应的因变量值
+            double evaluate(double x);
+
+        private:
+            double pow(double x, uint8_t degree);
+
+            std::vector<double> coeffs_;
+        };
+
     }
 
 
@@ -169,45 +197,45 @@ namespace mineutils
 
     namespace mmath
     {
-        inline long _align(long value, long alignment, int align_mode = 1)
-        {
-            long rem = value % alignment;
-            long quot = value / alignment;
+        //inline long _align(long value, long alignment, int align_mode = 1)
+        //{
+        //    long rem = value % alignment;
+        //    long quot = value / alignment;
 
-            if (align_mode > 0)
-            {
-                if (rem > 0)
-                    return quot * alignment + std::labs(alignment);
-                else return quot * alignment;
-            }
-            else if (align_mode < 0)
-            {
-                if (rem >= 0)
-                    return quot * alignment;
-                else return quot * alignment - std::labs(alignment);
-            }
-            else
-            {
-                if (rem > 0)
-                {
-                    if (std::labs(rem) >= (std::labs(alignment) / 2))
-                        return quot * alignment + std::labs(alignment);
-                    else return quot * alignment;
-                }
-                else if (rem < 0)
-                {
-                    if (std::labs(rem) > (std::labs(alignment) / 2))
-                        return quot * alignment - std::labs(alignment);
-                    else return quot * alignment;
-                }
-                else return quot * alignment;
-            }
-        }
+        //    if (align_mode > 0)
+        //    {
+        //        if (rem > 0)
+        //            return quot * alignment + std::labs(alignment);
+        //        else return quot * alignment;
+        //    }
+        //    else if (align_mode < 0)
+        //    {
+        //        if (rem >= 0)
+        //            return quot * alignment;
+        //        else return quot * alignment - std::labs(alignment);
+        //    }
+        //    else
+        //    {
+        //        if (rem > 0)
+        //        {
+        //            if (std::labs(rem) >= (std::labs(alignment) / 2))
+        //                return quot * alignment + std::labs(alignment);
+        //            else return quot * alignment;
+        //        }
+        //        else if (rem < 0)
+        //        {
+        //            if (std::labs(rem) > (std::labs(alignment) / 2))
+        //                return quot * alignment - std::labs(alignment);
+        //            else return quot * alignment;
+        //        }
+        //        else return quot * alignment;
+        //    }
+        //}
 
 
         /*------------------------------LTRB-----------------------------*/
         template<class T>
-        template<class U, typename std::enable_if<!std::is_const<U>::value && !std::is_reference<U>::value && !std::is_volatile<U>::value&& std::is_same<U, T>::value && (std::is_integral<U>::value || std::is_floating_point<U>::value), int>::type>
+        template<class U, typename std::enable_if<std::is_same<U, T>::value&& mtype::_mpriv::RectElemChecker<U>::value, int>::type>
         inline RectLTRB<T>::RectLTRB()
         {
             this->data_[0] = 1;
@@ -217,7 +245,7 @@ namespace mineutils
         }
 
         template<class T>
-        template<class U, typename std::enable_if<!std::is_const<U>::value && !std::is_reference<U>::value && !std::is_volatile<U>::value && std::is_same<U, T>::value && (std::is_integral<U>::value || std::is_floating_point<U>::value), int>::type>
+        template<class U, typename std::enable_if<std::is_same<U, T>::value&& mtype::_mpriv::RectElemChecker<U>::value, int>::type>
         inline RectLTRB<T>::RectLTRB(T left_x, T top_y, T right_x, T bottom_y)
         {
             this->data_[0] = left_x;
@@ -236,7 +264,7 @@ namespace mineutils
         inline RectLTRB<T>& RectLTRB<T>::operator=(const RectLTRB<T>& rect)
         {
             if (this != &rect)
-                this->data_ = rect.data_;           
+                this->data_ = rect.data_;
             return *this;
         }
 
@@ -267,8 +295,8 @@ namespace mineutils
         }
 
         //将坐标转化为像素坐标
-        template<class T> 
-        template<class PixT, typename std::enable_if<!std::is_const<PixT>::value && !std::is_reference<PixT>::value && !std::is_volatile<PixT>::value && std::is_integral<PixT>::value, int>::type>
+        template<class T>
+        template<class PixT, typename std::enable_if<!mtype::_mpriv::AnyCVRefChecker<PixT>::value&& std::is_integral<PixT>::value, int>::type>
         inline RectLTRB<PixT> RectLTRB<T>::toPixel() const
         {
             return { static_cast<PixT>(std::floor(this->data_[0])), static_cast<PixT>(std::floor(this->data_[1])), static_cast<PixT>(std::floor(this->data_[2])), static_cast<PixT>(std::floor(this->data_[3])) };
@@ -342,7 +370,7 @@ namespace mineutils
 
 
         template<class T>
-        template<class U, typename std::enable_if<!std::is_const<U>::value && !std::is_reference<U>::value && !std::is_volatile<U>::value&& std::is_same<U, T>::value && (std::is_integral<U>::value || std::is_floating_point<U>::value), int>::type>
+        template<class U, typename std::enable_if<std::is_same<U, T>::value&& mtype::_mpriv::RectElemChecker<U>::value, int>::type>
         inline RectLTWH<T>::RectLTWH()
         {
             this->data_[0] = 1;
@@ -352,7 +380,7 @@ namespace mineutils
         }
 
         template<class T>
-        template<class U, typename std::enable_if<!std::is_const<U>::value && !std::is_reference<U>::value && !std::is_volatile<U>::value && std::is_same<U, T>::value && (std::is_integral<U>::value || std::is_floating_point<U>::value), int>::type>
+        template<class U, typename std::enable_if<std::is_same<U, T>::value&& mtype::_mpriv::RectElemChecker<U>::value, int>::type>
         inline RectLTWH<T>::RectLTWH(T left_x, T top_y, T width, T height)
         {
             this->data_[0] = left_x;
@@ -400,7 +428,7 @@ namespace mineutils
         }
 
         /*将坐标转化为像素坐标，向下取整*/
-        template<class T> template<class PixT, typename std::enable_if<!std::is_const<PixT>::value && !std::is_reference<PixT>::value && !std::is_volatile<PixT>::value && std::is_integral<PixT>::value, int>::type>
+        template<class T> template<class PixT, typename std::enable_if<!mtype::_mpriv::AnyCVRefChecker<PixT>::value&& std::is_integral<PixT>::value, int>::type>
         inline RectLTWH<PixT> RectLTWH<T>::toPixel() const
         {
             return { static_cast<PixT>(std::floor(this->data_[0])), static_cast<PixT>(std::floor(this->data_[1])), static_cast<PixT>(std::floor(this->data_[2])), static_cast<PixT>(std::floor(this->data_[3])) };
@@ -457,7 +485,7 @@ namespace mineutils
         /*------------------------------XYWH-----------------------------*/
 
         template<class T>
-        template<class U, typename std::enable_if<!std::is_const<U>::value && !std::is_reference<U>::value && !std::is_volatile<U>::value&& std::is_same<U, T>::value && (std::is_integral<U>::value || std::is_floating_point<U>::value), int>::type>
+        template<class U, typename std::enable_if<std::is_same<U, T>::value&& mtype::_mpriv::RectElemChecker<U>::value, int>::type>
         inline RectXYWH<T>::RectXYWH()
         {
             this->data_[0] = 1;
@@ -467,7 +495,7 @@ namespace mineutils
         }
 
         template<class T>
-        template<class U, typename std::enable_if<!std::is_const<U>::value && !std::is_reference<U>::value && !std::is_volatile<U>::value && std::is_same<U, T>::value && (std::is_integral<U>::value || std::is_floating_point<U>::value), int>::type>
+        template<class U, typename std::enable_if<std::is_same<U, T>::value&& mtype::_mpriv::RectElemChecker<U>::value, int>::type>
         inline RectXYWH<T>::RectXYWH(T center_x, T center_y, T width, T height)
         {
             this->data_[0] = center_x;
@@ -515,7 +543,7 @@ namespace mineutils
         }
 
         //将坐标转化为像素坐标
-        template<class T> template<class PixT, typename std::enable_if<!std::is_const<PixT>::value && !std::is_reference<PixT>::value && !std::is_volatile<PixT>::value && std::is_integral<PixT>::value, int>::type>
+        template<class T> template<class PixT, typename std::enable_if<!mtype::_mpriv::AnyCVRefChecker<PixT>::value&& std::is_integral<PixT>::value, int>::type>
         inline RectXYWH<PixT> RectXYWH<T>::toPixel() const
         {
             return { static_cast<PixT>(std::floor(this->data_[0])), static_cast<PixT>(std::floor(this->data_[1])), static_cast<PixT>(std::floor(this->data_[2])), static_cast<PixT>(std::floor(this->data_[3])) };
@@ -603,6 +631,97 @@ namespace mineutils
                 << rect[2] + 0 << " " << rect[3] + 0 << "]";
             return cout_obj;
         }
+
+
+
+        inline const std::vector<double>& PolynomialFitter2D::fit(const std::set<double>& x_list, const std::vector<double>& y_list, uint8_t degree)
+        {
+            this->coeffs_.clear();
+            if (x_list.size() != y_list.size())
+            {
+                mprintfE("The sizes of x_list:%d and y_list:%d do not match!\n", x_list.size(), y_list.size());
+                return this->coeffs_;
+            }
+
+            std::vector<double> coeffs;
+            size_t coeffs_sz = static_cast<size_t>(degree) + 1;
+            coeffs.resize(coeffs_sz);
+            if (degree == 0) {
+                coeffs[0] = std::accumulate(y_list.begin(), y_list.end(), 0.0) / y_list.size();
+                this->coeffs_ = std::move(coeffs);
+                return this->coeffs_;
+            }
+
+            std::vector<double> x_list2(x_list.begin(), x_list.end());
+            int len = x_list.size();
+            int i, j, k;
+            std::vector<double> b(coeffs_sz, 0);
+            std::vector<std::vector<double>> A(coeffs_sz, std::vector<double>(coeffs_sz, 0));
+
+            for (i = 0; i < len; i++)
+            {
+                for (j = 0; j <= degree; j++)
+                {
+                    b[j] += this->pow(x_list2[i], j) * y_list[i];
+                    for (k = 0; k <= degree; k++)
+                    {
+                        A[j][k] += this->pow(x_list2[i], j + k);
+                    }
+                }
+            }
+            // 解线性方程组，得到多项式系数
+            for (i = 0; i <= degree; i++)
+            {
+                for (j = i + 1; j <= degree; j++)
+                {
+                    double ratio = A[j][i] / A[i][i];
+                    for (k = i; k <= degree; k++)
+                    {
+                        A[j][k] -= ratio * A[i][k];
+                    }
+                    b[j] -= ratio * b[i];
+                }
+            }
+            for (i = degree; i >= 0; i--)
+            {
+                double sum = 0;
+                for (j = i + 1; j <= degree; j++)
+                {
+                    sum += coeffs[j] * A[i][j];
+                }
+                coeffs[i] = (b[i] - sum) / A[i][i];
+            }
+            this->coeffs_ = std::move(coeffs);
+            return this->coeffs_;
+        }
+
+        inline double PolynomialFitter2D::evaluate(double x)
+        {
+            double y = 0;
+            if (this->coeffs_.empty())
+            {
+                mprintfW("Call fit first!\n");
+                return 0.0;
+            }
+            uint8_t now_degree = static_cast<uint8_t>(this->coeffs_.size() - 1);
+            for (uint8_t i = 0; i < this->coeffs_.size(); i++)
+            {
+                y += this->pow(x, i) * this->coeffs_[i];
+            }
+            return y;
+        }
+
+        inline double PolynomialFitter2D::pow(double x, uint8_t degree)
+        {
+            double y = 1;
+            while (degree > 0)
+            {
+                y *= x;
+                degree--;
+            }
+            return y;
+        }
+
     }
 
 

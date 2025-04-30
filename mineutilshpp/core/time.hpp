@@ -1,4 +1,4 @@
-﻿//mineutils库的便利时间相关工具
+//mineutils库的便利时间相关工具
 //注：如果为qnx6.6平台编译，可能需要为编译器开启宏: _GLIBCXX_USE_NANOSLEEP
 #pragma once
 #ifndef TIME_HPP_MINEUTILS
@@ -9,6 +9,8 @@
 #include<iostream>
 #include<list>
 #include<map>
+#include<utility>
+#include<unordered_map>
 #include<stdio.h>
 #include<string>
 #include<string.h>
@@ -110,7 +112,7 @@ namespace mineutils
             class Guard;
 
         public:
-            MeanTimeCounter() = default;
+            MeanTimeCounter();
             /*  构造MeanTimeCounter类
                 @param target_count: 每轮统计次数，小于1的值会被置为1
                 @param print_header: 打印时的头信息，为空时表示无头信息
@@ -150,12 +152,12 @@ namespace mineutils
 
             //有依赖关系
             std::list<std::string> tags_;
-            std::map<std::string, SingleCounter> counter_map_;
+            std::unique_ptr<std::unordered_map<std::string, SingleCounter>> counter_map_;  //qnx660上一定要知道SingleCounter的内存结构才能实例化std::unordered_map<std::string, SingleCounter>
         };
 
 
-        /*  统计并打印该对象从获取资源到释放资源之间的时间消耗         
-            - 用例：TimeCounterGuard<mtime::ms> guard("tag");    //获取资源 
+        /*  统计并打印该对象从获取资源到释放资源之间的时间消耗
+            - 用例：TimeCounterGuard<mtime::ms> guard("tag");    //获取资源
             - 用例：guard.reset("tag");    //释放旧资源，获取新资源  */
         template<Unit unit>
         class TimeCounterGuard
@@ -189,7 +191,7 @@ namespace mineutils
 
         /*  设置从获取资源到释放资源的代码段的最短时间
             - 用例1：MinTimeGuard<mtime::ms> guard(50);    //获取资源，保证从当前到释放资源之间的代码段时间不低于50毫秒
-            - 用例2：guard.reset(50);    //释放旧资源，获取新资源 
+            - 用例2：guard.reset(50);    //释放旧资源，获取新资源
             注意：在QNX660的GCC4.7.3上，实际精度为1000ns以上   */
         template<Unit unit>
         class MinTimeGuard
@@ -456,64 +458,17 @@ namespace mineutils
         }
 
 
-        class MeanTimeCounter::Guard
-        {
-        public:
-            Guard(Guard&& tmp) noexcept
-            {
-                this->codeblock_tag_ = std::move(tmp.codeblock_tag_);
-                this->resource_ = tmp.resource_;
-                tmp.resource_ = nullptr;
-            }
-
-            ~Guard()
-            {
-                if (this->resource_)
-                    this->resource_->markEnd(this->codeblock_tag_);
-            }
-
-            void release()
-            {
-                if (this->resource_)
-                    this->resource_->markEnd(this->codeblock_tag_);
-                this->resource_ = nullptr;
-            }
-
-            Guard(const Guard& tmp) = delete;
-            Guard& operator=(const Guard& tmp) = delete;
-            Guard& operator=(Guard&& tmp) = delete;
-
-        private:
-            Guard(MeanTimeCounter* resource, std::string& codeblock_tag)
-            {
-                resource->markStart(codeblock_tag);
-                this->resource_ = resource;
-                this->codeblock_tag_ = std::move(codeblock_tag);
-            }
-
-            MeanTimeCounter* resource_ = nullptr;
-            std::string codeblock_tag_;
-            friend MeanTimeCounter;
-        };
-
         class MeanTimeCounter::SingleCounter
         {
         public:
             SingleCounter() = default;
 
-            explicit SingleCounter(int target_count, const char* print_head, const char* codeblock_tag)
+            explicit SingleCounter(int target_count, const std::string& print_head, const char* codeblock_tag)
             {
                 this->target_count_ = target_count;
-                if (print_head)
-                {
-                    this->final_tag_.reserve(strlen(print_head) + strlen(codeblock_tag) + 5);  //算上\0
-                    this->final_tag_.append(print_head).append(": ").append(codeblock_tag);
-                }
-                else
-                {
-                    this->final_tag_.reserve(strlen(codeblock_tag) + 1);  //算上\0
+                if (print_head.empty())
                     this->final_tag_.append(codeblock_tag);
-                }
+                else this->final_tag_.append(print_head).append(": ").append(codeblock_tag);
                 this->codeblock_tag_ = codeblock_tag;
             }
 
@@ -526,7 +481,7 @@ namespace mineutils
             void markEnd()
             {
                 this->time_cost_ += (std::chrono::steady_clock::now() - this->start_t_);
-                this->addend_times_ += 1;        
+                this->addend_times_ += 1;
             }
 
             template<Unit unit>
@@ -590,9 +545,56 @@ namespace mineutils
 
             int target_count_ = 1;
             std::string final_tag_;
-            const char* codeblock_tag_ = nullptr;  
+            const char* codeblock_tag_ = nullptr;
         };
 
+        class MeanTimeCounter::Guard
+        {
+        public:
+            Guard(Guard&& tmp) noexcept
+            {
+                this->codeblock_tag_ = std::move(tmp.codeblock_tag_);
+                this->resource_ = tmp.resource_;
+                tmp.resource_ = nullptr;
+            }
+
+            ~Guard()
+            {
+                if (this->resource_)
+                    this->resource_->markEnd(this->codeblock_tag_);
+            }
+
+            void release()
+            {
+                if (this->resource_)
+                    this->resource_->markEnd(this->codeblock_tag_);
+                this->resource_ = nullptr;
+            }
+
+            Guard(const Guard& tmp) = delete;
+            Guard& operator=(const Guard& tmp) = delete;
+            Guard& operator=(Guard&& tmp) = delete;
+
+        private:
+            Guard(MeanTimeCounter* resource, std::string& codeblock_tag)
+            {
+                resource->markStart(codeblock_tag);
+                this->resource_ = resource;
+                this->codeblock_tag_ = std::move(codeblock_tag);
+            }
+
+            MeanTimeCounter* resource_ = nullptr;
+            std::string codeblock_tag_;
+            friend MeanTimeCounter;
+        };
+
+        inline MeanTimeCounter::MeanTimeCounter()
+        {
+            this->target_count_ = 1;
+            this->self_enabled_ = true;
+            this->final_enabled_ = mtime::_getGlobalTimeCounterEnabled().load(std::memory_order_acquire);
+            this->counter_map_.reset(new std::unordered_map<std::string, SingleCounter>);
+        }
 
         inline MeanTimeCounter::MeanTimeCounter(int target_count, std::string print_header, bool enabled)
         {
@@ -600,18 +602,19 @@ namespace mineutils
             this->print_header_ = std::move(print_header);
             this->self_enabled_ = enabled;
             this->final_enabled_ = mtime::_getGlobalTimeCounterEnabled().load(std::memory_order_acquire) && enabled;
+            this->counter_map_.reset(new std::unordered_map<std::string, SingleCounter>);
         }
 
         inline void MeanTimeCounter::markStart(const std::string& codeblock_tag)
         {
             if (this->final_enabled_)
             {
-                if (this->counter_map_.end() == this->counter_map_.find(codeblock_tag))
+                if (this->counter_map_->end() == this->counter_map_->find(codeblock_tag))
                 {
                     this->tags_.emplace_back(codeblock_tag);
-                    this->counter_map_[codeblock_tag] = MeanTimeCounter::SingleCounter(this->target_count_, this->print_header_.c_str(), this->tags_.back().c_str());
+                    (*this->counter_map_)[codeblock_tag] = MeanTimeCounter::SingleCounter(this->target_count_, this->print_header_.c_str(), this->tags_.back().c_str());
                 }
-                this->counter_map_[codeblock_tag].markStart();
+                (*this->counter_map_)[codeblock_tag].markStart();
             }
         }
 
@@ -619,12 +622,12 @@ namespace mineutils
         {
             if (this->final_enabled_)
             {
-                if (this->counter_map_.end() == this->counter_map_.find(codeblock_tag))
+                if (this->counter_map_->end() == this->counter_map_->find(codeblock_tag))
                 {
                     mprintfW("Please call \"markStart(%s)\" before \"markEnd(%s)\"!\n", codeblock_tag.c_str(), codeblock_tag.c_str());
                     return;
                 }
-                this->counter_map_[codeblock_tag].markEnd();
+                (*this->counter_map_)[codeblock_tag].markEnd();
             }
         }
 
@@ -641,7 +644,7 @@ namespace mineutils
             {
                 for (const std::string& tag : this->tags_)
                 {
-                    this->counter_map_[tag].printOnTargetCount<unit>();
+                    (*this->counter_map_)[tag].printOnTargetCount<unit>();
                 }
             }
         }
@@ -786,7 +789,7 @@ namespace mineutils
         inline void MeanTimeCounterTest()
         {
 
-            mtime::MeanTimeCounter time_counter{10, __func__};
+            mtime::MeanTimeCounter time_counter{ 10, __func__ };
             {
                 for (int i = 0; i < 10; i++)
                 {
@@ -847,5 +850,5 @@ namespace mineutils
     }
 #endif
 }
- 
+
 #endif // !TIME_HPP_MINEUTILS

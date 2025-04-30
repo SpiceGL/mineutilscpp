@@ -1,4 +1,4 @@
-﻿//mineutils库的线程相关工具
+//mineutils库的线程相关工具
 //注：如果为qnx6.6平台编译，可能需要为编译器开启宏: _GLIBCXX_USE_NANOSLEEP
 #pragma once
 #ifndef THREAD_HPP_MINEUTILS
@@ -14,6 +14,7 @@
 #include<stdexcept>
 #include<thread>
 #include<vector>
+
 #include"base.hpp"
 #include"type.hpp"
 
@@ -86,13 +87,18 @@ namespace mineutils
 
         class ThreadPool;
 
-        //任务的状态
+        //任务的future，Ret必须为void或可拷贝构造的类型，且不可为引用类型
+        /*  任务的future
+            - Ret不可为引用类型
+            - Ret必须为void或可拷贝构造的类型
+            - 由于编译器的设定，对于非引用的基本类型，Ret不保留顶层cv修饰（如对于返回const int的函数应使用TaskFuture<int>） */
         template<class Ret>
         class TaskFuture
         {
         public:
             //构造一个无效的TaskFuture对象
-            TaskFuture() = default;
+            template<class RetU = Ret, typename std::enable_if<std::is_same<RetU, Ret>::value && !std::is_reference<RetU>::value && (std::is_void<RetU>::value || std::is_copy_constructible<RetU>::value), int>::type = 0>
+            TaskFuture() {};
 
             //判断任务是否为有效状态；线程安全
             bool valid();
@@ -100,16 +106,31 @@ namespace mineutils
             bool finished();
             //等待任务结束，如果任务为无效状态会立即返回；线程安全
             void wait();
-            //等待并获取任务结果，如果任务为无效状态会抛出std::runtime_error异常；线程安全
-            Ret get();
+
+            /*  等待并获取任务结果的指针，避免抛出异常
+                - 线程安全
+                - 任务无效时返回nullptr
+                - Ret为void时也返回nullptr
+                - 返回的指针在TaskFuture对象更新或析构时失效
+                @return 任务返回值的指针  */
+            const Ret* getPtr();
 
             //支持移动禁止拷贝
             TaskFuture(TaskFuture<Ret>&& future_state) noexcept;
             TaskFuture& operator=(TaskFuture<Ret>&& future_state) noexcept;
 
         private:
+            template<class RetU, typename std::enable_if<std::is_void<RetU>::value, int>::type = 0>
+            const RetU* getPtrDispatch();
+            template<class RetU, typename std::enable_if<!std::is_void<RetU>::value, int>::type = 0>
+            const RetU* getPtrDispatch();
+
             std::shared_future<Ret> future_state_;
             friend class mthrd::ThreadPool;
+
+        public:
+            //等待并获取任务结果，如果任务为无效状态会抛出std::runtime_error异常；线程安全
+            _mdeprecated(R"(Deprecated! Please use mem_function "tryGet" instead.)") Ret get();
         };
 
 
@@ -119,9 +140,9 @@ namespace mineutils
         public:
             /*  构造ThreadPool对象
                 @param pool_size: 线程池线程数量，不小于1  */
-            ThreadPool(int pool_size);
+            ThreadPool(uint32_t pool_size);
 
-            /*  添加一个任务到线程池中并异步执行(会拷贝所有输入用于储存)，规则涵盖std::bind的要求且更严格；线程安全     
+            /*  添加一个任务到线程池中并异步执行(会拷贝所有输入用于储存)，规则涵盖std::bind的要求且更严格；线程安全
                 推荐用法:
                 - addTask(function or &function, args...)
                 - addTask(&class::mem_function, &class_obj, args...)
@@ -129,26 +150,37 @@ namespace mineutils
                 - addTask(functor, args...)
                 注意，经测试QNX的g++4.7.3对C++11特性支持不全，以下情况可能直接在模板内部编译错误而非触发SFINAE特性：
                 - 仿函数作为Fn，但被类似std::reference_wrapper的第三方引用包装传递时
-                - 仿函数作为Fn，但匹配Args...的operator()为私有或受保护的成员时  
+                - 仿函数作为Fn，但匹配Args...的operator()为私有或受保护的成员时
 
-                @param func: 任务函数。要求其参数类型不能为右值引用，返回类型必须为void或支持使用自身的右值赋值；如果func是一个函数对象(functor)类型，那么它的去引用类型必须支持使用自身的左值和右值对象进行构造，且不是volatile类型；如果func是成员函数或函数对象，它要保证要调用的函数的cv限定符与对象一致  
-                @param args...: 任务函数的参数。需要左值引用传递的参数必须用std::ref或std::cref显式引用否则实际为值传递，其他非C数组参数的去引用类型必须支持使用自身的左值和右值对象进行构造
-                @return 任务结果状态，用于查询任务状态、等待任务结束以及获取任务返回值，注意ThreadPool对象析构后任务状态失效  */
-            template<class Fn, class... Args, class Ret = typename mtype::StdBindTraits<Fn, Args...>::ReturnType, typename std::enable_if<std::is_same<Ret, typename mtype::StdBindTraits<Fn, Args...>::ReturnType>::value && (std::is_void<Ret>::value || std::is_move_assignable<typename std::remove_reference<Ret>::type>::value), int>::type = 0>
+                @param func: 任务函数。
+                    - 任务函数的返回类型Ret可以为void
+                    - Ret不为void时，必须支持拷贝构造，且不可为引用
+                    - func为函数对象时，自身的去引用类型必须支持使用自身的左值和右值对象进行构造，且不可为volatile类型
+                    - func为函数对象时，operator=的CV限定符必须与自身限定一致
+                    - func为成员函数时，CV限定符必须与它的对象实例一致
+                @param args...: 任务函数的参数。
+                    - 需要左值引用传递的参数必须用std::ref或std::cref显式引用否则实际为值传递
+                    - 非C数组参数和非std::ref或std::cref传递的参数，它的去引用类型必须支持使用自身的左值和右值对象进行构造
+                @return 任务结果的future状态，用于查询任务状态、等待任务结束以及获取任务返回值，注意ThreadPool对象析构后未执行的任务TaskFuture失效  */
+            template<class Fn, class... Args, class Ret = typename mtype::StdBindTraits<Fn, Args...>::ReturnType, typename std::enable_if<std::is_same<Ret, typename mtype::StdBindTraits<Fn, Args...>::ReturnType>::value && !std::is_reference<Ret>::value && (std::is_void<Ret>::value || std::is_copy_constructible<Ret>::value), int>::type = 0>
             TaskFuture<Ret> addTask(Fn&& func, Args&&... args);
+
+            //是否线程池当前已占满
+            bool full();
 
             //禁止拷贝和移动
             ThreadPool(const ThreadPool& thd_pool) = delete;
             ThreadPool& operator=(const ThreadPool& thd_pool) = delete;
-
+            //执行完当前正在执行的任务，放弃队列里剩余的任务，释放资源
             ~ThreadPool();
 
         private:
             void worker();
 
-            int pool_size_;
+            uint32_t pool_size_;
             std::queue<std::function<void()>> task_queue_;
             std::vector<std::thread> work_thds_;
+            std::atomic<uint32_t> working_task_num_{ 0 };
 
             std::mutex task_mtx_;
             std::condition_variable cond_var_;
@@ -163,16 +195,20 @@ namespace mineutils
         public:
             ThreadPauser();
 
-            //设置暂停点，当调用ThreadPauser::pause的时候就会在此处暂停；线程安全
+            /*  设置暂停点
+                - 收到暂停信号后，线程会在此处暂停等待
+                - 收到继续信号后，线程会解除等待
+                - 线程安全
+                @param point_id: 用户指定每个暂停点的id，不应重复  */
             void setPausePoint(uint8_t point_id);
 
-            //发出暂停信号，在所有暂停点卡住线程；线程安全
+            //发出暂停信号。线程安全
             void pause();
 
-            //发出继续信号，唤醒所有暂停点；线程安全
+            //发出继续信号。线程安全
             void resume();
 
-            //获取当前某个暂停点是否为paused状态；线程安全
+            //获取当前某个暂停点是否已进入暂停状态；线程安全
             bool isPaused(uint8_t point_id);
 
             //禁止拷贝和移动
@@ -240,7 +276,7 @@ namespace mineutils
         {
             int spin_count = 0;
             const int max_spin_count = 1000; // 设置合理的最大自旋次数
-            while (this->lock_flag_.test_and_set(std::memory_order_acquire)) 
+            while (this->lock_flag_.test_and_set(std::memory_order_acquire))
             {
                 ++spin_count;
                 if (spin_count > 1000)
@@ -442,6 +478,28 @@ namespace mineutils
         }
 
         template<class Ret>
+        inline const Ret* TaskFuture<Ret>::getPtr()
+        {
+            return this->getPtrDispatch<Ret>();
+        }
+
+        template<class Ret>
+        template<class RetU, typename std::enable_if<std::is_void<RetU>::value, int>::type>
+        inline const RetU* TaskFuture<Ret>::getPtrDispatch()
+        {
+            return nullptr;
+        }
+
+        template<class Ret>
+        template<class RetU, typename std::enable_if<!std::is_void<RetU>::value, int>::type>
+        inline const RetU* TaskFuture<Ret>::getPtrDispatch()
+        {
+            if (this->future_state_.valid())
+                return &this->future_state_.get();
+            else return nullptr;
+        }
+
+        template<class Ret>
         inline Ret TaskFuture<Ret>::get()
         {
             if (this->future_state_.valid())
@@ -449,7 +507,8 @@ namespace mineutils
             else throw std::runtime_error("Error: Task is invalid!");
         }
 
-        inline ThreadPool::ThreadPool(int pool_size)
+
+        inline ThreadPool::ThreadPool(uint32_t pool_size)
         {
             if (pool_size <= 0)
             {
@@ -462,7 +521,7 @@ namespace mineutils
             this->need_abort_ = false;
 
             this->work_thds_.resize(pool_size);
-            for (int i = 0; i < pool_size; ++i)
+            for (uint32_t i = 0; i < pool_size; ++i)
             {
                 this->work_thds_[i] = std::thread(&ThreadPool::worker, this);
             }
@@ -473,16 +532,18 @@ namespace mineutils
             {
                 std::unique_lock<std::mutex> lk(this->task_mtx_);
                 this->need_abort_ = true;
+                std::queue<std::function<void()>> tmp;
+                this->task_queue_.swap(tmp);
             }
             this->cond_var_.notify_all();
             for (auto& thd : this->work_thds_)
             {
                 if (thd.joinable())
                     thd.join();
-            } 
+            }
         }
 
-        template<class Fn, class... Args, class Ret, typename std::enable_if<std::is_same<Ret, typename mtype::StdBindTraits<Fn, Args...>::ReturnType>::value && (std::is_void<Ret>::value || std::is_move_assignable<typename std::remove_reference<Ret>::type>::value), int>::type>
+        template<class Fn, class... Args, class Ret, typename std::enable_if<std::is_same<Ret, typename mtype::StdBindTraits<Fn, Args...>::ReturnType>::value && !std::is_reference<Ret>::value && (std::is_void<Ret>::value || std::is_copy_constructible<Ret>::value), int>::type>
         inline TaskFuture<Ret> ThreadPool::addTask(Fn&& func, Args&&... args)
         {
             auto task = std::make_shared<std::packaged_task<Ret()>>(std::bind(std::forward<Fn>(func), std::forward<Args>(args)...));
@@ -494,6 +555,12 @@ namespace mineutils
             }
             this->cond_var_.notify_one();
             return state;
+        }
+
+        inline bool ThreadPool::full()
+        {
+            std::lock_guard<std::mutex> lk(this->task_mtx_);
+            return (this->working_task_num_.load(std::memory_order_acquire) + this->task_queue_.size()) >= this->pool_size_;
         }
 
         inline void ThreadPool::worker()
@@ -512,7 +579,9 @@ namespace mineutils
                     task = std::move(this->task_queue_.front());
                     this->task_queue_.pop();
                 }
+                this->working_task_num_.fetch_add(1, std::memory_order_release);
                 task();
+                this->working_task_num_.fetch_add(-1, std::memory_order_release);
             }
         }
 
@@ -724,8 +793,11 @@ namespace mineutils
         inline void ThreadPoolTest()
         {
             mthrd::ThreadPool thread_pool(4);
-            mthrd::TaskFuture<void> state = thread_pool.addTask([](int x) {std::this_thread::sleep_for(std::chrono::seconds(1)); }, 1);
-            state.wait();
+            mthrd::TaskFuture<void> state1 = thread_pool.addTask([](int x) {std::this_thread::sleep_for(std::chrono::seconds(1)); }, 1);
+            if (state1.getPtr()) mprintfE(R"(Failed when check: thread_pool.addTask 1)""\n");
+
+            mthrd::TaskFuture<int> state2 = thread_pool.addTask([](int x) {std::this_thread::sleep_for(std::chrono::seconds(1)); return x; }, 1);
+            if (*state2.getPtr() != 1) mprintfE(R"(Failed when check: thread_pool.addTask 2)""\n");
         }
 
         inline void check()

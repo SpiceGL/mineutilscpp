@@ -1,4 +1,4 @@
-﻿//mineutils库的OpenCV相关便利功能，基于OpenCV 3.2.0以上版本
+//mineutils库的OpenCV相关便利功能，基于OpenCV 3.2.0以上版本
 #pragma once
 #ifndef CV_HPP_MINEUTILS
 #define CV_HPP_MINEUTILS

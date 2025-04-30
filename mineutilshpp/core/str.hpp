@@ -1,4 +1,4 @@
-﻿//mineutils库的std::string字符串相关工具
+//mineutils库的std::string字符串相关工具
 #pragma once
 #ifndef STR_HPP_MINEUTILS
 #define STR_HPP_MINEUTILS
@@ -41,7 +41,7 @@ namespace mineutils
             - 扩展了对非volatile限定的STL容器对象的支持
             - 有无符号的char都会被当作字符处理
             - 宽字符会被当作数字处理
-            - 未支持的类型会被转换为<ClassName: Address>形式的字符串  
+            - 未支持的类型会被转换为<ClassName: Address>形式的字符串
             - float_precision为负时表示自由精度，可能会用科学计数法表示  */
         template<int8_t float_precision = -1, class T>
         std::string toStr(const T& arg);
@@ -52,7 +52,7 @@ namespace mineutils
             - 扩展了对非volatile限定的STL容器对象的支持
             - 有无符号的char都会被当作字符处理
             - 宽字符会被当作数字处理
-            - 未支持的类型会被转换为<ClassName: Address>形式的字符串  
+            - 未支持的类型会被转换为<ClassName: Address>形式的字符串
             - float_precision为负时表示自由精度，可能会用科学计数法表示  */
         template<int8_t float_precision = -1, class... Args>
         std::string format(const std::string& f_string, const Args& ...args);
@@ -146,7 +146,7 @@ namespace mineutils
         template<size_t idx, class... Ts>
         void _osInputTuple(std::ostream& oss, const std::tuple<Ts...>&, size_t, std::false_type);
 
-        template<template<class U, class... Us> class CTer, class T, class... Ts, typename std::enable_if<mtype::_StdBeginEndChecker<const CTer<T, Ts...>>::value, int>::type = 0>
+        template<template<class U, class... Us> class CTer, class T, class... Ts, typename std::enable_if<mtype::_mpriv::StdBeginEndChecker<const CTer<T, Ts...>>::value, int>::type = 0>
         void _osInput(std::ostream& oss, const CTer<T, Ts...>& cter);
 
         template<class T, int n>
@@ -158,7 +158,7 @@ namespace mineutils
         template<class T, typename std::enable_if<mtype::StdCoutEachChecker<const T>::value && !(std::is_function<typename std::remove_pointer<const T>::type>::value || std::is_member_function_pointer<const T>::value) && std::is_pointer<T>::value&& mtype::InTypesChecker<typename std::remove_cv<typename std::remove_pointer<T>::type>::type, char, signed char, unsigned char>::value, int>::type = 0>
         void _osInput(std::ostream& oss, const T& arg);
 
-        template<class T, typename std::enable_if<mtype::StdCoutEachChecker<const T>::value && !(std::is_function<typename std::remove_pointer<const T>::type>::value || std::is_member_function_pointer<const T>::value) && std::is_pointer<T>::value&& !mtype::InTypesChecker<typename std::remove_cv<typename std::remove_pointer<T>::type>::type, char, signed char, unsigned char>::value, int>::type = 0>
+        template<class T, typename std::enable_if<mtype::StdCoutEachChecker<const T>::value && !(std::is_function<typename std::remove_pointer<const T>::type>::value || std::is_member_function_pointer<const T>::value) && std::is_pointer<T>::value && !mtype::InTypesChecker<typename std::remove_cv<typename std::remove_pointer<T>::type>::type, char, signed char, unsigned char>::value, int>::type = 0>
         void _osInput(std::ostream& oss, const T& arg);
 
         template<class T, typename std::enable_if<mtype::StdCoutEachChecker<const T>::value && !(std::is_function<typename std::remove_pointer<const T>::type>::value || std::is_member_function_pointer<const T>::value) && !std::is_pointer<T>::value, int>::type = 0>
@@ -171,7 +171,13 @@ namespace mineutils
         template<int8_t float_precision, class T, typename std::enable_if<!mtype::ConstructibleFromEachChecker<std::string, const T&>::value, int>::type = 0>
         inline std::string _toStrDispath(const T& arg)
         {
-            _MINE_THREAD_LOCAL_IF_HAVE std::ostringstream oss;
+#if defined(__GNUC__) && !_mgccMinVersion(4, 8, 1)
+            std::ostringstream oss;
+#else
+            //QNX710的gcc8.3.0似乎没法正确处理子线程的thread_local std::ostringstream对象，只能用指针来管理
+            thread_local std::unique_ptr<std::ostringstream> oss_ptr(new std::ostringstream);
+            std::ostringstream& oss = *oss_ptr;
+#endif
             oss.clear();
             oss.str("");
             if (float_precision >= 0)
@@ -249,7 +255,13 @@ namespace mineutils
         template<int8_t float_precision, class... Args>
         inline std::string format(const std::string& f_string, const Args& ...args)
         {
-            _MINE_THREAD_LOCAL_IF_HAVE std::ostringstream oss;
+#if defined(__GNUC__) && !_mgccMinVersion(4, 8, 1)
+            std::ostringstream oss;
+#else
+            //QNX710的gcc8.3.0似乎没法正确处理子线程的thread_local std::ostringstream对象，只能用指针来管理
+            thread_local std::unique_ptr<std::ostringstream> oss_ptr(new std::ostringstream);
+            std::ostringstream& oss = *oss_ptr;
+#endif
             oss.str("");
             oss.clear();
             if (float_precision >= 0)
@@ -367,7 +379,7 @@ namespace mineutils
         {
             if (s.empty())
                 return s;
-           
+
             size_t right_pos = s.find_last_not_of(chars_to_remove);
             if (right_pos == std::string::npos)
                 s.clear();
@@ -567,7 +579,7 @@ namespace mineutils
         }
 
         //添加对STL标准容器的支持
-        template<template<class U, class... Us> class CTer, class T, class... Ts, typename std::enable_if<mtype::_StdBeginEndChecker<const CTer<T, Ts...>>::value, int>::type>
+        template<template<class U, class... Us> class CTer, class T, class... Ts, typename std::enable_if<mtype::_mpriv::StdBeginEndChecker<const CTer<T, Ts...>>::value, int>::type>
         inline void _osInput(std::ostream& oss, const CTer<T, Ts...>& cter)   //虽然用了双层模板，但单层也可以达成目的
         {
             oss << "{";
@@ -615,11 +627,13 @@ namespace mineutils
         }
 
         //添加对char指针的支持
-        template<class T, typename std::enable_if<mtype::StdCoutEachChecker<const T>::value && !(std::is_function<typename std::remove_pointer<const T>::type>::value || std::is_member_function_pointer<const T>::value) && std::is_pointer<T>::value && mtype::InTypesChecker<typename std::remove_cv<typename std::remove_pointer<T>::type>::type, char, signed char, unsigned char>::value, int>::type>
+        template<class T, typename std::enable_if<mtype::StdCoutEachChecker<const T>::value && !(std::is_function<typename std::remove_pointer<const T>::type>::value || std::is_member_function_pointer<const T>::value) && std::is_pointer<T>::value&& mtype::InTypesChecker<typename std::remove_cv<typename std::remove_pointer<T>::type>::type, char, signed char, unsigned char>::value, int>::type>
         inline void _osInput(std::ostream& oss, const T& arg)
         {
             //remove_pointer对多级指针只会移除一层
             if (mtype::InTypesChecker<typename std::remove_const<typename std::remove_pointer<T>::type>::type, char, signed char, unsigned char>::value)
+                oss << arg;
+            else if (!arg)
                 oss << arg;
             else
             {
@@ -631,7 +645,7 @@ namespace mineutils
         }
 
         //添加对其他指针的支持
-        template<class T, typename std::enable_if<mtype::StdCoutEachChecker<const T>::value && !(std::is_function<typename std::remove_pointer<const T>::type>::value || std::is_member_function_pointer<const T>::value) && std::is_pointer<T>::value&& !mtype::InTypesChecker<typename std::remove_cv<typename std::remove_pointer<T>::type>::type, char, signed char, unsigned char>::value, int>::type>
+        template<class T, typename std::enable_if<mtype::StdCoutEachChecker<const T>::value && !(std::is_function<typename std::remove_pointer<const T>::type>::value || std::is_member_function_pointer<const T>::value) && std::is_pointer<T>::value && !mtype::InTypesChecker<typename std::remove_cv<typename std::remove_pointer<T>::type>::type, char, signed char, unsigned char>::value, int>::type>
         inline void _osInput(std::ostream& oss, const T& arg)
         {
             oss << std::showbase << std::hex << uintptr_t(arg) << std::dec;
@@ -732,7 +746,7 @@ namespace mineutils
             if (!ret0) mprintfE(R"(Failed when check: mstr::split("I need {} and {}  ", "{}", 1) == std::vector<std::string>({ "I need ", " and {}  " }))""\n");
 
 
-            ret0 = (mstr::rsplit("I need {} and {}  ", "{}") == std::vector<std::string>({ "I need ", " and ", "  " }) );
+            ret0 = (mstr::rsplit("I need {} and {}  ", "{}") == std::vector<std::string>({ "I need ", " and ", "  " }));
             if (!ret0) mprintfE(R"(Failed when check: mstr::rsplit("I need {} and {}  ", "{}") == std::vector<std::string>({ "I need ", " and ", "  " }))""\n");
 
             ret0 = (mstr::rsplit("I need {} and {}  ", "x") == std::vector<std::string>({ "I need {} and {}  " }));

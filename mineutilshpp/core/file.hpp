@@ -1,4 +1,4 @@
-﻿//mineutils库的文件相关操作
+//mineutils库的文件相关操作
 #pragma once
 #ifndef FILE_HPP_MINEUTILS
 #define FILE_HPP_MINEUTILS
@@ -62,8 +62,8 @@ namespace mineutils
             struct SectionInfo;
             struct KeyInfo;
 
-            bool searchSection(const std::string& line, SectionInfo& section_info);
-            bool searchKey(const std::string& line, KeyInfo& key_info);
+            bool searchSection(const std::string& line, SectionInfo& section_info, size_t offset);
+            bool searchKey(const std::string& line, KeyInfo& key_info, size_t offset);
             int saveContents();
 
             std::string file_path_;
@@ -106,7 +106,7 @@ namespace mineutils
             size_t value_pos = std::string::npos;;
             size_t value_len = 0;
         };
- 
+
         //打开ini文件
         inline int IniFile::open(std::string path, const char key_value_sep, std::vector<std::string> note_signs)
         {
@@ -144,10 +144,19 @@ namespace mineutils
                 std::string now_section = "";
                 while (this->file_.good())   //按行读取内容，并去掉\r和\n符号
                 {
-
+                    size_t offset = 0;
                     line_id++;
                     line.clear();
                     std::getline(this->file_, line);
+                    if (line_id == 0)
+                    {
+                        if (line.size() > 3 && line.substr(0, 3) == "\xEF\xBB\xBF")
+                        {
+                            mprintfI("Process the file:%s with UTF-8 BOM encoding\n", this->file_path_.c_str());
+                            offset = 3;
+                        }
+                        else mprintfI("Process the file:%s with UTF-8 encoding\n", this->file_path_.c_str());
+                    }
                     if (!line.empty())
                     {
                         line = mstr::rtrim(std::move(line));
@@ -156,33 +165,34 @@ namespace mineutils
                     if (line.empty())
                         continue;
                     SectionInfo section_info;
-                    if (this->searchSection(line, section_info))
+                    if (this->searchSection(line, section_info, offset))
                     {
                         now_section = line.substr(section_info.pos, section_info.len);
                         if (this->section_map_.find(now_section) != this->section_map_.end())
                         {
-                            mprintfW("Duplicate section:%s at line:%d!\n", now_section.c_str(), line_id+1);
+                            mprintfW("Duplicate section:%s at line:%d!\n", now_section.c_str(), line_id + 1);
                             continue;
                         }
                         section_info.line = --this->content_list_.end();
                         section_info.last = --this->content_list_.end();
-                                        
+
                         this->section_map_[now_section] = section_info;
+                        this->key_map_[now_section] = {};
                         continue;
                     }
 
                     KeyInfo key_info;
-                    if (this->searchKey(line, key_info))
-                    {        
+                    if (this->searchKey(line, key_info, offset))
+                    {
                         this->section_map_[now_section].last = --this->content_list_.end();
 
                         std::string key = line.substr(key_info.key_pos, key_info.key_len);
-                        
+
                         if (this->key_map_.find(now_section) != this->key_map_.end() && this->key_map_[now_section].find(key) != this->key_map_[now_section].end())
                         {
-                            mprintfW("Duplicate key:%s in section:%s at line:%d!\n", key.c_str(), now_section.c_str(), line_id+1);
+                            mprintfW("Duplicate key:%s in section:%s at line:%d!\n", key.c_str(), now_section.c_str(), line_id + 1);
                             continue;
-                        }                       
+                        }
                         key_info.line = --this->content_list_.end();
                         this->key_map_[now_section][key] = key_info;
                         continue;
@@ -319,7 +329,7 @@ namespace mineutils
             this->close();
         }
 
-        inline bool IniFile::searchSection(const std::string& line, SectionInfo& section_info)
+        inline bool IniFile::searchSection(const std::string& line, SectionInfo& section_info, size_t offset)
         {
             //找到注释的位置
             size_t note_pos = line.size();
@@ -329,18 +339,18 @@ namespace mineutils
                 if (tmp_pos < note_pos)
                     note_pos = tmp_pos;
             }
-
-            size_t pos0 = line.find_first_not_of(' ');
+            //std::isblank
+            size_t pos0 = line.find_first_not_of(" \t\n\r\f\v", offset);
             if (pos0 >= note_pos || line[pos0] != '[')
                 return false;
-            size_t pos1 = line.find_last_not_of(' ', note_pos - 1);
+            size_t pos1 = line.find_last_not_of(" \t\n\r\f\v", note_pos - 1);
             if (pos1 >= note_pos || line[pos1] != ']')
                 return false;
             if (pos1 <= pos0 + 1)
                 return false;
 
-            size_t sec_pos0 = line.find_first_not_of(" ", pos0 + 1);
-            size_t sec_pos1 = line.find_last_not_of(" ", pos1 - 1);
+            size_t sec_pos0 = line.find_first_not_of(" \t\n\r\f\v", pos0 + 1);
+            size_t sec_pos1 = line.find_last_not_of(" \t\n\r\f\v", pos1 - 1);
 
             if (sec_pos1 >= sec_pos0)
             {
@@ -352,7 +362,7 @@ namespace mineutils
             else return false;
         }
 
-        inline bool IniFile::searchKey(const std::string& line, KeyInfo& key_info)
+        inline bool IniFile::searchKey(const std::string& line, KeyInfo& key_info, size_t offset)
         {
             //找到注释的位置
             size_t note_pos = line.size();
@@ -367,7 +377,7 @@ namespace mineutils
             if (sep_pos >= note_pos)
                 return false;
 
-            std::string key = line.substr(0, sep_pos);
+            std::string key = line.substr(offset, sep_pos);
             std::vector<std::string> key_split = mstr::split(key);
             if (!key_split.empty())
             {
@@ -376,8 +386,8 @@ namespace mineutils
             }
             else return false;
 
-            size_t v_pos0 = line.find_first_not_of(" ", sep_pos + 1);
-            size_t v_pos1 = line.find_last_not_of(" ", note_pos - 1);
+            size_t v_pos0 = line.find_first_not_of(" \t\n\r\f\v", sep_pos + 1);
+            size_t v_pos1 = line.find_last_not_of(" \t\n\r\f\v", note_pos - 1);
 
             if (v_pos1 >= v_pos0)
             {
@@ -400,7 +410,7 @@ namespace mineutils
                 return -1;
             }
             size_t i = 0;
-            for (auto& content: this->content_list_)
+            for (auto& content : this->content_list_)
             {
                 if (i < this->content_list_.size() - 1)
                     this->file_ << content << "\n";
@@ -417,7 +427,7 @@ namespace mineutils
     {
         inline void IniFileTest()
         {
-            
+
         }
 
 

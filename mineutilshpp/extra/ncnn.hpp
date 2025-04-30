@@ -1,4 +1,4 @@
-﻿//mineutils库的ncnn相关功能
+//mineutils库的ncnn相关功能
 #pragma once
 #ifndef NCNN_HPP_MINEUTILS
 #define NCNN_HPP_MINEUTILS

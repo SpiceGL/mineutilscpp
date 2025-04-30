@@ -1,4 +1,4 @@
-﻿//mineutils库的路径相关功能
+//mineutils库的路径相关功能
 #pragma once
 #ifndef PATH_HPP_MINEUTILS
 #define PATH_HPP_MINEUTILS
@@ -21,6 +21,7 @@
 #endif
 
 #include"base.hpp"
+#include"type.hpp"
 
 
 namespace mineutils

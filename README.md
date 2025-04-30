@@ -1,9 +1,9 @@
 # mineutilscpp
 ## 描述
-C++的便利功能封装，专注于封装逻辑复杂或代码冗长的功能，主要用于方便自己工作、精进技术和提升代码文档规范性。库采用纯头文件实现，文本使用UTF8-SIG编码，代码使用C++11标准。 
+C++的便利功能封装，专注于封装逻辑复杂或代码冗长的功能，主要用于方便自己工作、精进技术和提升代码文档规范性。库采用纯头文件实现，文本使用UTF-8编码和CRLF行尾，代码使用C++11标准。 
 ## 版本信息
-当前库版本：2.3.0   
-文档注释修改日期：20250314  
+当前库版本：2.4.0   
+文档注释修改日期：20250430  
 ## 测试平台
 **Windows:**  
 VS2019  
@@ -20,6 +20,7 @@ aarch64-barebone1.1.0-g++ 8.3.0
 + **轻量实用**：接口的设计尽量简洁，避免功能重叠，避免过度封装，专注封装逻辑复杂或代码冗长的功能  
 - **线程安全**：所有函数接口都保证线程安全；类的不同对象之间保证线程安全；但类的同一个对象的各个成员函数之间,非明确说明不保证线程安全  
 * **性能优化**：在不提高接口复杂度的情况下，尽可能提升性能降低开销   
+* **避免异常**：所有接口将避免主动抛出异常，但资源限制等情况导致的被动异常可能不会考虑   
 ### 命名规则
 * 类型统一大驼峰命名
 + 函数统一小驼峰命名
@@ -40,7 +41,7 @@ aarch64-barebone1.1.0-g++ 8.3.0
 ### 基本信息
 | 文件夹 | 模块 | 功能 |
 |:--------:|:--------:|:-------:|   
--- | **\_\_stdutils\_\_.h** | 基于C/C++标准库实现的mineutils库核心功能
+-- | **\_\_stdutils\_\_.h** | 基于C/C++标准库及系统库实现的mineutils库核心功能
 core | **base.hpp** | mineutils库的版本信息及基础宏定义。包含于mineutils::mbase  
 core | **time.hpp** | 时间相关的便捷操作，如计时、休眠等。包含于mineutils::mtime    
 core | **type.hpp** | 类型相关操作，提供可用于模板推导的类型检查功能。包含于mineutils::mtype
@@ -357,6 +358,18 @@ int main()
 ```  
 
 ## 版本更新日志
+**v2.4.0**  
+* 20250430  
+1. 添加模块datastruct.hpp及命名空间mds，现在包含循环队列类CircularQueue；
+2. mthrd::ThreadPool添加full方法，mthrd::TaskFuture添加getPtr方法，替代get接口以避免主动抛出异常；
+3. 添加mmath::PolynomialFitter2D类，用于多项式拟合平面函数；
+4. mfile::IniFile类添加对UTF-8 BOM编码类型文件的支持；
+5. mprintfW和mprintfE现在输出到标准错误流stderr，并添加当地时间信息，mprintfI依然输出到stdout;
+6. QNX710的gcc8.3.0似乎无法正确处理子线程的thread_local std::ostringstream对象，于是绕开这种写法； 
+7. mio::print优化对字符串指向nullptr的处理，mtime::MeanTimeCounter效率优化；  
+8. 修复mtime::MeanTimeCounter在print_header为空时打印不符合预期格式的问题；
+9. 代码文本编码切换为UTF-8。  
+
 **v2.3.0**  
 * 20250314  
 1. mio::ArgumentParser遵循惯例，限制短flag必须为单字母，且支持解析合并的短flag；
