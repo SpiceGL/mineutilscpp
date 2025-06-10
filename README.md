@@ -2,8 +2,8 @@
 ## 描述
 C++的便利功能封装，专注于封装逻辑复杂或代码冗长的功能，主要用于方便自己工作、精进技术和提升代码文档规范性。库采用纯头文件实现，文本使用UTF-8编码和CRLF行尾，代码使用C++11标准。 
 ## 版本信息
-当前库版本：2.4.0   
-文档注释修改日期：20250430  
+当前库版本：2.5.0   
+文档注释修改日期：20250610   
 ## 测试平台
 **Windows:**  
 VS2019  
@@ -31,11 +31,10 @@ aarch64-barebone1.1.0-g++ 8.3.0
 ### 更新规则
 更新遵循大版本号删改接口，中版本号添加新功能接口，小版本号修复和优化的原则；在同一大版本内废弃接口仅标记，不删除。  
 ### 兼容性声明
-大版本内保证接口的代码级兼容，但以下情况除外：
-* **未明确指定签名的函数作为参数**：例如对于库内函数`func`，使用`std::thread(func, args...)`或`mtype::FuncChecker<decltype(func)>`的方式传递函数，这类情况由于函数签名未明确指出，可能会因为更新导致编译器无法确认指向哪个重载
-+ **使用非安全的手段访问资源**：例如使用指针偏移等方式访问类和结构体的成员，不保证更新后成员的签名、类型和内存偏移不发生变动
-- **依赖了类和结构体的具体size**：类和结构体的size在更新的过程中可能改变，如果代码依赖其当前具体size，可能会在更新后出现非预期的结果
-* **库和可执行文件中混用不同版本mineutils且未隐藏符号**：如果库和可执行文件混用不同版本mineutils，且编译库时未隐藏使用的mineutils库内符号，就有可能因为类型的内存布局变化导致二进制不兼容
+大版本内接口不删除不改名，但会有下列可能导致兼容问题的更新：
+* 为了接口的准确性和间接性，更新可能修改函数参数类型为其他兼容类型，或增加带默认值的新参数，如：`void func(int a)`变为`void func(short a)`或`void func(int a, int b = 0)`
++ 为了增加新的功能，更新可能增加新的函数重载
+- 作为纯头文件库而非二进制库，更新可能改变类和结构体的内存布局
 
 ## 模块介绍
 ### 基本信息
@@ -45,6 +44,7 @@ aarch64-barebone1.1.0-g++ 8.3.0
 core | **base.hpp** | mineutils库的版本信息及基础宏定义。包含于mineutils::mbase  
 core | **time.hpp** | 时间相关的便捷操作，如计时、休眠等。包含于mineutils::mtime    
 core | **type.hpp** | 类型相关操作，提供可用于模板推导的类型检查功能。包含于mineutils::mtype
+core | **datastruct.hpp** | 需要用到的非标准库数据结构，如循环队列等。包含于mineutils::mds
 core | **math.hpp** | 数学相关的操作，目前包含矩形框操作等。包含于mineutils::mmath    
 core | **path.hpp** | 路径相关操作，如exists、listDir、join、makeDirs等便捷功能。包含于mineutils::mpath    
 core | **str.hpp** | std::string字符串的便捷操作，如转换为字符串、分割字符串等。包含于mineutils::mstr     
@@ -358,6 +358,12 @@ int main()
 ```  
 
 ## 版本更新日志
+**v2.5.0**  
+* 20250610  
+1. mmath的Rect系列类添加toArray接口；
+2. mthrd::TaskFuture类添加toFuture接口，且接口现在均支持const；
+3. mtype下添加EachTrueChecker和EachFalseChecker结构体，用于减少mtype下的模板递归带来的代码膨胀。
+
 **v2.4.0**  
 * 20250430  
 1. 添加模块datastruct.hpp及命名空间mds，现在包含循环队列类CircularQueue；

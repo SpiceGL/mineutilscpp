@@ -64,6 +64,8 @@ namespace mineutils
             RectXYWH<T> toXYWH() const;
             //若自身数据为整数类型，则按像素运算，否则按连续数值运算
             RectLTWH<T> toLTWH() const;
+            //导出array形式的rect
+            std::array<T, 4> toArray() const;
             //裁剪自身位于另一个rect内的部分。若结果为无效代表无交集
             RectLTRB<T> clipTo(const RectLTRB<T>& other) const;
             //计算面积，注意T的范围避免溢出
@@ -107,6 +109,8 @@ namespace mineutils
             RectLTRB<T> toLTRB() const;
             //若自身数据为整数类型，则按像素运算，否则按连续数值运算
             RectXYWH<T> toXYWH() const;
+            //导出array形式的rect
+            std::array<T, 4> toArray() const;
             //裁剪自身位于另一个rect内的部分。若结果为无效代表无交集
             RectLTWH<T> clipTo(const RectLTWH<T>& other) const;
             //计算面积，注意T的范围避免溢出
@@ -149,6 +153,8 @@ namespace mineutils
             RectLTRB<T> toLTRB() const;
             //若自身数据为整数类型，则按像素运算，否则按连续数值运算
             RectLTWH<T> toLTWH() const;
+            //导出array形式的rect
+            std::array<T, 4> toArray() const;
             //裁剪自身位于另一个rect内的部分。若结果为无效代表无交集
             RectXYWH<T> clipTo(const RectXYWH<T>& other) const;
             //计算面积，注意T的范围避免溢出
@@ -337,6 +343,12 @@ namespace mineutils
         }
 
         template<class T>
+        inline std::array<T, 4> RectLTRB<T>::toArray() const
+        {
+            return this->data_;
+        }
+
+        template<class T>
         inline RectLTRB<T> RectLTRB<T>::clipTo(const RectLTRB<T>& other) const
         {
             if (!this->valid() && !other.valid())   //如果比较的双方有一个无效，返回无效的结果
@@ -465,6 +477,12 @@ namespace mineutils
         }
 
         template<class T>
+        inline std::array<T, 4> RectLTWH<T>::toArray() const
+        {
+            return this->data_;
+        }
+
+        template<class T>
         inline RectLTWH<T> RectLTWH<T>::clipTo(const RectLTWH<T>& other) const
         {
             if (!this->valid() && !other.valid())   //如果比较的双方有一个无效，返回无效的结果
@@ -585,6 +603,12 @@ namespace mineutils
                 T t = this->data_[1] - this->data_[3] / 2;
                 return { l, t, this->data_[2], this->data_[3] };
             }
+        }
+
+        template<class T>
+        inline std::array<T, 4> RectXYWH<T>::toArray() const
+        {
+            return this->data_;
         }
 
         template<class T>

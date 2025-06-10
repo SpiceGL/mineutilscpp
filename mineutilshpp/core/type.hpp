@@ -29,9 +29,9 @@ namespace mineutils
         struct RvalueRefMaker;
 
 
-        /*  检查Type1、Type2、Types...是否为相同类型，不忽略const、引用等符号
-            用法：SameTypesChecker<Type1, Type2, Types...>::value, 类型为constexpr bool   */
-        template<class Type1, class Type2, class ...Types>
+        /*  检查Type0、Type1、Types...是否为相同类型，不忽略const、引用等符号
+            用法：SameTypesChecker<Type0, Type1, Types...>::value, 类型为constexpr bool   */
+        template<class Type0, class Type1, class ...Types>
         struct SameTypesChecker;
 
 
@@ -63,6 +63,7 @@ namespace mineutils
         /*  检查T、Ts...类型中的每一个是否都支持使用自身的左值进行构造或引用绑定，支持模板SFINAE特性
             - 对于T、Ts...中的非引用类型，检查其能否由自身的左值对象构造
             - 对于T、Ts...中的引用类型，检查其能否绑定到自身的左值对象上
+            - 与std::is_copy_constructible的区别在于对引用类型的处理也有意义
             用法：EachLvalueConstructibleChecker<T, Ts...>::value，类型为constexpr bool   */
         template<class T, class... Ts>
         struct EachLvalueConstructibleChecker;
@@ -71,6 +72,7 @@ namespace mineutils
         /*  检查T、Ts...类型中的每一个是否都支持使用自身的右值进行构造或引用绑定，支持模板SFINAE特性
             - 对于T、Ts...中的非引用类型，检查其能否由自身的右值对象构造
             - 对于T、Ts...中的引用类型，检查其能否绑定到自身的右值对象上
+            - 与std::is_move_constructible的区别在于对引用类型的处理也有意义
             用法：EachRvalueConstructibleChecker<T, Ts...>::value，类型为constexpr bool   */
         template<class T, class... Ts>
         struct EachRvalueConstructibleChecker;
@@ -191,17 +193,70 @@ namespace mineutils
             using Type = typename std::add_rvalue_reference<typename std::remove_reference<T>::type>::type;
         };
 
+        /*  判断是否每个给出的编译期布尔量都为true
+            存在问题：
+            - 在VS2019中测试，无法正确处理模板template<class... Ts, typename std::enable_if<mtype::EachTrueChecker<std::is_same<int, Ts>::value...>::value, int>::type = 0>
+            - 可能是VS2019的实现bug，需要为改为template<class... Ts, typename std::enable_if<mtype::EachTrueChecker<xx, std::is_same<int, Ts>::value...>::value, int>::type = 0>
+            - 其他类似的模板在VS2019中可能会存在类似的问题
+            用法：EachTrueChecker<values...>::value, 类型为constexpr bool  */
+        template<bool bvalue, bool... bvalues>
+        struct EachTrueChecker
+        {
+        private:
+            //似乎对于模板中都是​​非类型参数(值参数)​​的情况，在VS中判断结果不符合预期，因此只能通过尾随返回类型的方式解决
+            template<bool v, bool... vs, typename = typename std::enable_if<v, int>::type>
+            static auto check(int) -> typename std::enable_if<mtype::EachTrueChecker<vs...>::value, std::true_type>::type;
 
-        /*  检查Type1、Type2、Types...是否为相同类型，不忽略const、引用等符号
-            用法：SameTypesChecker<Type1, Type2, Types...>::value, 类型为constexpr bool   */
-        template<class Type1, class Type2, class ...Types>
+            template<bool v, bool... vs>
+            static auto check(int) -> typename std::enable_if<v && (sizeof...(vs) == 0), std::true_type>::type;
+
+            template<bool v, bool... vs>
+            static auto check(int) -> typename std::enable_if<!v, std::false_type>::type;
+
+            template<bool...>
+            static std::false_type check(...);
+
+            EachTrueChecker() = delete;
+
+        public:
+            static constexpr bool value = decltype(mtype::EachTrueChecker<bvalue, bvalues...>::template check<bvalue, bvalues...>(0))::value;
+        };
+        template<bool bvalue, bool... bvalues>
+        constexpr bool mtype::EachTrueChecker<bvalue, bvalues...>::value;
+
+        /*  判断是否每个给出的编译期布尔量都为false
+            用法：EachFalseChecker<values...>::value, 类型为constexpr bool  */
+        template<bool bvalue, bool... bvalues>
+        struct EachFalseChecker
+        {
+        private:
+            template<bool v, bool... vs, typename = typename std::enable_if<!v, int>::type>
+            static auto check(int) -> typename std::enable_if<mtype::EachFalseChecker<vs...>::value, std::true_type>::type;
+
+            template<bool v, bool... vs>
+            static auto check(int) -> typename std::enable_if<!v && (sizeof...(vs) == 0), std::true_type>::type;
+
+            template<bool v, bool... vs>
+            static auto check(int) -> typename std::enable_if<v, std::false_type>::type;
+
+            template<bool...>
+            static std::false_type check(...);
+
+            EachFalseChecker() = delete;
+
+        public:
+            static constexpr bool value = decltype(mtype::EachFalseChecker<bvalue, bvalues...>::template check<bvalue, bvalues...>(0))::value;
+        };
+        template<bool bvalue, bool... bvalues>
+        constexpr bool mtype::EachFalseChecker<bvalue, bvalues...>::value;
+
+        /*  检查Type0、Type1、Types...是否为相同类型，不忽略const、引用等符号
+            用法：SameTypesChecker<Type0, Type1, Types...>::value, 类型为constexpr bool   */
+        template<class Type0, class Type1, class ...Types>
         struct SameTypesChecker
         {
         private:
-            template<class U1, class U2, class ...Us, typename std::enable_if<std::is_same<U1, U2>::value&& mtype::SameTypesChecker<U1, Us...>::value, int>::type = 0>
-            static std::true_type check(int);
-
-            template<class U1, class U2, class ...Us, typename std::enable_if<std::is_same<U1, U2>::value && (sizeof...(Us) == 0), int>::type = 0>
+            template<class U0, class U1, class ...Us, typename std::enable_if<mtype::EachTrueChecker<std::is_same<U0, U1>::value, std::is_same<U0, Us>::value...>::value, int>::type = 0>
             static std::true_type check(int);
 
             template<class ...>
@@ -210,10 +265,10 @@ namespace mineutils
             SameTypesChecker() = delete;
 
         public:
-            static constexpr bool value = decltype(mtype::SameTypesChecker<Type1, Type2, Types...>::template check<Type1, Type2, Types...>(0))::value;
+            static constexpr bool value = decltype(mtype::SameTypesChecker<Type0, Type1, Types...>::template check<Type0, Type1, Types...>(0))::value;
         };
-        template<class Type1, class Type2, class ...Types>
-        constexpr bool mtype::SameTypesChecker<Type1, Type2, Types...>::value;
+        template<class Type0, class Type1, class ...Types>
+        constexpr bool mtype::SameTypesChecker<Type0, Type1, Types...>::value;
 
 
         /*  检查T是否为Type、Types...中的一个，不忽略const、引用等符号
@@ -222,10 +277,7 @@ namespace mineutils
         struct InTypesChecker
         {
         private:
-            template<class U1, class U2, class ...Us, typename std::enable_if<std::is_same<U1, U2>::value || mtype::InTypesChecker<U1, Us...>::value, int>::type = 0>
-            static std::true_type check(int);
-
-            template<class U1, class U2, class ...Us, typename std::enable_if<std::is_same<U1, U2>::value && (sizeof...(Us) == 0), int>::type = 0>
+            template<class U0, class U1, class ...Us, typename std::enable_if<!mtype::EachFalseChecker<std::is_same<U0, U1>::value, std::is_same<U0, Us>::value...>::value, int>::type = 0>
             static std::true_type check(int);
 
             template<class ...>
@@ -276,10 +328,7 @@ namespace mineutils
         struct StdCoutEachChecker
         {
         private:
-            template<class U, class... Us, typename std::enable_if<_mpriv::StdCoutChecker<U>::value&& mtype::StdCoutEachChecker<Us...>::value, int>::type = 0>
-            static std::true_type check(int);
-
-            template<class U, class... Us, typename std::enable_if<_mpriv::StdCoutChecker<U>::value && (sizeof...(Us) == 0), int>::type = 0>
+            template<class U, class... Us, typename std::enable_if<mtype::EachTrueChecker<_mpriv::StdCoutChecker<U>::value, _mpriv::StdCoutChecker<Us>::value...>::value, int>::type = 0>
             static std::true_type check(int);
 
             template<class...>
@@ -306,10 +355,7 @@ namespace mineutils
         struct ConstructibleFromEachChecker
         {
         private:
-            template<class DstU, class U, class... Us, typename std::enable_if<std::is_constructible<DstU, U>::value&& mtype::ConstructibleFromEachChecker<DstU, Us...>::value, int>::type = 0>
-            static std::true_type check(int);
-
-            template<class DstU, class U, class... Us, typename std::enable_if<std::is_constructible<DstU, U>::value && (sizeof...(Us) == 0), int>::type = 0>
+            template<class DstU, class U, class... Us, typename std::enable_if<mtype::EachTrueChecker<std::is_constructible<DstU, U>::value, std::is_constructible<DstU, Us>::value...>::value, int>::type = 0>
             static std::true_type check(int);
 
             template<class...>
@@ -326,15 +372,13 @@ namespace mineutils
         /*  检查T、Ts...类型中的每一个是否都支持使用自身的左值进行构造或引用绑定，支持模板SFINAE特性
             - 对于T、Ts...中的非引用类型，检查其能否由自身的左值对象构造
             - 对于T、Ts...中的引用类型，检查其能否绑定到自身的左值对象上
+            - 与std::is_copy_constructible的区别在于对引用类型的处理也有意义
             用法：EachLvalueConstructibleChecker<T, Ts...>::value，类型为constexpr bool   */
         template<class T, class... Ts>
         struct EachLvalueConstructibleChecker
         {
         private:
-            template<class U, class... Us, typename std::enable_if<std::is_constructible<U, typename std::add_lvalue_reference<U>::type>::value&& mtype::EachLvalueConstructibleChecker<Us...>::value, int>::type = 0>
-            static std::true_type check(int);
-
-            template<class U, class... Us, typename std::enable_if<std::is_constructible<U, typename std::add_lvalue_reference<U>::type>::value && (sizeof...(Us) == 0), int>::type = 0>
+            template<class U, class... Us, typename std::enable_if<mtype::EachTrueChecker<std::is_constructible<U, typename std::add_lvalue_reference<U>::type>::value, mtype::EachLvalueConstructibleChecker<Us>::value...>::value, int>::type = 0>
             static std::true_type check(int);
 
             template<class...>
@@ -352,15 +396,13 @@ namespace mineutils
         /*  检查T、Ts...类型中的每一个是否都支持使用自身的右值进行构造或引用绑定，支持模板SFINAE特性
             - 对于T、Ts...中的非引用类型，检查其能否由自身的右值对象构造
             - 对于T、Ts...中的引用类型，检查其能否绑定到自身的右值对象上
+            - 与std::is_move_constructible的区别在于对引用类型的处理也有意义
             用法：EachRvalueConstructibleChecker<T, Ts...>::value，类型为constexpr bool   */
         template<class T, class... Ts>
         struct EachRvalueConstructibleChecker
         {
         private:
-            template<class U, class... Us, typename std::enable_if<std::is_constructible<U, typename mtype::RvalueRefMaker<U>::Type>::value&& mtype::EachRvalueConstructibleChecker<Us...>::value, int>::type = 0>
-            static std::true_type check(int);
-
-            template<class U, class... Us, typename std::enable_if<std::is_constructible<U, typename mtype::RvalueRefMaker<U>::Type>::value && (sizeof...(Us) == 0), int>::type = 0>
+            template<class U, class... Us, typename std::enable_if<mtype::EachTrueChecker<std::is_constructible<U, typename mtype::RvalueRefMaker<U>::Type>::value, mtype::EachRvalueConstructibleChecker<Us>::value...>::value, int>::type = 0>
             static std::true_type check(int);
 
             template<class...>
@@ -512,14 +554,11 @@ namespace mineutils
             struct EachConstructibleByLRvalueChecker
             {
             private:
-                template<class Argument, class... Arguments, typename std::enable_if<std::is_array<typename std::remove_reference<Argument>::type>::value, int>::type = 0, typename std::enable_if<_mpriv::EachConstructibleByLRvalueChecker<Arguments...>::value, int>::type = 0>
+                template<class Argument, class... Arguments, typename std::enable_if<mtype::EachTrueChecker<std::is_array<typename std::remove_reference<Argument>::type>::value, _mpriv::EachConstructibleByLRvalueChecker<Arguments>::value...>::value, int>::type = 0>
                 static std::true_type check(int);
 
-                template<class Argument, class... Arguments, typename std::enable_if<!std::is_array<typename std::remove_reference<Argument>::type>::value, int>::type = 0, typename std::enable_if<mtype::ConstructibleFromEachChecker<typename std::remove_reference<Argument>::type, typename std::add_lvalue_reference<Argument>::type, typename mtype::RvalueRefMaker<Argument>::Type>::value&& _mpriv::EachConstructibleByLRvalueChecker<Arguments...>::value, int>::type = 0>
+                template<class Argument, class... Arguments, typename std::enable_if<!std::is_array<typename std::remove_reference<Argument>::type>::value, int>::type = 0, typename std::enable_if<mtype::EachTrueChecker<mtype::ConstructibleFromEachChecker<typename std::remove_reference<Argument>::type, typename std::add_lvalue_reference<Argument>::type, typename mtype::RvalueRefMaker<Argument>::Type>::value, _mpriv::EachConstructibleByLRvalueChecker<Arguments>::value...>::value, int>::type = 0>
                 static std::true_type check(int);
-
-                //template<class Argument, class... Arguments, typename std::enable_if<mtype::ConstructibleFromEachChecker<typename std::remove_reference<Argument>::type, typename std::add_lvalue_reference<Argument>::type, typename mtype::RvalueRefMaker<Argument>::Type>::value&& _mpriv::EachConstructibleByLRvalueChecker<Arguments...>::value, int>::type = 0>
-                //static std::true_type check(int);
 
                 template<class... Arguments, typename std::enable_if<(sizeof...(Arguments) == 0), int>::type = 0>
                 static std::true_type check(int);
@@ -753,12 +792,28 @@ namespace mineutils
 #ifdef MINEUTILS_TEST_MODULES
     namespace _mtypecheck
     {
+        inline void EachTrueFalseCheckerTest()
+        {
+            static_assert(mtype::EachTrueChecker<true>::value, "assert failed!");
+            static_assert(mtype::EachTrueChecker<true, true, true>::value, "assert failed!");
+            static_assert(!mtype::EachTrueChecker<true, false, true>::value, "assert failed!");
+            static_assert(!mtype::EachTrueChecker<false>::value, "assert failed!");
+
+
+            static_assert(mtype::EachFalseChecker<false>::value, "assert failed!");
+            static_assert(mtype::EachFalseChecker<false, false>::value, "assert failed!");
+            static_assert(!mtype::EachFalseChecker<false, false, true, false>::value, "assert failed!");
+            static_assert(!mtype::EachFalseChecker<true>::value, "assert failed!");
+        }
+
+
         inline void SameTypesCheckerTest()
         {
             static_assert(mtype::SameTypesChecker<int, unsigned int>::value == false, "assert failed!");
             static_assert(mtype::SameTypesChecker<int, unsigned int, int, int>::value == false, "assert failed!");
             static_assert(mtype::SameTypesChecker<int, int, int, unsigned int>::value == false, "assert failed!");
             static_assert(mtype::SameTypesChecker<int, int>::value == true, "assert failed!");
+            static_assert(mtype::SameTypesChecker<int, int, int>::value == true, "assert failed!");
             static_assert(mtype::SameTypesChecker<int, int, int, int>::value == true, "assert failed!");
         }
 
@@ -1006,6 +1061,7 @@ namespace mineutils
         inline void check()
         {
             printf("\n--------------------check mtype start--------------------\n");
+            EachTrueFalseCheckerTest();
             SameTypesCheckerTest();
             InTypesCheckerTest();
             privStdBeginEndCheckerTest();

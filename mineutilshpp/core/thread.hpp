@@ -101,11 +101,11 @@ namespace mineutils
             TaskFuture() {};
 
             //判断任务是否为有效状态；线程安全
-            bool valid();
+            bool valid() const;
             //判断任务是否结束，如果任务为无效状态会返回true；线程安全
-            bool finished();
+            bool finished() const;
             //等待任务结束，如果任务为无效状态会立即返回；线程安全
-            void wait();
+            void wait() const;
 
             /*  等待并获取任务结果的指针，避免抛出异常
                 - 线程安全
@@ -113,19 +113,25 @@ namespace mineutils
                 - Ret为void时也返回nullptr
                 - 返回的指针在TaskFuture对象更新或析构时失效
                 @return 任务返回值的指针  */
-            const Ret* getPtr();
+            const Ret* getPtr() const;
+            //导出标准库future
+            std::shared_future<Ret> toFuture() const;
 
             //支持移动禁止拷贝
-            TaskFuture(TaskFuture<Ret>&& future_state) noexcept;
-            TaskFuture& operator=(TaskFuture<Ret>&& future_state) noexcept;
+            TaskFuture(TaskFuture<Ret>&& task_future) noexcept;
+            TaskFuture& operator=(TaskFuture<Ret>&& task_future) noexcept;
 
         private:
             template<class RetU, typename std::enable_if<std::is_void<RetU>::value, int>::type = 0>
-            const RetU* getPtrDispatch();
+            const RetU* getPtrDispatch() const;
             template<class RetU, typename std::enable_if<!std::is_void<RetU>::value, int>::type = 0>
-            const RetU* getPtrDispatch();
+            const RetU* getPtrDispatch() const;
 
+#if defined(__GNUC__) && !_mgccMinVersion(4, 8, 1)  //for qnx660
+            mutable std::shared_future<Ret> future_state_;
+#else
             std::shared_future<Ret> future_state_;
+#endif
             friend class mthrd::ThreadPool;
 
         public:
@@ -455,13 +461,13 @@ namespace mineutils
         }
 
         template<class Ret>
-        inline bool TaskFuture<Ret>::valid()
+        inline bool TaskFuture<Ret>::valid() const
         {
             return this->future_state_.valid();
         }
 
         template<class Ret>
-        inline bool TaskFuture<Ret>::finished()
+        inline bool TaskFuture<Ret>::finished() const
         {
             if (this->future_state_.valid())
                 return this->future_state_.wait_for(std::chrono::nanoseconds(0)) == std::future_status::ready;
@@ -470,7 +476,7 @@ namespace mineutils
         }
 
         template<class Ret>
-        inline void TaskFuture<Ret>::wait()
+        inline void TaskFuture<Ret>::wait() const
         {
             if (this->future_state_.valid())
                 this->future_state_.wait();
@@ -478,21 +484,27 @@ namespace mineutils
         }
 
         template<class Ret>
-        inline const Ret* TaskFuture<Ret>::getPtr()
+        inline const Ret* TaskFuture<Ret>::getPtr() const
         {
             return this->getPtrDispatch<Ret>();
         }
 
         template<class Ret>
+        inline std::shared_future<Ret> TaskFuture<Ret>::toFuture() const
+        {        
+            return this->future_state_;
+        }
+
+        template<class Ret>
         template<class RetU, typename std::enable_if<std::is_void<RetU>::value, int>::type>
-        inline const RetU* TaskFuture<Ret>::getPtrDispatch()
+        inline const RetU* TaskFuture<Ret>::getPtrDispatch() const
         {
             return nullptr;
         }
 
         template<class Ret>
         template<class RetU, typename std::enable_if<!std::is_void<RetU>::value, int>::type>
-        inline const RetU* TaskFuture<Ret>::getPtrDispatch()
+        inline const RetU* TaskFuture<Ret>::getPtrDispatch() const
         {
             if (this->future_state_.valid())
                 return &this->future_state_.get();
@@ -794,6 +806,8 @@ namespace mineutils
         {
             mthrd::ThreadPool thread_pool(4);
             mthrd::TaskFuture<void> state1 = thread_pool.addTask([](int x) {std::this_thread::sleep_for(std::chrono::seconds(1)); }, 1);
+            auto ft = state1.toFuture();
+            ft.wait();
             if (state1.getPtr()) mprintfE(R"(Failed when check: thread_pool.addTask 1)""\n");
 
             mthrd::TaskFuture<int> state2 = thread_pool.addTask([](int x) {std::this_thread::sleep_for(std::chrono::seconds(1)); return x; }, 1);
