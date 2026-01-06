@@ -2,8 +2,8 @@
 ## 描述
 C++的便利功能封装，专注于封装逻辑复杂或代码冗长的功能，主要用于方便自己工作、精进技术和提升代码文档规范性。库采用纯头文件实现，文本使用UTF-8编码和CRLF行尾，代码使用C++11标准。 
 ## 版本信息
-当前库版本：2.5.0   
-文档注释修改日期：20250610   
+当前库版本：3.0.0   
+文档注释修改日期：20251219   
 ## 测试平台
 **Windows:**  
 VS2019  
@@ -24,15 +24,15 @@ aarch64-barebone1.1.0-g++ 8.3.0
 ### 命名规则
 * 类型统一大驼峰命名
 + 函数统一小驼峰命名
-- 对象统一小写+下划线命名
-* 枚举类成员统一小写+下划线命名
+- 变量和对象统一小写+下划线命名
+* 枚举类成员统一大写+下划线命名
 + 对象式宏定义统一大写+下划线命名，以`MINE_`作为前缀
 - 函数式宏统一小驼峰命名，以`m`作为前缀
 ### 更新规则
 更新遵循大版本号删改接口，中版本号添加新功能接口，小版本号修复和优化的原则；在同一大版本内废弃接口仅标记，不删除。  
 ### 兼容性声明
 大版本内接口不删除不改名，但会有下列可能导致兼容问题的更新：
-* 为了接口的准确性和间接性，更新可能修改函数参数类型为其他兼容类型，或增加带默认值的新参数，如：`void func(int a)`变为`void func(short a)`或`void func(int a, int b = 0)`
+* 为了接口的准确性，更新可能修改函数参数类型为其他兼容类型，或增加带默认值的新参数，如：`void func(int a)`变为`void func(short a)`或`void func(int a, int b = 0)`
 + 为了增加新的功能，更新可能增加新的函数重载
 - 作为纯头文件库而非二进制库，更新可能改变类和结构体的内存布局
 
@@ -68,8 +68,8 @@ extra | **ncnn.hpp** |  NCNN相关便捷功能，如快捷运行模型、打印n
 * 最后根据模块使用其中的功能，如`mstr::toStr(123)` 
 + 版本号写在`base.hpp`里，在Linux上可以通过`strings xxx | grep version`命令查找应用使用的mineutils库版本  
 ### 注意事项
-* 以下划线开头的函数和类不应外部使用，这些仅用于内部功能实现，随时可能删改 
-+ `mineutilshpp/extra`里的功能都是基于第三方库的封装，带有一定妥协性质，不会像`mineutilshpp/core`中的代码设计严格
+* 以下划线开头的函数、类和命名空间不应外部使用，这些仅用于内部功能实现，随时可能删改 
++ `mineutilshpp/extra`里的功能是额外方便功能封装，带有妥协性质，会收录方便但通用性不高的功能，设计严格性不如`mineutilshpp/core`
 - QNX660的g++ 4.7.3对C++11标准支持不完善，编译时需要额外指定-D_GLIBCXX_USE_NANOSLEEP，且在该编译器上的类型检查可能导致编译错误出现在检查条件内部
 * 使用QNX710上的g++ 8.3.0编译时需要指定：-std=gnu++11 
 + 可以无视unused类型警告
@@ -96,16 +96,16 @@ int main()
 int main()
 {
     //普通计时
-    auto start_t = mtime::now();
+    auto start_t = mtime::nowSteady();
     ...  //do something
-    auto end_t = mtine::now();
-    long long cost_time = end_t.since<mtime::ms>(start_t);
+    auto end_t = mtine::nowSteady();
+    long long cost_time = end_t.since<mtime::MSEC>(start_t);
 
     //打印当前时间
-    std::cout << mtine::now().localTime() << std::endl;
+    std::cout << mtine::nowSystem().localTime() << std::endl;
     
     //统计并打印代码段平均耗时
-    mtime::MeanTimeCounter time_counter{10, __func__, mtime::ms};
+    mtime::MeanTimeCounter time_counter{10, __func__, mtime::MSEC};
     while(true)
     {
         time_counter.markStart("part1");
@@ -117,12 +117,12 @@ int main()
             ...  // do something2
         }
         
-        time_counter.printOnTargetCount<mtime::ms>();   //每10次循环计算并打印一次平均耗时
+        time_counter.printOnTargetCount<mtime::MSEC>();   //每10次循环计算并打印一次平均耗时
     }
     
     //快速统计并打印代码段耗时
     {
-        TimeCounterGuard<mtime::ms> guard("part3");
+        TimeCounterGuard<mtime::MSEC> guard("part3");
         ...  // do something3
     }   //离开作用域时统计并打印耗时
     
@@ -163,7 +163,7 @@ int main()
 int main()
 {
     //参数填入字符串
-    std::string s3 = mstr::fmtStr("{} has {} billion people.", "China", "1.4");   //返回"China has 1.4 billion people."
+    std::string s3 = mstr::format("{} has {} billion people.", "China", "1.4");   //返回"China has 1.4 billion people."
     
     //字符串分割
     std::string s4 = " hello world! ";
@@ -213,7 +213,6 @@ int main()
 
     //创建、删除目录和文件
     mpath::makeDirs("A/B/C");
-    mpath::remove("A");
     
     ...
 }
@@ -358,6 +357,21 @@ int main()
 ```  
 
 ## 版本更新日志
+**v3.0.0**  
+* 20260105  
+1. mtime::TimePoint增加用户输入时间的接口，但mtime::now函数分离为nowSsytem何nowSteady；   
+2. mtime::Unit枚举类的成员现在改为大写，mtime::MinTimeGuard新增谓词和循环间隔用于提前退出；
+3. mtime::MeanTimeCounter类接口改动，并增加getMeanTimeCost成员函数；
+4. mio::ArgumentParser类的parse函数增加对必需项缺失的判断，对参数的格式检查更加严格，getValueOpt函数现在返回const std::string&； 
+5. mmath的Rect系列类统一为Rect类，mmath::PolynomialFitter2D类变为模板类；
+6. mfile::IniFile修改open接口，对section和key的格式检查更加严格；
+7. mtype::StdBindTraits更名为mtype::StrictStdBindTraits；
+8. mstr的split系列函数接口更新，修复存在的bug；
+8. Guard系列类的release接口都更名为reset，和标准库保持一致风格；
+9. 删除已废弃的接口，新增.clang-format文件。
+
+
+
 **v2.5.0**  
 * 20250610  
 1. mmath的Rect系列类添加toArray接口；
